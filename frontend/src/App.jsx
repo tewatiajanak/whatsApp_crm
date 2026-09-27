@@ -41,7 +41,6 @@ import TemplatesEmail from "./knowvato-main/routes/modules.templates-email";
 import TemplatesSms from "./knowvato-main/routes/modules.templates-sms";
 import IntegrationsWhatsapp from "./knowvato-main/routes/modules.integrations-whatsapp";
 import ModulePage from "./knowvato-main/routes/modules.$module";
-import EasyInOutPage from "./easy-inout/EasyInOutPage";
 
 // Utilities Module Components
 import UtilitiesLayout from "./knowvato-main/routes/modules.utilities";
@@ -96,7 +95,6 @@ export default function App() {
           }
         >
           <Route index element={<KnowvatoDashboard />} />
-          <Route path="modules/easy-inout/*" element={<EasyInOutPage />} />
           <Route path="modules/events" element={<EventManagerLayout />}>
             <Route index element={<EventsIndex />} />
             <Route path="create" element={<EventsCreate />} />

@@ -43,6 +43,7 @@ import { Workflow } from "../models/Workflow";
 import { Registration } from "../models/Registration";
 import { WorkflowConfig } from "../models/WorkflowConfig";
 import { Tenant } from "../models/Tenant";
+import { OrganizationDetails } from "../models/OrganizationDetails";
 import { convertToLead } from "../services/leadService";
 
 const r = Router();
@@ -308,6 +309,27 @@ r.get(
     ok(res, { page });
   })
 );
+
+/* ---- Organization Details - GET is PUBLIC ---- */
+r.get("/organization-details", asyncHandler(async (req: any, res: any) => {
+  try {
+    console.log("GET /organization-details called - public endpoint");
+    let orgDetails;
+
+    // If authenticated, get tenant-specific org details
+    if ((req as any).tenant) {
+      orgDetails = await OrganizationDetails.findOne({ tenant: (req as any).tenant });
+    } else {
+      // If not authenticated, get the first organization details (for login page)
+      orgDetails = await OrganizationDetails.findOne();
+    }
+
+    ok(res, orgDetails || {});
+  } catch (error) {
+    console.error("Error fetching organization details:", error);
+    ok(res, {});
+  }
+}));
 
 /* ---- everything below requires auth ---- */
 r.use(authenticate);
@@ -578,5 +600,80 @@ r.post("/workflow-config/:key", authenticate, require_("setup", "edit"), async (
     res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
   }
 });
+
+/* ---- Organization Details ---- */
+// GET is PUBLIC (no auth needed - for login page display) - UPDATED 2026-09-28
+r.post("/organization-details", authenticate, require_("setup", "edit"), asyncHandler(async (req: any, res: any) => {
+  const {
+    name,
+    tagline,
+    logo,
+    logoWidth,
+    logoHeight,
+    logoBorderRadius,
+    loginLayout,
+    logoSize,
+    nameFontSize,
+    taglineFontSize,
+    nameColor,
+    taglineColor,
+    natureOfBusiness,
+    address,
+    contactInfo,
+    socialMedia,
+    loginImages,
+    loginVideo
+  } = req.body;
+
+  // Validate required fields
+  if (!name || !tagline || !natureOfBusiness) {
+    return res.status(400).json({
+      error: "Missing required fields",
+      message: "Organization name, tagline, and nature of business are required"
+    });
+  }
+
+  if (!address?.street || !address?.city || !address?.state || !address?.country) {
+    return res.status(400).json({
+      error: "Incomplete address",
+      message: "Street, city, state, and country are required"
+    });
+  }
+
+  if (!contactInfo?.mobile || !contactInfo?.email) {
+    return res.status(400).json({
+      error: "Incomplete contact info",
+      message: "Mobile number and email are required"
+    });
+  }
+
+  const orgDetails = await OrganizationDetails.findOneAndUpdate(
+    { tenant: req.tenant },
+    {
+      tenant: req.tenant,
+      name,
+      tagline,
+      logo,
+      logoWidth: logoWidth || 200,
+      logoHeight: logoHeight || 100,
+      logoBorderRadius: logoBorderRadius || 0,
+      loginLayout: loginLayout || "center-stack",
+      logoSize: logoSize || 60,
+      nameFontSize: nameFontSize || 24,
+      taglineFontSize: taglineFontSize || 14,
+      nameColor: nameColor || "#222",
+      taglineColor: taglineColor || "#666",
+      natureOfBusiness,
+      address,
+      contactInfo,
+      socialMedia,
+      loginImages: loginImages || [],
+      loginVideo: loginVideo || null
+    },
+    { upsert: true, new: true }
+  );
+
+  ok(res, orgDetails);
+}));
 
 export default r;

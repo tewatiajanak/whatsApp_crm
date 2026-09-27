@@ -29,6 +29,14 @@ const DEFAULT_LANDING_PAGE_CONFIG = {
 
 const CATEGORIES = [
   {
+    id: "general",
+    title: "General",
+    color: "#0f172a",
+    items: [
+      { id: "organization-details", label: "Organization Details" }
+    ]
+  },
+  {
     id: "lead-config",
     title: "Lead Configuration",
     color: "#0f172a",
@@ -106,6 +114,7 @@ export default function Setup() {
   const [mode, setMode] = useState(getMode);
 
   const [openCategories, setOpenCategories] = useState({
+    general: true,
     "lead-config": true,
     forms: true,
     ui: true,
@@ -206,6 +215,7 @@ export default function Setup() {
         )}
 
         <div style={{ padding: "0 0 0 0" }}>
+          {selected === "organization-details" && <OrganizationDetails />}
           {selected === "offerings" && <ServicesMaster />}
           {selected === "status" && <CombinedStatusMaster />}
           {selected === "sources" && <SourceMaster />}
@@ -2642,6 +2652,302 @@ function WhatsAppTemplatesSetup() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OrganizationDetails() {
+  const toast = useToast();
+  const [data, setData] = useState({
+    name: "",
+    address: "",
+    code: "",
+    loginImages: []
+  });
+  const [images, setImages] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (data.loginImages.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % data.loginImages.length);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [data.loginImages.length]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const response = await mastersApi.list("organization");
+      if (response.data && response.data.length > 0) {
+        const orgData = response.data[0];
+        setData(orgData);
+        setImages(orgData.loginImages || []);
+      }
+    } catch (e) {
+      console.log("No organization data found");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (data.loginImages.length + files.length > 5) {
+      toast("Maximum 5 images allowed", "error");
+      return;
+    }
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setData((prev) => ({
+          ...prev,
+          loginImages: [...prev.loginImages, event.target.result]
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index) => {
+    setData((prev) => ({
+      ...prev,
+      loginImages: prev.loginImages.filter((_, i) => i !== index)
+    }));
+    if (currentImageIndex >= prev.loginImages.length - 1) {
+      setCurrentImageIndex(0);
+    }
+  };
+
+  const save = async () => {
+    try {
+      if (!data.name || !data.address || !data.code) {
+        toast("Please fill all required fields", "error");
+        return;
+      }
+      setLoading(true);
+      if (data._id) {
+        await mastersApi.update("organization", data._id, data);
+      } else {
+        await mastersApi.create("organization", data);
+      }
+      toast("Organization details saved");
+    } catch (e) {
+      toast(e.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ borderRadius: "var(--radius)" }}>
+      <div className="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <span className="fw-semibold">Organization Details</span>
+          <div className="text-muted small">Configure your organization information and login branding</div>
+        </div>
+      </div>
+      <div className="card-body" style={{ padding: "20px" }}>
+        {loading ? (
+          <Spinner />
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
+            {/* Left Side - Form */}
+            <div>
+              <div className="mb-3">
+                <label className="form-label small fw-medium">Organization Name *</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  value={data.name}
+                  onChange={(e) => setData({ ...data, name: e.target.value })}
+                  placeholder="Enter organization name"
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label small fw-medium">Address *</label>
+                <textarea
+                  className="form-control form-control-sm"
+                  rows="3"
+                  value={data.address}
+                  onChange={(e) => setData({ ...data, address: e.target.value })}
+                  placeholder="Enter organization address"
+                ></textarea>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label small fw-medium">Organization Code *</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  value={data.code}
+                  onChange={(e) => setData({ ...data, code: e.target.value })}
+                  placeholder="Enter organization code"
+                />
+              </div>
+
+              <button className="btn btn-primary btn-sm" onClick={save} disabled={loading}>
+                {loading ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+
+            {/* Right Side - Image Upload */}
+            <div>
+              <label className="form-label small fw-medium d-block mb-3">Login Images (Max 5)</label>
+
+              {/* Image Preview */}
+              {data.loginImages.length > 0 && (
+                <div
+                  style={{
+                    marginBottom: "20px",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    backgroundColor: "#f0f0f0",
+                    height: "250px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative"
+                  }}
+                >
+                  <img
+                    src={data.loginImages[currentImageIndex]}
+                    alt={`Login image ${currentImageIndex + 1}`}
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      objectFit: "cover"
+                    }}
+                  />
+                  {data.loginImages.length > 1 && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "10px",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        display: "flex",
+                        gap: "8px"
+                      }}
+                    >
+                      {data.loginImages.map((_, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => setCurrentImageIndex(idx)}
+                          style={{
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            backgroundColor: idx === currentImageIndex ? "#fff" : "rgba(255,255,255,0.5)",
+                            cursor: "pointer",
+                            border: "1px solid white"
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Upload Button */}
+              <div
+                style={{
+                  border: "2px dashed #ddd",
+                  borderRadius: "8px",
+                  padding: "20px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  backgroundColor: "#fafafa",
+                  marginBottom: "15px",
+                  transition: "all 0.2s"
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1e3c72")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#ddd")}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{ display: "none" }}
+                  id="image-upload"
+                />
+                <label htmlFor="image-upload" style={{ cursor: "pointer", marginBottom: 0 }}>
+                  <i className="bi bi-cloud-upload" style={{ fontSize: "24px", color: "#666", marginBottom: "8px", display: "block" }}></i>
+                  <div style={{ fontSize: "13px", color: "#333", fontWeight: 500 }}>Click to upload images</div>
+                  <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>or drag and drop</div>
+                </label>
+              </div>
+
+              {/* Uploaded Images Grid */}
+              {data.loginImages.length > 0 && (
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "10px", color: "#666" }}>
+                    Uploaded Images ({data.loginImages.length}/5)
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(70px, 1fr))", gap: "10px" }}>
+                    {data.loginImages.map((img, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          position: "relative",
+                          aspectRatio: "1",
+                          borderRadius: "6px",
+                          overflow: "hidden",
+                          backgroundColor: "#f0f0f0",
+                          border: idx === currentImageIndex ? "2px solid #1e3c72" : "1px solid #ddd"
+                        }}
+                      >
+                        <img
+                          src={img}
+                          alt={`Thumbnail ${idx + 1}`}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            cursor: "pointer"
+                          }}
+                          onClick={() => setCurrentImageIndex(idx)}
+                        />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          style={{
+                            position: "absolute",
+                            top: "2px",
+                            right: "2px",
+                            backgroundColor: "rgba(0,0,0,0.6)",
+                            border: "none",
+                            color: "#fff",
+                            borderRadius: "3px",
+                            width: "20px",
+                            height: "20px",
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

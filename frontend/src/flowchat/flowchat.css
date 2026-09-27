@@ -639,8 +639,8 @@
 .preview-rail {
   width: 340px;
   flex: 0 0 auto;
-  background: #f8fafc;
-  border-left: 1px solid var(--fc-line);
+  background: var(--background, #faf8f5);
+  border-left: 1px solid var(--border, #e2e8f0);
   padding: 16px;
   display: flex;
   flex-direction: column;

@@ -176,19 +176,6 @@ export default function BreadcrumbNav() {
       return crumbs;
     }
 
-    if (pathname.startsWith("/modules/easy-inout")) {
-      const crumbs = [
-        { label: "Home", to: "/" },
-        { label: "Easy In-Out", to: "/modules/easy-inout/inout" }
-      ];
-      if (pathname.endsWith("/bus")) crumbs.push({ label: "Bus Attendance" });
-      else if (pathname.endsWith("/report")) crumbs.push({ label: "Reports" });
-      else if (pathname.endsWith("/student")) crumbs.push({ label: "Student Master" });
-      else if (pathname.endsWith("/setup")) crumbs.push({ label: "Setup" });
-      else crumbs.push({ label: "Mark Attendance" });
-      return crumbs;
-    }
-
     if (pathname.startsWith("/modules/utilities")) {
       const crumbs = [
         { label: "Home", to: "/" },

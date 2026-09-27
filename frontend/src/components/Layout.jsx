@@ -104,7 +104,7 @@ export default function Layout() {
           <div className="brand">
             <span className="mark"><i className="bi bi-whatsapp"></i></span>
             <div className="brand-copy">
-              <div className="brand-title">WhatsApp CRM</div>
+              <div className="brand-title">CRM</div>
               <div className="brand-sub">Admissions Suite</div>
             </div>
           </div>
@@ -159,7 +159,7 @@ export default function Layout() {
             <div className="text-dark text-truncate" style={{ fontSize: 12.5, fontWeight: 500 }}>{user?.name}</div>
             <div className="text-truncate" style={{ fontSize: 10.5, color: "#6b7480" }}>{user?.userType?.name}</div>
           </div>
-          <button className="btn btn-sm btn-outline-dark border-0" title="Log out" onClick={logout}>
+          <button className="btn btn-sm btn-outline-dark border-0" title="Log out" onClick={logout} style={{ minHeight: 30, padding: "0.35rem 0.5rem" }}>
             <i className="bi bi-box-arrow-right"></i>
           </button>
         </div>

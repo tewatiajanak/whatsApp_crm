@@ -21,13 +21,9 @@ import {
   QrCode,
   Layers,
   UserCheck,
-  Nfc,
-  Bus,
-  FileText,
   X,
   Sparkles,
   Film,
-  Image as ImageIcon,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -35,8 +31,7 @@ import { useBookmarks } from "@/lib/bookmarks";
 
 const modules = [
   { title: "Event Manager", slug: "events", icon: CalendarRange },
-  { title: "Easy In-Out", slug: "easy-inout", icon: Nfc },
-  { title: "WhatsApp CRM", slug: "whatsapp", icon: MessageSquare },
+  { title: "CRM", slug: "whatsapp", icon: MessageSquare },
   { title: "Website Builder", slug: "website", icon: Globe2 },
   { title: "Communication", slug: "communication", icon: Megaphone },
   { title: "Front Office", slug: "front-office", icon: Building2 },
@@ -45,27 +40,16 @@ const modules = [
   { title: "User Management", slug: "users", icon: Users },
 ];
 
-const easyInOutSubmenu = [
-  { title: "Mark In-Out", path: "/modules/easy-inout/inout", icon: Nfc, mobile: true },
-  { title: "Mark Bus Attendance", path: "/modules/easy-inout/bus", icon: Bus, mobile: true },
-  { title: "Report", path: "/modules/easy-inout/report", icon: FileText },
-  { title: "Student Master", path: "/modules/easy-inout/student", icon: Users },
-  { title: "Setup", path: "/modules/easy-inout/setup", icon: Settings },
-];
-
 const eventsSubmenu = [
   { title: "Dashboard", path: "/modules/events", icon: LayoutDashboard, exact: true },
   { title: "Create Event", path: "/modules/events/create", icon: CalendarPlus },
   { title: "Registrants", path: "/modules/events/registrants", icon: UserCheck },
   { title: "Scan Pass", path: "/modules/events/scan", icon: ScanLine },
-  { title: "Generate QR Code", path: "/modules/events/qr", icon: QrCode },
-  { title: "Bulk QR Code", path: "/modules/events/bulk-qr", icon: Layers },
 ];
 
 const utilitiesSubmenu = [
-  { title: "QR Code", path: "/modules/utilities/qr", icon: QrCode },
-  { title: "Video Edit", path: "/modules/utilities/video-edit", icon: Film },
-  { title: "Photo Edit", path: "/modules/utilities/photo-edit", icon: ImageIcon },
+  { title: "QR Code", path: "https://qr.nirvaantechnologies.in", icon: QrCode, external: true },
+  { title: "Video Edit", path: "https://fve.nirvaantechnologies.in", icon: Film, external: true },
 ];
 
 export function AppSidebar() {
@@ -75,7 +59,7 @@ export function AppSidebar() {
   const pathname = location.pathname;
   const { user, logout } = useAuth();
   const { bookmarks } = useBookmarks();
-  const [utilitiesOpen, setUtilitiesOpen] = useState(true);
+  const [utilitiesOpen, setUtilitiesOpen] = useState(false);
 
   const handleLinkClick = () => {
     if (openMobile) setOpenMobile(false);
@@ -90,49 +74,7 @@ export function AppSidebar() {
     const isCollapsed = isMobileDrawer ? false : collapsed;
     return (
       <div className="flex-grow overflow-y-auto py-2">
-        {pathname.startsWith("/modules/easy-inout") ? (
-          <div className="nav-section px-2 py-1">
-            {!isCollapsed && (
-              <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5 flex items-center justify-between">
-                <span>Easy In-Out</span>
-              </div>
-            )}
-            <div className="space-y-1">
-              <Link
-                to="/"
-                onClick={handleLinkClick}
-                title="Home"
-                className={`nav-link text-decoration-none flex items-center ${
-                  isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
-                } ${pathname === "/" ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
-              >
-                <Home className="h-4 w-4 shrink-0" />
-                {!isCollapsed && <span>Home</span>}
-              </Link>
-              {easyInOutSubmenu.map((s) => {
-                const active = pathname === s.path;
-                const Icon = s.icon;
-                return (
-                  <Link
-                    key={s.path}
-                    to={s.path}
-                    onClick={handleLinkClick}
-                    title={s.title}
-                    className={`nav-link text-decoration-none flex items-center ${
-                      isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
-                    } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    {!isCollapsed && <span className="flex-1">{s.title}</span>}
-                    {!isCollapsed && s.mobile && (
-                      <span className="text-[10px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded font-medium">Mobile</span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ) : pathname.startsWith("/modules/events") ? (
+        {pathname.startsWith("/modules/events") ? (
           <div className="nav-section px-2 py-1">
             {!isCollapsed && (
               <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
@@ -268,14 +210,14 @@ export function AppSidebar() {
                       <div key={m.slug} className="space-y-1">
                         <div
                           onClick={() => setUtilitiesOpen((prev) => !prev)}
-                          className={`nav-link text-decoration-none flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-[14px] cursor-pointer transition-colors ${
+                          className={`nav-link text-decoration-none flex items-center justify-between gap-2.5 px-2.5 py-1.75 rounded-lg text-[12.75px] cursor-pointer transition-colors ${
                             isUtilitiesActive
-                              ? "bg-[var(--sidebar-accent)] text-[var(--sidebar-primary)] font-medium"
-                              : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"
+                              ? "bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)] font-medium"
+                              : "text-[var(--sidebar-foreground)] hover:bg-[rgba(33,126,121,0.04)]"
                           }`}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <Icon className="h-4 w-4 shrink-0" />
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Icon className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{m.title}</span>
                           </div>
                           <ChevronDown
@@ -287,17 +229,39 @@ export function AppSidebar() {
 
                         {/* Drill down submenu items */}
                         {utilitiesOpen && (
-                          <div className="pl-6 pr-1 py-0.5 space-y-1 border-l-2 border-slate-200/80 ml-4 my-1">
+                          <div className="pl-4 pr-1 py-1 space-y-1 border-l border-[var(--sidebar-border)] ml-4 my-1">
                             {utilitiesSubmenu.map((sub) => {
                               const subActive = pathname === sub.path;
                               const SubIcon = sub.icon;
+
+                              if (sub.external) {
+                                return (
+                                  <a
+                                    key={sub.path}
+                                    href={sub.path}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={handleLinkClick}
+                                    title={sub.title}
+                                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] text-decoration-none transition-colors ${
+                                      subActive
+                                        ? "bg-[var(--sidebar-primary)] text-white font-medium shadow-xs"
+                                        : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"
+                                    }`}
+                                  >
+                                    <SubIcon className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">{sub.title}</span>
+                                  </a>
+                                );
+                              }
+
                               return (
                                 <Link
                                   key={sub.path}
                                   to={sub.path}
                                   onClick={handleLinkClick}
                                   title={sub.title}
-                                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] text-decoration-none transition-colors ${
+                                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] text-decoration-none transition-colors ${
                                     subActive
                                       ? "bg-[var(--sidebar-primary)] text-white font-medium shadow-xs"
                                       : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"
@@ -317,15 +281,12 @@ export function AppSidebar() {
                   const url =
                     m.slug === "whatsapp"
                       ? "/crm"
-                      : m.slug === "easy-inout"
-                      ? "/modules/easy-inout/inout"
                       : m.slug === "events"
                       ? "/modules/events"
                       : `/modules/${m.slug}`;
                   const active =
                     pathname === url ||
-                    (m.slug === "whatsapp" && pathname.startsWith("/crm")) ||
-                    (m.slug === "easy-inout" && pathname.startsWith("/modules/easy-inout"));
+                    (m.slug === "whatsapp" && pathname.startsWith("/crm"));
                   const Icon = m.icon;
                   return (
                     <Link
@@ -334,10 +295,10 @@ export function AppSidebar() {
                       onClick={handleLinkClick}
                       title={m.title}
                       className={`nav-link text-decoration-none flex items-center ${
-                        isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                        isCollapsed ? "justify-center p-2 w-[38px] h-[38px] mx-auto rounded-lg" : "gap-2.5 px-2.5 py-1.75 rounded-lg text-[12.75px]"
                       } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="h-3.5 w-3.5 shrink-0" />
                       {!isCollapsed && <span>{m.title}</span>}
                     </Link>
                   );
@@ -348,10 +309,10 @@ export function AppSidebar() {
                   onClick={handleLinkClick}
                   title="Configuration"
                   className={`nav-link text-decoration-none flex items-center ${
-                    isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                    isCollapsed ? "justify-center p-2 w-[38px] h-[38px] mx-auto rounded-lg" : "gap-2.5 px-2.5 py-1.75 rounded-lg text-[12.75px]"
                   } ${isConfigurationPath ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
                 >
-                  <Settings className="h-4 w-4 shrink-0" />
+                  <Settings className="h-3.5 w-3.5 shrink-0" />
                   {!isCollapsed && <span>Configuration</span>}
                 </Link>
               </div>
@@ -376,10 +337,10 @@ export function AppSidebar() {
                         onClick={handleLinkClick}
                         title={b.title}
                         className={`nav-link text-decoration-none flex items-center ${
-                          isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                          isCollapsed ? "justify-center p-2 w-[38px] h-[38px] mx-auto rounded-lg" : "gap-2.5 px-2.5 py-1.75 rounded-lg text-[12.75px]"
                         } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
                       >
-                        <Bookmark className="h-4 w-4 shrink-0" />
+                        <Bookmark className="h-3.5 w-3.5 shrink-0" />
                         {!isCollapsed && <span className="truncate">{b.title}</span>}
                       </Link>
                     );
@@ -408,7 +369,7 @@ export function AppSidebar() {
         </div>
         {isMobileDrawer ? (
           <button
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
+            className="p-1.5 rounded-lg text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-accent)]"
             onClick={() => setOpenMobile(false)}
           >
             <X size={20} />
@@ -479,7 +440,7 @@ export function AppSidebar() {
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setOpenMobile(false)}
           />
-          <div className="relative z-50 w-72 max-w-[85vw] bg-white h-full flex flex-col shadow-2xl">
+          <div className="relative z-50 w-72 max-w-[85vw] bg-[var(--sidebar)] text-[var(--sidebar-foreground)] h-full flex flex-col shadow-[0_20px_48px_rgba(19,29,35,0.14)] border-r border-[var(--sidebar-border)]">
             {renderHeader(true)}
             {renderNavItems(true)}
             {renderFooter(true)}
@@ -490,7 +451,7 @@ export function AppSidebar() {
       {/* Desktop Sticky Sidebar */}
       <aside
         data-collapsed={collapsed}
-        className={`sidebar hidden md:flex ${collapsed ? "sidebar-closed" : ""} border-r border-slate-200 bg-white transition-all duration-300 ease-in-out flex-col sticky top-0 h-screen z-20`}
+        className={`sidebar hidden md:flex ${collapsed ? "sidebar-closed" : ""} border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] text-[var(--sidebar-foreground)] transition-all duration-300 ease-in-out flex-col sticky top-0 h-screen z-20`}
       >
         {renderHeader(false)}
         {renderNavItems(false)}

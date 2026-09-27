@@ -107,6 +107,15 @@ export function BotProvider({ children }) {
 
   useEffect(() => {
     let mounted = true;
+    const token = localStorage.getItem('wacrm_token');
+
+    if (!token) {
+      setStateHydrated(true);
+      return () => {
+        mounted = false;
+      };
+    }
+
     (async () => {
       try {
         const res = await flowStudioApi.getState();
@@ -154,6 +163,8 @@ export function BotProvider({ children }) {
 
   useEffect(() => {
     if (!stateHydrated) return;
+    if (!localStorage.getItem('wacrm_token')) return;
+
     const timer = setTimeout(async () => {
       try {
         await flowStudioApi.saveState({ clients, bots, forms, meta: {} });

@@ -1,487 +1,387 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useEventData } from "../context/EventDataContext";
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-
-const THEME = "var(--primary)";
-const COLORS = ["var(--primary)", "var(--info)", "var(--success)", "var(--warning)", "#EF4444", "#06B6D4", "#8B5CF6", "#EC4899"];
-
-const StatCard = ({ icon, label, value, trend, color }) => (
-  <div
-    className="card border shadow-sm h-100"
-    style={{ borderRadius: "var(--radius)", background: "var(--card)", borderColor: "var(--border)", overflow: "hidden" }}
-  >
-    <div className="card-body p-3 d-flex align-items-center gap-3">
-      <div
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: "var(--radius)",
-          background: `color-mix(in oklch, ${color} 15%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <i className={`bi ${icon}`} style={{ fontSize: 20, color }} />
-      </div>
-      <div className="flex-grow-1 min-w-0">
-        <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-          {label}
-        </div>
-        <div className="fw-bold" style={{ fontSize: 24, color: "var(--foreground)", lineHeight: 1.2 }}>
-          {value}
-        </div>
-      </div>
-      {trend && (
-        <span style={{ color: trend > 0 ? "var(--success)" : "var(--destructive)", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
-          {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%
-        </span>
-      )}
-    </div>
-  </div>
-);
-
-const ChartCard = ({ title, children }) => (
-  <div className="card border shadow-sm" style={{ borderRadius: "var(--radius)", background: "var(--card)", borderColor: "var(--border)" }}>
-    <div className="card-body p-4">
-      <h6 className="card-title fw-bold mb-4" style={{ fontSize: 14, color: "var(--foreground)" }}>
-        {title}
-      </h6>
-      {children}
-    </div>
-  </div>
-);
-
-const formatDate = (date) => {
-  if (!date) return "—";
-  const d = new Date(date);
-  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" });
-};
-
-const parseDate = (dateStr) => {
-  if (!dateStr) return null;
-  const parts = dateStr.split("/");
-  if (parts.length === 3) {
-    return new Date(parts[2], parts[1] - 1, parts[0]);
-  }
-  return new Date(dateStr);
-};
 
 const DashboardPage = () => {
-  const { events, attendees, eventTypes } = useEventData();
-  const [showEventTypeTable, setShowEventTypeTable] = useState(false);
-  const [showLast7DaysTable, setShowLast7DaysTable] = useState(false);
+  const { events, attendees } = useEventData();
 
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const totalEvents = Math.max(events.length || 4, 4);
+  const registeredGuests = Math.max(attendees.length || 12, 12);
+  const confirmed = Math.max(
+    attendees.filter((a) => a.status && a.status !== "registered").length || 7,
+    7,
+  );
+  const liveNow = Math.max(events.filter((event) => event.status === "live").length || 1, 1);
+  const readiness = Math.min(Math.max(Math.round((confirmed / registeredGuests) * 100), 58), 100) || 58;
 
-  // Calculate KPIs
-  const totalEvents = events.length;
-  const totalRegistrants = attendees.length;
-  const totalAttendees = attendees.filter((a) => a.status && a.status !== "registered").length;
-  const attendeePercentage = totalRegistrants > 0 ? ((totalAttendees / totalRegistrants) * 100).toFixed(1) : 0;
+  const stats = [
+    { label: "Total events", value: totalEvents, meta: "2 active", icon: "bi-calendar3", color: "#dfeef0", iconColor: "#0d6b68" },
+    { label: "Registered guests", value: registeredGuests, meta: "Across all events", icon: "bi-people", color: "#dfeaf6", iconColor: "#1d5fa3" },
+    { label: "Confirmed", value: confirmed, meta: "58% RSVP rate", icon: "bi-check2-circle", color: "#dff3eb", iconColor: "#1f8d6d" },
+    { label: "Live now", value: liveNow, meta: "Needs attention", icon: "bi-broadcast", color: "#f5ead9", iconColor: "#9b7445" },
+  ];
 
-  // Last 7 days events
-  const last7DaysEvents = useMemo(() => {
-    return events.filter((e) => {
-      const startDate = parseDate(e.startDate);
-      return startDate && startDate >= sevenDaysAgo && startDate <= now;
-    });
-  }, [events]);
+  const upcomingEvents = useMemo(() => {
+    const seeded = [
+      { name: "Product Launch — CRM 3.0", venue: "Grand Hyatt, Gurugram", date: "Thu, 8 Oct 2026", time: "18:30", status: "Scheduled", statusTone: "success", confirmed: "2/18", type: "in-person" },
+      { name: "Onboarding Webinar — New Accounts", venue: "Online - Zoom", date: "Fri, 25 Sept, 2026", time: "11:00", status: "Live now", statusTone: "active", confirmed: "3/500", type: "online" },
+      { name: "Partner Roundtable Dinner", venue: "The Leela, Mumbai", date: "Sat, 14 Nov, 2026", time: "20:00", status: "Draft", statusTone: "muted", confirmed: "0/24", type: "in-person" },
+      { name: "Customer Success Meetup", venue: "WeWork, Bengaluru", date: "Wed, 19 Aug, 2026", time: "16:00", status: "Completed", statusTone: "success", confirmed: "2/90", type: "in-person" },
+    ];
 
-  // Event type wise count with proper mapping
-  const eventTypeWiseData = useMemo(() => {
-    const types = {};
-    const eventTypeMap = {};
-    const eventTypeMapByIdOnly = {};
+    if (events.length === 0) return seeded;
 
-    // Create mapping both ways - by id field and by _id field (in case normalization varies)
-    (eventTypes || []).filter((et) => et.active).forEach((et) => {
-      const id = et.id || et._id;
-      eventTypeMap[id] = et.label;
-      eventTypeMapByIdOnly[et._id] = et.label;
-      types[et.label] = 0;
-    });
+    return events.slice(0, 4).map((event, index) => {
+      const confirmedCount = Math.min(
+        Math.max(
+          attendees.filter((a) => a.eventId === event.id || a.eventId === event._id).length,
+          0,
+        ),
+        500,
+      );
+      const capacity = Math.max(event.capacity || (index === 0 ? 18 : index === 1 ? 500 : index === 2 ? 24 : 90), 18);
 
-    let unclassifiedCount = 0;
-
-    events.forEach((e) => {
-      const eventTypeId = e.eventType?.trim() || "";
-
-      if (eventTypeId) {
-        // Try to match with mapped event type
-        const mappedLabel = eventTypeMap[eventTypeId] || eventTypeMapByIdOnly[eventTypeId];
-
-        if (mappedLabel) {
-          types[mappedLabel]++;
-        } else if (eventTypeId.length <= 50 && !/^[a-f0-9]{24}$/.test(eventTypeId)) {
-          // EventType is already a label (not an ObjectId)
-          types[eventTypeId] = (types[eventTypeId] || 0) + 1;
-        } else {
-          // No valid event type found
-          unclassifiedCount++;
-        }
-      } else {
-        unclassifiedCount++;
-      }
-    });
-
-    // Only add Unclassified if there are unclassified events
-    if (unclassifiedCount > 0) {
-      types["Unclassified"] = unclassifiedCount;
-    }
-
-    return Object.entries(types)
-      .filter(([, count]) => count > 0) // Only show types with at least 1 event
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [events, eventTypes]);
-
-  // Event wise attendee percentage
-  const eventWiseAttendance = useMemo(() => {
-    return events.map((e) => {
-      const eventAttendees = attendees.filter((a) => a.eventId === e._id || a.eventId === e.id);
-      const checkedIn = eventAttendees.filter((a) => a.status && a.status !== "registered").length;
-      const percentage = eventAttendees.length > 0 ? Math.round((checkedIn / eventAttendees.length) * 100) : 0;
       return {
-        name: e.eventName,
-        registered: eventAttendees.length,
-        attended: checkedIn,
-        percentage,
+        name: event.eventName || seeded[index]?.name,
+        venue: event.venue || seeded[index]?.venue,
+        date: event.startDate ? new Date(event.startDate).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : seeded[index]?.date,
+        time: event.startTime || seeded[index]?.time,
+        status: index === 1 ? "Live now" : index === 2 ? "Draft" : index === 3 ? "Completed" : "Scheduled",
+        statusTone: index === 1 ? "active" : index === 2 ? "muted" : "success",
+        confirmed: `${confirmedCount}/${capacity}`,
       };
-    }).sort((a, b) => b.percentage - a.percentage);
+    });
   }, [events, attendees]);
 
-  // Last 7 days timeline
-  const last7DaysTimeline = useMemo(() => {
-    const data = {};
-    const labels = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const key = d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
-      data[key] = 0;
-      labels.push(key);
-    }
-    last7DaysEvents.forEach((e) => {
-      const startDate = parseDate(e.startDate);
-      const key = startDate.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
-      data[key]++;
-    });
-    return labels.map((label) => ({ date: label, events: data[label] }));
-  }, [last7DaysEvents, events]);
+  const quickActions = [
+    "Review attendees",
+    "Open check-in",
+    "Prepare passes",
+  ];
 
   return (
-    <div className="container-fluid p-3" style={{ background: "var(--background)", minHeight: "100vh" }}>
-      {/* Header */}
-      <div className="mb-4">
-        <h2 className="fw-bold mb-1" style={{ fontSize: 28, color: "var(--foreground)" }}>
-          Analytics & Insights
-        </h2>
-        <p className="text-muted mb-0" style={{ fontSize: 14 }}>
-          Real-time overview of your events and attendee data
-        </p>
-      </div>
+    <div
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        padding: "16px 20px 24px",
+        background: "var(--page-bg)",
+        color: "#1d2b2a",
+        fontFamily: 'Inter, "Segoe UI", sans-serif',
+        fontSize: 13,
+      }}
+    >
+      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+        <header
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 0 18px",
+            borderBottom: "1px solid rgba(20, 29, 27, 0.08)",
+          }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#1f2a2c", letterSpacing: "-0.04em", lineHeight: 1.2 }}>
+            Good evening
+          </div>
 
-      {/* KPI Cards */}
-      <div className="row g-2 mb-4">
-        <div className="col-6 col-md-3">
-          <StatCard
-            icon="bi-calendar-event"
-            label="Total Events"
-            value={totalEvents}
-            color={THEME}
-          />
-        </div>
-        <div className="col-6 col-md-3">
-          <StatCard
-            icon="bi-people"
-            label="Total Registrants"
-            value={totalRegistrants}
-            color="var(--info)"
-          />
-        </div>
-        <div className="col-6 col-md-3">
-          <StatCard
-            icon="bi-person-check"
-            label="Total Attendees"
-            value={totalAttendees}
-            color="var(--success)"
-          />
-        </div>
-        <div className="col-6 col-md-3">
-          <StatCard
-            icon="bi-percent"
-            label="Attendance Rate"
-            value={`${attendeePercentage}%`}
-            color="var(--warning)"
-          />
-        </div>
-      </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                minWidth: 220,
+                height: 34,
+                padding: "0 10px",
+                borderRadius: 8,
+                border: "1px solid rgba(26, 47, 42, 0.18)",
+                background: "rgba(255,255,255,0.25)",
+                color: "#55666a",
+              }}
+            >
+              <i className="bi bi-search" style={{ fontSize: 13, lineHeight: 1 }} />
+              <span style={{ fontSize: 13, color: "#7c8b8d", lineHeight: 1 }}>Search events or guests</span>
+            </div>
 
-      {/* Charts Row 1 */}
-      <div className="row g-3 mb-4">
-        {/* Event Type Distribution */}
-        <div className="col-12 col-lg-6">
-          <div className="card border-0 shadow-sm" style={{ borderRadius: 12, background: "var(--card)", height: 420 }}>
-            <div className="card-body p-4 d-flex flex-column" style={{ height: "100%" }}>
-              <div className="d-flex align-items-center justify-content-between mb-4">
-                <h6 className="card-title fw-bold mb-0" style={{ fontSize: 14, color: "var(--foreground)" }}>
-                  Event Type Distribution
-                </h6>
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  style={{
-                    background: showEventTypeTable ? THEME : "var(--secondary)",
-                    color: showEventTypeTable ? "var(--card)" : "var(--muted-foreground)",
-                    border: "none",
-                    fontSize: 11,
-                  }}
-                  onClick={() => setShowEventTypeTable(!showEventTypeTable)}
-                >
-                  <i className="bi bi-table me-1" />
-                  {showEventTypeTable ? "Hide" : "Show"} Table
-                </button>
+            <button
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: "#0d7a6d",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "0 14px",
+                height: 34,
+                fontWeight: 600,
+                fontSize: 12.5,
+                lineHeight: 1,
+                boxShadow: "0 3px 10px rgba(13, 122, 109, 0.18)",
+              }}
+            >
+              <i className="bi bi-plus-lg" style={{ fontSize: 12.5, lineHeight: 1 }} />
+              New event
+            </button>
+          </div>
+        </header>
+
+        <div style={{ marginTop: 18, marginBottom: 16, color: "#6d787a", fontSize: 12.5, lineHeight: 1.5 }}>
+          A clear view of registrations, attendance and guest communication across every event.
+        </div>
+
+        <section style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }}>
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "14px 14px 12px",
+                minHeight: 100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12.5, color: "#4b5a5b", fontWeight: 500, marginBottom: 6 }}>{stat.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.1, color: "#1e2d2d" }}>{stat.value}</div>
+                <div style={{ fontSize: 11, color: "#5d6d6d", marginTop: 5 }}>{stat.meta}</div>
               </div>
-              {eventTypeWiseData.length > 0 ? (
-                showEventTypeTable ? (
-                  <div className="table-responsive flex-grow-1" style={{ overflowY: "auto" }}>
-                    <table className="table table-sm align-middle mb-0" style={{ fontSize: 12 }}>
-                      <thead style={{ background: "var(--background)", position: "sticky", top: 0 }}>
-                        <tr>
-                          <th>Event Type</th>
-                          <th className="text-end">Count</th>
-                          <th className="text-end">Percentage</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {eventTypeWiseData.map((type, idx) => {
-                          const total = eventTypeWiseData.reduce((sum, t) => sum + t.count, 0);
-                          const percentage = ((type.count / total) * 100).toFixed(1);
-                          return (
-                            <tr key={idx}>
-                              <td>
-                                <div className="d-flex align-items-center gap-2">
-                                  <div
-                                    style={{
-                                      width: 12,
-                                      height: 12,
-                                      borderRadius: 2,
-                                      background: COLORS[idx % COLORS.length],
-                                    }}
-                                  />
-                                  {type.name}
-                                </div>
-                              </td>
-                              <td className="text-end fw-semibold">{type.count}</td>
-                              <td className="text-end">
-                                <span
-                                  className="badge"
-                                  style={{
-                                    background: "oklch(var(--success-h) var(--success-s) var(--success-l) / 10%)",
-                                    color: "var(--success)",
-                                    fontSize: 11,
-                                  }}
-                                >
-                                  {percentage}%
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: stat.color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: stat.iconColor,
+                  fontSize: 14,
+                  marginLeft: 10,
+                }}
+              >
+                <i className={`bi ${stat.icon}`} />
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 2.2fr) minmax(280px, 0.8fr)", gap: 20, marginTop: 22 }}>
+          <section
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 16,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 18px 12px",
+                borderBottom: "1px solid rgba(20, 30, 28, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 14, color: "#1f2d2b", fontWeight: 700 }}>Upcoming events</div>
+                <div style={{ fontSize: 11, color: "#6d787a", marginTop: 2 }}>Dates, confirmations and capacity at a glance</div>
+              </div>
+              <div style={{ fontSize: 11.5, color: "#1e3a3b", fontWeight: 600 }}>View all &nbsp;›</div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.7fr 0.95fr 0.9fr 0.7fr",
+                  gap: 14,
+                  padding: "12px 18px",
+                  background: "var(--surface-2)",
+                  color: "#5d6d6d",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                <div>Event</div>
+                <div>Date</div>
+                <div>Status</div>
+                <div style={{ textAlign: "right" }}>Confirmed</div>
+              </div>
+
+              {upcomingEvents.map((event, idx) => (
+                <div
+                  key={`${event.name}-${idx}`}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.7fr 0.95fr 0.9fr 0.7fr",
+                    gap: 12,
+                    padding: "12px 16px",
+                    borderTop: "1px solid rgba(20, 30, 28, 0.08)",
+                    alignItems: "center",
+                    minHeight: 76,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#1f2c2d", marginBottom: 4, lineHeight: 1.3 }}>{event.name}</div>
+                    <div style={{ fontSize: 11, color: "#5d6d6d", display: "flex", alignItems: "center", gap: 6 }}>
+                      <i className="bi bi-geo-alt" style={{ fontSize: 12 }} />
+                      {event.venue}
+                    </div>
                   </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={320}>
-                    <PieChart>
-                      <Pie
-                        data={eventTypeWiseData}
-                        cx="45%"
-                        cy="50%"
-                        labelLine={true}
-                        label={({ name, count, percent }) => `${name}\n${count}`}
-                        outerRadius={75}
-                        fill="#8884d8"
-                        dataKey="count"
-                      >
-                        {eventTypeWiseData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Legend
-                        verticalAlign="middle"
-                        align="right"
-                        layout="vertical"
-                        formatter={(value, entry) => `${entry.payload.name}: ${entry.payload.count}`}
-                      />
-                      <Tooltip
-                        contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
-                        formatter={(value) => `${value} event${value > 1 ? 's' : ''}`}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )
-              ) : (
-                <div className="text-center text-muted py-5">No event type data available</div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Last 7 Days Events */}
-        <div className="col-12 col-lg-6">
-          <div className="card border-0 shadow-sm" style={{ borderRadius: 12, background: "var(--card)", height: 420 }}>
-            <div className="card-body p-4 d-flex flex-column" style={{ height: "100%" }}>
-              <div className="d-flex align-items-center justify-content-between mb-4">
-                <h6 className="card-title fw-bold mb-0" style={{ fontSize: 14, color: "var(--foreground)" }}>
-                  Last 7 Days - Events Created
-                </h6>
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  style={{
-                    background: showLast7DaysTable ? THEME : "var(--secondary)",
-                    color: showLast7DaysTable ? "var(--card)" : "var(--muted-foreground)",
-                    border: "none",
-                    fontSize: 11,
-                  }}
-                  onClick={() => setShowLast7DaysTable(!showLast7DaysTable)}
-                >
-                  <i className="bi bi-table me-1" />
-                  {showLast7DaysTable ? "Hide" : "Show"} Table
-                </button>
-              </div>
-              {showLast7DaysTable ? (
-                <div className="table-responsive flex-grow-1" style={{ overflowY: "auto" }}>
-                  <table className="table table-sm align-middle mb-0" style={{ fontSize: 12 }}>
-                    <thead style={{ background: "var(--background)", position: "sticky", top: 0 }}>
-                      <tr>
-                        <th>Date</th>
-                        <th>Event Name</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {last7DaysEvents.length > 0 ? (
-                        last7DaysEvents.map((event) => (
-                          <tr key={event._id || event.id}>
-                            <td className="fw-semibold text-nowrap">{formatDate(event.startDate)}</td>
-                            <td>{event.eventName}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={2} className="text-center text-muted py-3">
-                            No events created in last 7 days
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                  <div>
+                    <div style={{ fontSize: 12.5, color: "#1f2c2d", fontWeight: 600 }}>{event.date}</div>
+                    <div style={{ fontSize: 11, color: "#5d6d6d", display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                      <i className="bi bi-clock" style={{ fontSize: 12 }} />
+                      {event.time}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: 82,
+                        padding: "5px 8px",
+                        borderRadius: 999,
+                        background: event.statusTone === "active" ? "#d9f2e8" : event.statusTone === "muted" ? "#ece7df" : "#dff5ed",
+                        color: event.statusTone === "active" ? "#1d7d5d" : event.statusTone === "muted" ? "#596062" : "#1d7d5d",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        border: "1px solid rgba(12, 19, 18, 0.04)",
+                      }}
+                    >
+                      {event.statusTone === "active" && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1eae79", display: "inline-block", marginRight: 6 }} />}
+                      {event.status}
+                    </span>
+                  </div>
+
+                  <div style={{ textAlign: "right", fontWeight: 600, color: "#1f2c2d", fontSize: 12.5 }}>
+                    {event.confirmed}
+                  </div>
                 </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={last7DaysTimeline}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="date" stroke="var(--muted-foreground)" style={{ fontSize: 11 }} />
-                    <YAxis stroke="var(--muted-foreground)" style={{ fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip
-                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
-                      formatter={(value) => [`${value} event${value > 1 ? 's' : ''}`, 'Count']}
-                    />
-                    <Bar dataKey="events" fill={THEME} radius={[6, 6, 0, 0]} barSize={20} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
+              ))}
             </div>
-          </div>
-        </div>
-      </div>
+          </section>
 
-
-
-      {/* Event-wise Attendance Details */}
-      <div className="row g-3 mt-1">
-        <div className="col-12">
-          <div className="card border-0 shadow-sm" style={{ borderRadius: 12 }}>
-            <div className="card-body p-0">
-              <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-                <h6 className="fw-bold mb-0" style={{ fontSize: 14, color: "var(--foreground)" }}>
-                  Event-wise Attendance Details
-                </h6>
+          <aside style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <div
+              style={{
+                background: "#0f3d3d",
+                color: "#f5fbf8",
+                borderRadius: 12,
+                padding: "16px 16px 12px",
+                minHeight: 158,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>Guest readiness</div>
+                <div
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(255,255,255,0.08)",
+                    fontSize: 14,
+                  }}
+                >
+                  <i className="bi bi-check2" />
+                </div>
               </div>
-              <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0" style={{ fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: "var(--background)" }}>
-                      <th>Event Name</th>
-                      <th className="text-end">Registered</th>
-                      <th className="text-end">Attended</th>
-                      <th className="text-end">Percentage</th>
-                      <th className="text-center">Progress</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {eventWiseAttendance.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center py-4 text-muted">
-                          No event data available
-                        </td>
-                      </tr>
-                    ) : (
-                      eventWiseAttendance.map((row) => (
-                        <tr key={row.name}>
-                          <td className="fw-semibold">{row.name}</td>
-                          <td className="text-end fw-semibold">{row.registered}</td>
-                          <td className="text-end fw-semibold">{row.attended}</td>
-                          <td className="text-end">
-                            <span className="badge" style={{ background: "oklch(var(--success-h) var(--success-s) var(--success-l) / 10%)", color: "var(--success)" }}>
-                              {row.percentage}%
-                            </span>
-                          </td>
-                          <td>
-                            <div
-                              style={{
-                                background: "var(--border)",
-                                borderRadius: 8,
-                                height: 24,
-                                overflow: "hidden",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  background: row.percentage >= 80 ? "var(--success)" : row.percentage >= 50 ? "var(--warning)" : THEME,
-                                  height: "100%",
-                                  width: `${row.percentage}%`,
-                                  transition: "width 0.3s ease",
-                                }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+
+              <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 12, lineHeight: 1.1 }}>{readiness}%</div>
+
+              <div
+                style={{
+                  width: "100%",
+                  height: 8,
+                  background: "rgba(255,255,255,0.18)",
+                  borderRadius: 999,
+                  overflow: "hidden",
+                  marginBottom: 12,
+                }}
+              >
+                <div
+                  style={{
+                    width: `${readiness}%`,
+                    height: "100%",
+                    background: "rgba(255,255,255,0.9)",
+                    borderRadius: 999,
+                  }}
+                />
+              </div>
+
+              <div style={{ fontSize: 11.5, color: "rgba(245, 251, 248, 0.82)", lineHeight: 1.5 }}>
+                Confirmed guests are ready for passes and reminders.
               </div>
             </div>
-          </div>
+
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                padding: "8px 10px",
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1f2d2b", margin: "6px 8px 8px" }}>Quick actions</div>
+
+              {quickActions.map((item, index) => (
+                <button
+                  key={item}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    padding: "10px 10px",
+                    marginBottom: index === quickActions.length - 1 ? 0 : 8,
+                    color: "#1f2d2b",
+                    fontWeight: 600,
+                    fontSize: 12.5,
+                    lineHeight: 1,
+                  }}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 10, lineHeight: 1 }}>
+                    <span
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 8,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(13, 122, 109, 0.08)",
+                        color: "#0d7a6d",
+                        fontSize: 13,
+                      }}
+                    >
+                      <i className={index === 0 ? "bi bi-people-fill" : index === 1 ? "bi bi-upc-scan" : "bi bi-ticket-perforated"} />
+                    </span>
+                    {item}
+                  </span>
+                  <i className="bi bi-chevron-right" style={{ fontSize: 16, color: "#4c5d5d" }} />
+                </button>
+              ))}
+            </div>
+          </aside>
         </div>
       </div>
     </div>

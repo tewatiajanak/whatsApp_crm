@@ -92,7 +92,7 @@ const activity = [
 
 const pinnableModules = [
   { title: "Event Manager", slug: "events" },
-  { title: "WhatsApp CRM", slug: "whatsapp" },
+  { title: "CRM", slug: "whatsapp" },
   { title: "Website Builder", slug: "website" },
   { title: "Utilities", slug: "utilities" },
   { title: "User Management", slug: "users" },

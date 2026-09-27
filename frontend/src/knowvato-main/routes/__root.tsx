@@ -12,13 +12,7 @@ const queryClient = new QueryClient();
 const TITLES: Record<string, string> = {
   "/": "Home",
   "/modules/events": "Event Manager",
-  "/modules/easy-inout": "Easy In-Out",
-  "/modules/easy-inout/inout": "Easy In-Out - Mark Attendance",
-  "/modules/easy-inout/bus": "Easy In-Out - Bus Attendance",
-  "/modules/easy-inout/report": "Easy In-Out - Reports",
-  "/modules/easy-inout/student": "Easy In-Out - Student Master",
-  "/modules/easy-inout/setup": "Easy In-Out - Setup",
-  "/modules/whatsapp": "WhatsApp CRM",
+  "/modules/whatsapp": "CRM",
   "/modules/website": "Website Builder",
   "/modules/users": "User Management",
   "/modules/communication": "Communication",
@@ -36,18 +30,18 @@ function MainHeader() {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <div className="topbar flex items-center justify-between border-b bg-white px-3 sm:px-4 sticky top-0 z-10" style={{ height: "48px", borderColor: "var(--border)" }}>
+    <div className="topbar flex items-center justify-between border-b px-3 sm:px-4 sticky top-0 z-10" style={{ height: "48px", borderColor: "var(--border)", background: "var(--page-bg)", color: "var(--foreground)" }}>
       <div className="flex items-center gap-2 min-w-0">
         <button
           onClick={toggleSidebar}
-          className="p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 md:hidden cursor-pointer flex-shrink-0"
+          className="p-1.5 rounded-lg text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] md:hidden cursor-pointer flex-shrink-0"
           title="Toggle Navigation Menu"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-4 h-4" />
         </button>
         <BreadcrumbNav />
       </div>
-      <div className="flex items-center gap-3 text-xs text-slate-500 flex-shrink-0">
+      <div className="flex items-center gap-3 text-[11.5px] text-[var(--muted-foreground)] flex-shrink-0">
         <i className="bi bi-bell"></i>
         <span className="hidden sm:inline">{user?.email || "admin@knowvato.com"}</span>
       </div>
@@ -63,7 +57,7 @@ export default function MainLayout() {
           <AppSidebar />
           <div className="main flex-1 flex flex-col min-w-0 w-full">
             <MainHeader />
-            <div className="content p-1 sm:p-2 flex-1 min-w-0 w-full overflow-x-hidden">
+            <div className="content flex-1 min-w-0 w-full overflow-x-hidden">
               <Outlet />
             </div>
           </div>

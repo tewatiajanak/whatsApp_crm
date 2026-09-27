@@ -156,18 +156,18 @@ const EventSelector = ({ events, loading, today, onSelect, onLogout }) => {
   return (
     <div
       className="d-flex flex-column align-items-center justify-content-center"
-      style={{ minHeight: "85vh", padding: "16px" }}
+      style={{ minHeight: "85vh", padding: "16px", background: "var(--page-bg)" }}
     >
       <div
-        className="card border-0 shadow-sm"
-        style={{ width: "min(420px, 100%)", borderRadius: 16 }}
+        className="card shadow-sm"
+        style={{ width: "min(420px, 100%)", borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)" }}
       >
-        <div className="card-body p-4">
+        <div className="card-body p-4" style={{ background: "transparent" }}>
           <div className="d-flex align-items-center gap-2 mb-1">
             <AiOutlineCalendar size={22} style={{ color: "var(--primary)" }} />
-            <h5 className="fw-bold mb-0">Select Event</h5>
+            <h5 className="fw-bold mb-0" style={{ color: "var(--foreground)" }}>Select Event</h5>
           </div>
-          <p className="text-muted small mb-4">Active events for today.</p>
+          <p className="small mb-4" style={{ color: "var(--muted-foreground)" }}>Active events for today.</p>
 
           {loading ? (
             <div className="text-center py-4 text-muted small">
@@ -179,8 +179,8 @@ const EventSelector = ({ events, loading, today, onSelect, onLogout }) => {
             </div>
           ) : events.length === 0 ? (
             <div className="text-center py-4">
-              <div className="fw-semibold mt-2">No active events today</div>
-              <div className="text-muted small mt-1">
+              <div className="fw-semibold mt-2" style={{ color: "var(--foreground)" }}>No active events today</div>
+              <div className="small mt-1" style={{ color: "var(--muted-foreground)" }}>
                 Only events running today are shown here.
               </div>
             </div>
@@ -1238,13 +1238,21 @@ const ScanPage = () => {
     return (
       <div
         className="d-flex flex-column align-items-center justify-content-center"
-        style={{ minHeight: "85vh", padding: "16px" }}
+        style={{ minHeight: "85vh", padding: "16px", background: "var(--page-bg)" }}
       >
-        <div className="card border-0 shadow-sm" style={{ width: "min(420px, 100%)" }}>
-          <div className="card-body p-4 text-center">
+        <div
+          className="card shadow-sm"
+          style={{
+            width: "min(420px, 100%)",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "12px",
+          }}
+        >
+          <div className="card-body p-4 text-center" style={{ background: "transparent" }}>
             <AiOutlineCalendar size={48} style={{ color: "var(--primary)", marginBottom: 16 }} />
-            <h5 className="fw-bold mb-2">No Active Events</h5>
-            <p className="text-muted small">
+            <h5 className="fw-bold mb-2" style={{ color: "var(--foreground)" }}>No Active Events</h5>
+            <p className="small mb-0" style={{ color: "var(--muted-foreground)" }}>
               There are no active events today. Check back later!
             </p>
           </div>

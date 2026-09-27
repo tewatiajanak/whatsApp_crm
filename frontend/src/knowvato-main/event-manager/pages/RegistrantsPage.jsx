@@ -756,9 +756,9 @@ const RegistrantsPage = () => {
   };
 
   return (
-    <div className="container-fluid p-2 fade-in">
-      <div className="card border-0 shadow-sm mb-3">
-        <div className="card-body p-3">
+    <div className="container-fluid p-2 fade-in" style={{ background: "var(--page-bg)", minHeight: "100%" }}>
+      <div className="card shadow-sm mb-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div className="card-body p-3" style={{ background: "transparent" }}>
           <div className="d-flex flex-column flex-md-row align-items-start gap-3">
             <div style={{ minWidth: 220, maxWidth: 360, width: "100%" }}>
               <label className="form-label small fw-semibold mb-1">Event</label>
@@ -800,8 +800,8 @@ const RegistrantsPage = () => {
       </div>
 
       {editAttendee && (
-        <div className="card border-0 shadow-sm mb-3">
-          <div className="card-body p-3">
+        <div className="card shadow-sm mb-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div className="card-body p-3" style={{ background: "transparent" }}>
             <div className="d-flex justify-content-between align-items-start gap-3 mb-3 flex-column flex-md-row">
               <div>
                 <div className="fw-semibold">Edit Registrant</div>
@@ -920,8 +920,8 @@ const RegistrantsPage = () => {
         </div>
       )}
 
-      <div className="card border-0 shadow-sm h-100">
-        <div className="card-body p-3">
+      <div className="card shadow-sm h-100" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div className="card-body p-3" style={{ background: "transparent" }}>
           <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3">
             <div>
               <div className="d-flex flex-wrap align-items-center gap-2 mb-1">

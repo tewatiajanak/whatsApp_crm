@@ -1,5 +1,8 @@
 import { http } from "./client";
 
+// Export http client for direct use
+export { http };
+
 // Helper to turn a params object into a query string
 const qs = (params = {}) => {
   const usable = Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "");

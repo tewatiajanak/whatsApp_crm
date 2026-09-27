@@ -110,32 +110,34 @@ function mix(hex, target, amount) {
 }
 
 export function buildVars(cfg) {
-  const accentSurface = mix(cfg.accent, { r: 255, g: 255, b: 255 }, 0.9);
+  const accentSurface = "#E2ECEB";
   const btn = BUTTON_STYLES[cfg.buttonStyle] || BUTTON_STYLES.normal;
-  const rad = parseInt(cfg.radius || "12", 10);
+  const radiusRaw = String(cfg.radius || "0.55rem");
+  const radiusUnit = radiusRaw.includes("rem") ? "rem" : "px";
+  const radiusValue = parseFloat(radiusRaw.replace(/rem|px/g, "")) || 0.55;
   const shadowVal = SHADOW_MAP[cfg.shadowKey] || SHADOW_MAP.subtle;
 
   return {
-    "--accent": accentSurface,
-    "--accent-hover": mix(cfg.accent, { r: 255, g: 255, b: 255 }, 0.8),
-    "--accent-surface": accentSurface,
-    "--accent-soft": accentSurface,
-    "--accent-foreground": cfg.headingText,
+    "--accent": "#E2ECEB",
+    "--accent-hover": "#D9E7E5",
+    "--accent-surface": "#E2ECEB",
+    "--accent-soft": "#E2ECEB",
+    "--accent-foreground": "#286663",
     "--page-bg": cfg.pageBg,
     "--background": cfg.pageBg,
     "--active-bg": cfg.activeStyle === "solid" ? cfg.accent : accentSurface,
-    "--active-text": cfg.activeStyle === "solid" ? "#ffffff" : cfg.accent,
+    "--active-text": cfg.activeStyle === "solid" ? "#ffffff" : "#286663",
     "--active-border": cfg.activeStyle === "solid" ? "transparent" : cfg.accent,
     "--btn-dark": cfg.accent,
     "--btn-dark-hover": cfg.accentHover,
     "--toggle-bg": cfg.accent,
-    "--card-radius": rad + "px",
-    "--radius": rad + "px",
-    "--radius-md": Math.max(4, rad - 2) + "px",
-    "--radius-sm": Math.max(2, rad - 4) + "px",
-    "--radius-xs": Math.max(2, rad - 6) + "px",
-    "--btn-radius": rad + "px",
-    "--logo-shape": rad + "px",
+    "--card-radius": `${radiusValue}${radiusUnit}`,
+    "--radius": `${radiusValue}${radiusUnit}`,
+    "--radius-md": `${Math.max(0.4, radiusValue - 0.05)}${radiusUnit}`,
+    "--radius-sm": `${Math.max(0.35, radiusValue - 0.1)}${radiusUnit}`,
+    "--radius-xs": `${Math.max(0.3, radiusValue - 0.15)}${radiusUnit}`,
+    "--btn-radius": `${radiusValue}${radiusUnit}`,
+    "--logo-shape": `${radiusValue}${radiusUnit}`,
     "--card-shadow": shadowVal,
     "--shadow-sm": shadowVal,
     "--card-border": cfg.border,
@@ -155,8 +157,10 @@ export function buildVars(cfg) {
     "--btn-letter-spacing": btn.letterSpacing,
     "--btn-border": btn.border,
     "--primary": cfg.accent,
-    "--primary-foreground": "#ffffff",
-    "--sidebar-primary": cfg.activeStyle === "solid" ? cfg.accent : accentSurface,
+    "--primary-foreground": "#FAFDFD",
+    "--sidebar-primary": cfg.accent,
+    "--sidebar-accent": "#E2ECEB",
+    "--sidebar-accent-foreground": "#286663",
     "font-family": cfg.font,
     "fontFamily": cfg.font,
   };
@@ -223,6 +227,17 @@ export function applyThemeToDocument(cfg) {
       border: 1px solid var(--card-border) !important;
       border-radius: var(--card-radius) !important;
       box-shadow: var(--card-shadow) !important;
+    }
+    .text-dark, .text-black, .text-bg-dark, .bg-dark, .bg-black, .border-dark {
+      color: var(--heading-text) !important;
+      border-color: var(--border) !important;
+    }
+    .bg-dark, .bg-black {
+      background-color: var(--surface-bg) !important;
+    }
+    .table-responsive, .table {
+      border-radius: var(--card-radius) !important;
+      overflow: hidden !important;
     }
     .form-control, .form-select, .input-group-text {
       border-radius: var(--radius-sm) !important;
