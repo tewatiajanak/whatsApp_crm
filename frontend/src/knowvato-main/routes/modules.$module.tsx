@@ -88,6 +88,7 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "field-library", label: "Field Library" },
       { slug: "form-templates", label: "Form Templates" },
       { slug: "master-lists", label: "Master Lists" },
+      { slug: "pass-templates", label: "Pass Templates" },
     ],
   },
   {
@@ -525,6 +526,23 @@ export default function ModulePage() {
               "Search, reorder, deactivate items without deleting them",
               "Version history so old submissions keep resolving to their original label",
             ]}
+          />
+        );
+      case "pass-templates":
+        return (
+          <SectionStubPage
+            title="Pass Templates"
+            description="Reusable badge and pass designs — General, VIP, Speaker, Staff, Exhibitor, Visitor, Student — with front and back layouts, ready to apply to any event."
+            phase="Phase 8"
+            features={[
+              "Drag-and-drop Canvas Designer (react-konva) with mm units, snap, guides, layers",
+              "Elements: text with auto-shrink, image, logo, participant photo, QR (hashed token), barcode (Code128 / EAN / PDF417), shapes, icons, dynamic fields, conditional blocks (e.g. VIP → gold ribbon)",
+              "Bind any field: {{participant.name}}, {{registration.code}}, ticket color band",
+              "Server-side rendering (puppeteer) is the source of truth — canvas preview matches print",
+              "Preset sizes: badge 4×3, A6, CR80; bleed + safe-zone overlays",
+              "Version history, save-as-template, apply to event",
+            ]}
+            footer="Distinct from Form Templates and Communication Templates. Passes are what participants show at the gate."
           />
         );
       case "templates-whatsapp":

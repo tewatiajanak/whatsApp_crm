@@ -53,6 +53,7 @@ const TITLES: Record<string, string> = {
   "/modules/field-library": "Configuration - Field Library",
   "/modules/form-templates": "Configuration - Form Templates",
   "/modules/master-lists": "Configuration - Master Lists",
+  "/modules/pass-templates": "Configuration - Pass Templates",
   "/sa": "Super Admin",
   "/sa/organizations": "Super Admin - Organizations",
   "/sa/plans": "Super Admin - Plans",

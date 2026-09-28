@@ -70,6 +70,7 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "field-library",
   "form-templates",
   "master-lists",
+  "pass-templates",
 ]);
 
 const eventsSubmenu = [
