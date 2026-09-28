@@ -98,6 +98,8 @@ const CONFIGURATION_CATEGORIES = [
     accentTint: "var(--destructive-bg)",
     items: [
       { slug: "subscription-usage", label: "Subscription & Usage" },
+      { slug: "payment-gateways", label: "Payment Gateways" },
+      { slug: "taxes-invoicing", label: "Taxes & Invoicing" },
     ],
   },
   {
@@ -358,7 +360,7 @@ export default function ModulePage() {
         return (
           <SectionStubPage
             title="Subscription & Usage"
-            description="Your current plan, features included, and live usage meters for every limit."
+            description="Your current plan, features included, and live usage meters for every limit. This is what you pay the platform for using Knowvato."
             phase="Phase 3"
             features={[
               "Current plan card with renewal date and billing duration",
@@ -366,6 +368,36 @@ export default function ModulePage() {
               "Threshold alerts at 80 / 90 / 100% (configurable by the platform)",
               "Upgrade CTA and side-by-side plan comparison",
               "Invoice history and payment methods (arrives with Phase 15 checkout)",
+            ]}
+          />
+        );
+      case "payment-gateways":
+        return (
+          <SectionStubPage
+            title="Payment Gateways"
+            description="Connect the payment providers your customers use to buy tickets. Distinct from your Knowvato subscription — this is money flowing from your attendees to you."
+            phase="Phase 7"
+            features={[
+              "Adapters: Razorpay · Stripe · PayPal · Cashfree · PayU · Offline (cash / cheque / bank transfer)",
+              "Add-gateway wizard: choose provider → paste credentials (masked, never returned) → copy webhook URL → Test connection",
+              "Set default gateway per currency; priority order for retries",
+              "Server-side verification: webhook is the source of truth, not the browser callback",
+              "AES-256-GCM encryption at rest for every secret",
+            ]}
+          />
+        );
+      case "taxes-invoicing":
+        return (
+          <SectionStubPage
+            title="Taxes & Invoicing"
+            description="Configure how customer payments are taxed and invoiced — tax registrations per state, invoice series, and the invoice PDF template."
+            phase="Phase 7"
+            features={[
+              "GST / VAT registrations per state (GSTIN, place of supply) — intra-state → CGST + SGST, inter-state → IGST, export → zero-rated",
+              "Invoice number series with financial-year and org-code tokens: INV/{FY}/{SEQ:5}",
+              "Invoice PDF template (HTML editor with variable picker + live PDF preview)",
+              "Terms text, seller legal name / address / signatory",
+              "Void → credit note (never delete an invoice; corrections are new records)",
             ]}
           />
         );

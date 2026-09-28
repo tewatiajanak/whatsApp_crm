@@ -59,6 +59,8 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "audit-logs",
   "files",
   "subscription-usage",
+  "payment-gateways",
+  "taxes-invoicing",
   "event-types",
   "event-categories",
   "event-statuses",

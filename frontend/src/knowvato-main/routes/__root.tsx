@@ -42,6 +42,8 @@ const TITLES: Record<string, string> = {
   "/modules/audit-logs": "Configuration - Audit Logs",
   "/modules/files": "Configuration - Files",
   "/modules/subscription-usage": "Configuration - Subscription & Usage",
+  "/modules/payment-gateways": "Configuration - Payment Gateways",
+  "/modules/taxes-invoicing": "Configuration - Taxes & Invoicing",
   "/modules/event-types": "Configuration - Event Types",
   "/modules/event-categories": "Configuration - Event Categories",
   "/modules/event-statuses": "Configuration - Event Statuses",
