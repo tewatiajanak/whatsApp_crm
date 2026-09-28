@@ -44,6 +44,15 @@ import EventsChecklist from "./knowvato-main/routes/modules.events.checklist";
 import EventsTasks from "./knowvato-main/routes/modules.events.tasks";
 import EventsActivity from "./knowvato-main/routes/modules.events.activity";
 import EventsWorkspace from "./knowvato-main/routes/modules.events.workspace";
+
+// Phase 11 Communication submenu — Overview + 4 stubs
+import CommunicationLayout from "./knowvato-main/routes/modules.communication";
+import CommunicationIndex from "./knowvato-main/routes/modules.communication.index";
+import CommunicationCampaigns from "./knowvato-main/routes/modules.communication.campaigns";
+import CommunicationAutomated from "./knowvato-main/routes/modules.communication.automated";
+import CommunicationLogs from "./knowvato-main/routes/modules.communication.logs";
+import CommunicationNotificationCenter from "./knowvato-main/routes/modules.communication.notification-center";
+import NotificationsPage from "./knowvato-main/routes/notifications";
 import TemplatesWhatsapp from "./knowvato-main/routes/modules.templates-whatsapp";
 import TemplatesEmail from "./knowvato-main/routes/modules.templates-email";
 import TemplatesSms from "./knowvato-main/routes/modules.templates-sms";
@@ -157,6 +166,13 @@ export default function App() {
             <Route path="duplicates" element={<ParticipantsDuplicates />} />
             <Route path="segments" element={<ParticipantsSegments />} />
           </Route>
+          <Route path="modules/communication" element={<CommunicationLayout />}>
+            <Route index element={<CommunicationIndex />} />
+            <Route path="campaigns" element={<CommunicationCampaigns />} />
+            <Route path="automated-messages" element={<CommunicationAutomated />} />
+            <Route path="logs" element={<CommunicationLogs />} />
+            <Route path="notification-center" element={<CommunicationNotificationCenter />} />
+          </Route>
           <Route path="modules/utilities" element={<UtilitiesLayout />}>
             <Route index element={<UtilitiesOverviewPage />} />
             <Route path="qr" element={<QRCodeUtilityPage />} />
@@ -164,6 +180,9 @@ export default function App() {
             <Route path="photo-edit" element={<PhotoEditorPage />} />
           </Route>
           <Route path="modules/:module" element={<ModulePage />} />
+          {/* Notification Center (Phase 11 stub) — top-level entry from the
+              bell in the top bar. Same page also renders inside Communication. */}
+          <Route path="notifications" element={<NotificationsPage />} />
           {/* Super Admin — reserved for Phase 3. All /sa/* subroutes render the
               same landing page until the real pages ship, so bookmarks work. */}
           <Route path="sa" element={<SuperAdminLandingPage />} />

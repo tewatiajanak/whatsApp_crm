@@ -31,6 +31,9 @@ import {
   Activity,
   Copy,
   Filter,
+  Zap,
+  ScrollText,
+  Bell,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -73,6 +76,8 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "pass-templates",
   "venues",
   "seating-maps",
+  "message-delivery",
+  "staff-notifications",
 ]);
 
 const eventsSubmenu = [
@@ -97,6 +102,14 @@ const participantsSubmenu = [
   { title: "All Participants", path: "/modules/participants", icon: Users, exact: true },
   { title: "Duplicates", path: "/modules/participants/duplicates", icon: Copy },
   { title: "Segments", path: "/modules/participants/segments", icon: Filter },
+];
+
+const communicationSubmenu = [
+  { title: "Overview", path: "/modules/communication", icon: LayoutDashboard, exact: true },
+  { title: "Campaigns", path: "/modules/communication/campaigns", icon: Megaphone },
+  { title: "Automated Messages", path: "/modules/communication/automated-messages", icon: Zap },
+  { title: "Message Logs", path: "/modules/communication/logs", icon: ScrollText },
+  { title: "Notification Center", path: "/modules/communication/notification-center", icon: Bell },
 ];
 
 export function AppSidebar() {
@@ -145,6 +158,45 @@ export function AppSidebar() {
                 {!isCollapsed && <span>Home</span>}
               </Link>
               {eventsSubmenu.map((s) => {
+                const active = pathname === s.path;
+                const Icon = s.icon;
+                return (
+                  <Link
+                    key={s.path}
+                    to={s.path}
+                    onClick={handleLinkClick}
+                    title={s.title}
+                    className={`nav-link text-decoration-none flex items-center ${
+                      isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                    } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>{s.title}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ) : pathname.startsWith("/modules/communication") ? (
+          <div className="nav-section px-2 py-1">
+            {!isCollapsed && (
+              <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
+                Communication
+              </div>
+            )}
+            <div className="space-y-1">
+              <Link
+                to="/"
+                onClick={handleLinkClick}
+                title="Home"
+                className={`nav-link text-decoration-none flex items-center ${
+                  isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                } ${pathname === "/" ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+              >
+                <Home className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>Home</span>}
+              </Link>
+              {communicationSubmenu.map((s) => {
                 const active = pathname === s.path;
                 const Icon = s.icon;
                 return (

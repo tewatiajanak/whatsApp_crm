@@ -15,6 +15,7 @@ import {
   CalendarRange,
   Library,
   Building2,
+  Bell,
 } from "lucide-react";
 import { useBookmarks } from "@/lib/bookmarks";
 import SectionStubPage from "@/components/SectionStubPage";
@@ -22,7 +23,6 @@ import SectionStubPage from "@/components/SectionStubPage";
 // Import Full-Fledged Module Pages
 import WebsiteBuilderPage from "../pages/WebsiteBuilderPage";
 import UserManagementPage from "../pages/UserManagementPage";
-import CommunicationPage from "../pages/CommunicationPage";
 import FrontOfficePage from "../pages/FrontOfficePage";
 import ReportsPage from "../pages/ReportsPage";
 import EmailIntegrationPage from "../pages/EmailIntegrationPage";
@@ -128,6 +128,17 @@ const CONFIGURATION_CATEGORIES = [
     ],
   },
   {
+    id: "notifications",
+    title: "Notifications",
+    icon: Bell,
+    accent: "var(--warning)",
+    accentTint: "var(--warning-bg)",
+    items: [
+      { slug: "message-delivery", label: "Message Delivery" },
+      { slug: "staff-notifications", label: "Staff Notifications" },
+    ],
+  },
+  {
     id: "integrations",
     title: "Integrations",
     icon: Puzzle,
@@ -138,6 +149,7 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "integrations-whatsapp", label: "WhatsApp Integration" },
       { slug: "integrations-email", label: "Email Integration" },
       { slug: "integrations-sms", label: "SMS Integration" },
+      { slug: "integrations-push", label: "Push Notifications" },
       { slug: "integrations-facebook", label: "Facebook Integration" },
       { slug: "integrations-other", label: "Other API Integration" },
     ],
@@ -273,7 +285,6 @@ export default function ModulePage() {
 
   // Standalone Main Suite Direct Modules
   if (activeModule === "website") return <WebsiteBuilderPage />;
-  if (activeModule === "communication") return <CommunicationPage />;
   if (activeModule === "front-office") return <FrontOfficePage />;
   if (activeModule === "reports") return <ReportsPage />;
 
@@ -287,6 +298,7 @@ export default function ModulePage() {
     library: true,
     facilities: true,
     billing: true,
+    notifications: true,
     templates: true,
     integrations: true,
   });
@@ -596,6 +608,52 @@ export default function ModulePage() {
         return <TemplatesEmail />;
       case "templates-sms":
         return <TemplatesSms />;
+      case "message-delivery":
+        return (
+          <SectionStubPage
+            title="Message Delivery"
+            description="Choose the default provider per channel, set fallback order, quiet hours, daily caps, and tracking toggles that every message obeys."
+            phase="Phase 11"
+            features={[
+              "Per-channel default: which provider sends when nothing else is specified",
+              "Fallback order (drag list): e.g. WhatsApp → SMS → Email for critical alerts",
+              "Quiet hours: defer non-urgent messages between 22:00 – 07:00 in recipient timezone",
+              "Daily caps per channel (soft warn / hard stop)",
+              "Tracking toggles: email open pixel, click redirect, unsubscribe footer",
+              "Use platform provider (metered) vs use your own (plan-gated)",
+            ]}
+          />
+        );
+      case "staff-notifications":
+        return (
+          <SectionStubPage
+            title="Staff Notification Matrix"
+            description="Decide who on your team gets notified about which system events, on which channels. A matrix of roles × events × channels with quiet-hour respect."
+            phase="Phase 11"
+            features={[
+              "Rows: system events (new registration, payment failed, approval needed, device offline, plan limit reached, refund requested…)",
+              "Columns: in-app · email · push · WhatsApp",
+              "One toggle grid per role — Organization Admin, Event Manager, Registration Manager, Finance, Support, etc.",
+              "Preset routing: escalate after N minutes if not acknowledged",
+              "Personal override in every user's profile",
+            ]}
+          />
+        );
+      case "integrations-push":
+        return (
+          <SectionStubPage
+            title="Push Notifications"
+            description="Web Push (VAPID) for browser users and FCM for the mobile app — the same notification engine, one more channel."
+            phase="Phase 11"
+            features={[
+              "Web Push provider with VAPID keys (auto-generated, rotatable)",
+              "FCM provider for Android / iOS mobile app (Phase 16)",
+              "Subscription flow: user opts in from bell → browser prompt → token stored per device",
+              "Test push from Settings",
+              "Delivery reported by the provider webhook",
+            ]}
+          />
+        );
       case "integrations-ai":
         return <AIIntegrationPage />;
       case "integrations-whatsapp":
