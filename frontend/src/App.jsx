@@ -53,6 +53,16 @@ import CommunicationAutomated from "./knowvato-main/routes/modules.communication
 import CommunicationLogs from "./knowvato-main/routes/modules.communication.logs";
 import CommunicationNotificationCenter from "./knowvato-main/routes/modules.communication.notification-center";
 import NotificationsPage from "./knowvato-main/routes/notifications";
+
+// Phase 13 Reports submenu — Overview + 5 stubs
+import ReportsLayout from "./knowvato-main/routes/modules.reports";
+import ReportsIndex from "./knowvato-main/routes/modules.reports.index";
+import ReportsBuilder from "./knowvato-main/routes/modules.reports.builder";
+import ReportsSaved from "./knowvato-main/routes/modules.reports.saved";
+import ReportsScheduled from "./knowvato-main/routes/modules.reports.scheduled";
+import ReportsExports from "./knowvato-main/routes/modules.reports.exports";
+import ReportsAnalytics from "./knowvato-main/routes/modules.reports.analytics";
+import CommandCenterPage from "./knowvato-main/routes/search";
 import TemplatesWhatsapp from "./knowvato-main/routes/modules.templates-whatsapp";
 import TemplatesEmail from "./knowvato-main/routes/modules.templates-email";
 import TemplatesSms from "./knowvato-main/routes/modules.templates-sms";
@@ -173,6 +183,14 @@ export default function App() {
             <Route path="logs" element={<CommunicationLogs />} />
             <Route path="notification-center" element={<CommunicationNotificationCenter />} />
           </Route>
+          <Route path="modules/reports" element={<ReportsLayout />}>
+            <Route index element={<ReportsIndex />} />
+            <Route path="builder" element={<ReportsBuilder />} />
+            <Route path="saved" element={<ReportsSaved />} />
+            <Route path="scheduled" element={<ReportsScheduled />} />
+            <Route path="exports" element={<ReportsExports />} />
+            <Route path="analytics" element={<ReportsAnalytics />} />
+          </Route>
           <Route path="modules/utilities" element={<UtilitiesLayout />}>
             <Route index element={<UtilitiesOverviewPage />} />
             <Route path="qr" element={<QRCodeUtilityPage />} />
@@ -183,6 +201,9 @@ export default function App() {
           {/* Notification Center (Phase 11 stub) — top-level entry from the
               bell in the top bar. Same page also renders inside Communication. */}
           <Route path="notifications" element={<NotificationsPage />} />
+          {/* Command Center (Phase 13 stub) — full-screen search fallback
+              for mobile; desktop opens Ctrl+K palette overlay in Phase 13. */}
+          <Route path="search" element={<CommandCenterPage />} />
           {/* Super Admin — reserved for Phase 3. All /sa/* subroutes render the
               same landing page until the real pages ship, so bookmarks work. */}
           <Route path="sa" element={<SuperAdminLandingPage />} />

@@ -24,7 +24,6 @@ import SectionStubPage from "@/components/SectionStubPage";
 import WebsiteBuilderPage from "../pages/WebsiteBuilderPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import FrontOfficePage from "../pages/FrontOfficePage";
-import ReportsPage from "../pages/ReportsPage";
 import EmailIntegrationPage from "../pages/EmailIntegrationPage";
 import SmsIntegrationPage from "../pages/SmsIntegrationPage";
 import FacebookIntegrationPage from "../pages/FacebookIntegrationPage";
@@ -286,7 +285,6 @@ export default function ModulePage() {
   // Standalone Main Suite Direct Modules
   if (activeModule === "website") return <WebsiteBuilderPage />;
   if (activeModule === "front-office") return <FrontOfficePage />;
-  if (activeModule === "reports") return <ReportsPage />;
 
   // Configuration / Templates / Integrations PERSISTENT 2-Column Shell
   const activeSlug = activeModule === "settings" ? "configuration" : activeModule;
