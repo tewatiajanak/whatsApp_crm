@@ -37,8 +37,20 @@ const modules = [
   { title: "Front Office", slug: "front-office", icon: Building2 },
   { title: "Reports & Analytics", slug: "reports", icon: BarChart3 },
   { title: "Utilities", slug: "utilities", icon: Sparkles },
-  { title: "User Management", slug: "users", icon: Users },
 ];
+
+// Configuration submodule slugs (kept in sync with CONFIGURATION_CATEGORIES in
+// routes/modules.$module.tsx). Used to detect whether the Configuration nav
+// pill should show as active.
+const CONFIGURATION_SUBSLUGS = new Set([
+  "organization-details",
+  "users",
+  "roles",
+  "departments",
+  "security",
+  "audit-logs",
+  "files",
+]);
 
 const eventsSubmenu = [
   { title: "Dashboard", path: "/modules/events", icon: LayoutDashboard, exact: true },
@@ -65,10 +77,14 @@ export function AppSidebar() {
     if (openMobile) setOpenMobile(false);
   };
 
+  const configSlug = pathname.startsWith("/modules/")
+    ? pathname.slice("/modules/".length).split("/")[0]
+    : "";
   const isConfigurationPath =
     pathname.startsWith("/modules/integrations-") ||
     pathname.startsWith("/modules/templates-") ||
-    pathname === "/modules/configuration";
+    pathname === "/modules/configuration" ||
+    CONFIGURATION_SUBSLUGS.has(configSlug);
 
   const renderNavItems = (isMobileDrawer = false) => {
     const isCollapsed = isMobileDrawer ? false : collapsed;

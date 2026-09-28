@@ -14,7 +14,6 @@ const TITLES: Record<string, string> = {
   "/modules/events": "Event Manager",
   "/modules/whatsapp": "CRM",
   "/modules/website": "Website Builder",
-  "/modules/users": "User Management",
   "/modules/communication": "Communication",
   "/modules/front-office": "Front Office",
   "/modules/reports": "Reports & Analytics",
@@ -23,6 +22,13 @@ const TITLES: Record<string, string> = {
   "/modules/utilities/video-edit": "Utilities - Video Editor",
   "/modules/utilities/photo-edit": "Utilities - Photo Studio",
   "/modules/configuration": "Configuration",
+  "/modules/organization-details": "Configuration - Organization Details",
+  "/modules/users": "Configuration - Users",
+  "/modules/roles": "Configuration - Roles & Permissions",
+  "/modules/departments": "Configuration - Departments",
+  "/modules/security": "Configuration - Security",
+  "/modules/audit-logs": "Configuration - Audit Logs",
+  "/modules/files": "Configuration - Files",
 };
 
 function MainHeader() {

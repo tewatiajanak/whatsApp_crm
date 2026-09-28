@@ -10,6 +10,9 @@ import {
   ChevronDown,
   LayoutDashboard,
   Settings as SettingsIcon,
+  ShieldCheck,
+  Clock,
+  Construction,
 } from "lucide-react";
 import { useBookmarks } from "@/lib/bookmarks";
 
@@ -41,6 +44,21 @@ const CONFIGURATION_CATEGORIES = [
     accentTint: "color-mix(in srgb, var(--primary) 12%, transparent)",
     items: [
       { slug: "organization-details", label: "Organization Details" },
+    ],
+  },
+  {
+    id: "security-access",
+    title: "Security & Access",
+    icon: ShieldCheck,
+    accent: "var(--warning)",
+    accentTint: "var(--warning-bg)",
+    items: [
+      { slug: "users", label: "Users" },
+      { slug: "roles", label: "Roles & Permissions" },
+      { slug: "departments", label: "Departments" },
+      { slug: "security", label: "Security" },
+      { slug: "audit-logs", label: "Audit Logs" },
+      { slug: "files", label: "Files" },
     ],
   },
   {
@@ -201,7 +219,6 @@ export default function ModulePage() {
 
   // Standalone Main Suite Direct Modules
   if (activeModule === "website") return <WebsiteBuilderPage />;
-  if (activeModule === "users") return <UserManagementPage />;
   if (activeModule === "communication") return <CommunicationPage />;
   if (activeModule === "front-office") return <FrontOfficePage />;
   if (activeModule === "reports") return <ReportsPage />;
@@ -211,6 +228,7 @@ export default function ModulePage() {
 
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     general: true,
+    "security-access": true,
     templates: true,
     integrations: true,
   });
@@ -223,6 +241,77 @@ export default function ModulePage() {
     switch (slug) {
       case "organization-details":
         return <OrganizationDetailsPage />;
+      case "users":
+        return <UserManagementPage />;
+      case "roles":
+        return (
+          <ConfigStubPage
+            title="Roles & Permissions"
+            description="Create custom roles and control every action across the workspace via a permission matrix."
+            phase="Phase C"
+            features={[
+              "System role library with clone-to-customize",
+              "Permission matrix — modules × actions (view / create / edit / delete)",
+              "Assign roles per-user and per-event (EventMember)",
+              "Mobile: accordion-per-module with switches",
+            ]}
+          />
+        );
+      case "departments":
+        return (
+          <ConfigStubPage
+            title="Departments"
+            description="Model your organization hierarchy with nested departments, heads, and codes."
+            phase="Phase D"
+            features={[
+              "Tree view with drag-to-reparent",
+              "Department head, code, and parent chain",
+              "Link users to departments and filter reports by dept",
+            ]}
+          />
+        );
+      case "security":
+        return (
+          <ConfigStubPage
+            title="Security"
+            description="Password policy, two-factor enforcement, session limits, and login history."
+            phase="Phase F"
+            features={[
+              "Password strength rules and reset cadence",
+              "Enforce 2FA for selected roles",
+              "Session timeout & concurrent-device limits",
+              "Login history with IP, device, and location",
+            ]}
+          />
+        );
+      case "audit-logs":
+        return (
+          <ConfigStubPage
+            title="Audit Logs"
+            description="Append-only trail of every create / update / delete across the workspace."
+            phase="Phase E"
+            features={[
+              "Actor, action, entity, IP, device, and timestamp",
+              "Row drawer with before / after diff view (green added / red removed)",
+              "Filter by actor, action, entity, and date range",
+              "Export to CSV / Excel / JSON",
+            ]}
+          />
+        );
+      case "files":
+        return (
+          <ConfigStubPage
+            title="File Manager"
+            description="Central store for uploads with folders, tags, previews, and signed URLs."
+            phase="Phase F"
+            features={[
+              "Folder tree with drag-move and tags",
+              "Grid / list view with image and PDF preview",
+              "Signed URL access for private files",
+              "Storage-used meter and per-file audit trail",
+            ]}
+          />
+        );
       case "templates-whatsapp":
         return <TemplatesWhatsapp />;
       case "templates-email":
@@ -364,6 +453,65 @@ export default function ModulePage() {
         <div className="min-w-0 rounded-xl border bg-card shadow-sm overflow-hidden">
           {renderActiveConfigComponent(activeSlug)}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfigStubPage({
+  title,
+  description,
+  phase,
+  features,
+}: {
+  title: string;
+  description: string;
+  phase: string;
+  features: string[];
+}) {
+  return (
+    <div className="p-6 md:p-8">
+      <div className="flex items-start justify-between gap-4 pb-5 border-b">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+        </div>
+        <span
+          className="inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider border"
+          style={{
+            background: "var(--warning-bg)",
+            color: "var(--warning)",
+            borderColor: "color-mix(in srgb, var(--warning) 25%, transparent)",
+          }}
+        >
+          <Clock className="h-3 w-3" />
+          Coming in {phase}
+        </span>
+      </div>
+
+      <div className="mt-6 max-w-2xl">
+        <div className="flex items-center gap-2 mb-3">
+          <Construction className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">Planned capabilities</h3>
+        </div>
+        <ul className="space-y-2.5">
+          {features.map((f) => (
+            <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+              <span
+                className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
+                style={{ background: "var(--primary)" }}
+              />
+              <span className="leading-relaxed">{f}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-8 pt-5 border-t">
+        <p className="text-xs text-muted-foreground">
+          This module is scheduled for a future phase. The menu placement and slug are finalized so
+          bookmarks, deep links, and breadcrumbs will keep working when the page ships.
+        </p>
       </div>
     </div>
   );
