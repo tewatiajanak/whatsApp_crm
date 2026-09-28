@@ -602,8 +602,33 @@ r.post("/workflow-config/:key", authenticate, require_("setup", "edit"), async (
 });
 
 /* ---- Organization Details ---- */
+// Login video is stored on disk (too large for a JSON body / Mongo document); only its URL is saved.
+const MAX_ORG_VIDEO_BYTES = 50 * 1024 * 1024;
+const orgVideoUpload = multer({ dest: uploadDir, limits: { fileSize: MAX_ORG_VIDEO_BYTES } });
+r.post(
+  "/organization-details/video",
+  authenticate,
+  require_("setup", "edit"),
+  orgVideoUpload.single("file"),
+  asyncHandler(async (req: any, res: any) => {
+    if (!req.file) throw new ApiError(400, "No file uploaded");
+    if (!/^video\//.test(String(req.file.mimetype || ""))) {
+      await fs.promises.unlink(req.file.path).catch(() => undefined);
+      throw new ApiError(400, "Only video files are allowed");
+    }
+    const ext = (path.extname(req.file.originalname || "") || ".mp4").toLowerCase().replace(/[^a-z0-9.]/g, "");
+    const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+    const dir = path.join(process.cwd(), "uploads", "org-media");
+    await fs.promises.mkdir(dir, { recursive: true });
+    // copy + unlink rather than rename: tmpdir may be on a different volume
+    await fs.promises.copyFile(req.file.path, path.join(dir, fileName));
+    await fs.promises.unlink(req.file.path).catch(() => undefined);
+    res.json({ ok: true, data: { url: `/uploads/org-media/${fileName}` } });
+  })
+);
+
 // GET is PUBLIC (no auth needed - for login page display) - UPDATED 2026-09-28
-r.post("/organization-details", authenticate, require_("setup", "edit"), asyncHandler(async (req: any, res: any) => {
+r.post("/organization-details",authenticate, require_("setup", "edit"), asyncHandler(async (req: any, res: any) => {
   const {
     name,
     tagline,

@@ -153,7 +153,7 @@ export default function Login() {
               style={{
                 display: "flex",
                 flexDirection: orgDetails?.loginLayout === "side-by-side" ? "row" : "column",
-                gap: orgDetails?.loginLayout === "side-by-side" ? 12 : 0,
+                gap: orgDetails?.loginLayout === "side-by-side" ? 12 : 8,
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 32,
@@ -164,26 +164,24 @@ export default function Login() {
                   src={orgDetails.logo}
                   alt="Organization Logo"
                   style={{
-                    height: `${orgDetails.logoSize || 60}px`,
-                    width: orgDetails?.loginLayout === "side-by-side" ? "auto" : "auto",
-                    maxHeight: `${orgDetails.logoSize || 60}px`,
-                    maxWidth: orgDetails?.loginLayout === "side-by-side" ? 80 : 120,
-                    marginBottom: orgDetails?.loginLayout === "side-by-side" ? 0 : 12,
+                    maxWidth: `${orgDetails.logoWidth || 120}px`,
+                    maxHeight: `${orgDetails.logoHeight || 120}px`,
                     objectFit: "contain",
                     borderRadius: `${orgDetails.logoBorderRadius || 0}px`,
                   }}
                 />
               )}
+              {/* divs, not h1/p: a global stylesheet forces heading/paragraph colors with !important */}
               <div style={{ textAlign: orgDetails?.loginLayout === "side-by-side" ? "left" : "center" }}>
                 {orgDetails?.name && (
-                  <h1 style={{ fontSize: `${orgDetails.nameFontSize || 24}px`, fontWeight: 700, color: orgDetails.nameColor || "#222", marginBottom: 4, margin: 0 }}>
+                  <div style={{ fontSize: `${orgDetails.nameFontSize || 24}px`, fontWeight: 700, lineHeight: 1.2, color: orgDetails.nameColor || "#222" }}>
                     {orgDetails.name}
-                  </h1>
+                  </div>
                 )}
                 {orgDetails?.tagline && (
-                  <p style={{ fontSize: `${orgDetails.taglineFontSize || 14}px`, color: orgDetails.taglineColor || "#666", marginTop: 4, margin: 0 }}>
+                  <div style={{ fontSize: `${orgDetails.taglineFontSize || 14}px`, color: orgDetails.taglineColor || "#666", marginTop: 4 }}>
                     {orgDetails.tagline}
-                  </p>
+                  </div>
                 )}
               </div>
             </div>

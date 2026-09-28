@@ -37,7 +37,8 @@ const CONFIGURATION_CATEGORIES = [
     id: "general",
     title: "General",
     icon: LayoutDashboard,
-    color: "#6366f1",
+    accent: "var(--primary)",
+    accentTint: "color-mix(in srgb, var(--primary) 12%, transparent)",
     items: [
       { slug: "organization-details", label: "Organization Details" },
     ],
@@ -46,7 +47,8 @@ const CONFIGURATION_CATEGORIES = [
     id: "templates",
     title: "Communication Templates",
     icon: MessageSquare,
-    color: "#059669",
+    accent: "var(--success)",
+    accentTint: "var(--success-bg)",
     items: [
       { slug: "templates-whatsapp", label: "WhatsApp Template" },
       { slug: "templates-sms", label: "SMS Template" },
@@ -57,7 +59,8 @@ const CONFIGURATION_CATEGORIES = [
     id: "integrations",
     title: "Integrations",
     icon: Puzzle,
-    color: "#2563eb",
+    accent: "var(--info)",
+    accentTint: "var(--info-bg)",
     items: [
       { slug: "integrations-ai", label: "AI Integration" },
       { slug: "integrations-whatsapp", label: "WhatsApp Integration" },
@@ -248,70 +251,117 @@ export default function ModulePage() {
   return (
     <div className="p-4 max-w-[1600px] mx-auto space-y-4">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between gap-4 pb-2 border-b">
+      <div className="flex items-center justify-between gap-4 pb-3 border-b">
         <div>
           <Link
             to="/"
-            className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1 text-decoration-none"
+            className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+            style={{ textDecoration: "none" }}
           >
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
-          <h1 className="text-xl font-semibold tracking-tight mt-0.5">Configuration</h1>
+          <h1 className="text-xl font-semibold tracking-tight mt-0.5 text-foreground">Configuration</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Manage your workspace preferences, templates, and third-party integrations.
+          </p>
         </div>
       </div>
 
       {/* 2-Column Setup Layout: Left Submenu Sidebar (PERSISTENT) + Right Active Submodule Component */}
-      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-5">
         {/* Left Submenu Navigation */}
-        <div className="space-y-2 sticky top-[70px] align-self-start">
-          {CONFIGURATION_CATEGORIES.map((cat) => (
-            <div key={cat.id} className="rounded-xl border bg-card overflow-hidden shadow-2xs">
-              <button
-                type="button"
-                className="w-full flex items-center justify-between gap-2 p-2.5 bg-muted/20 border-b text-left text-xs font-semibold text-foreground cursor-pointer"
-                onClick={() =>
-                  setOpenCategories((prev) => ({ ...prev, [cat.id]: !prev[cat.id] }))
-                }
+        <nav aria-label="Configuration sections" className="space-y-3 sticky top-[70px] self-start">
+          {CONFIGURATION_CATEGORIES.map((cat) => {
+            const isOpen = openCategories[cat.id];
+            const hasActive = cat.items.some((item) => activeSlug === item.slug);
+            return (
+              <div
+                key={cat.id}
+                className="rounded-xl border bg-card overflow-hidden transition-all"
+                style={{
+                  boxShadow: hasActive
+                    ? "0 1px 2px rgba(37,51,56,0.04), 0 10px 24px -16px rgba(37,51,56,0.14)"
+                    : "0 1px 2px rgba(37,51,56,0.03)",
+                  borderColor: hasActive ? "color-mix(in srgb, var(--primary) 30%, var(--border))" : "var(--border)",
+                }}
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <cat.icon className="h-4 w-4 shrink-0" style={{ color: cat.color }} />
-                  <span className="truncate">{cat.title}</span>
-                </div>
-                <ChevronDown
-                  className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform ${
-                    openCategories[cat.id] ? "" : "-rotate-90"
-                  }`}
-                />
-              </button>
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left cursor-pointer transition-colors hover:bg-muted/40"
+                  onClick={() =>
+                    setOpenCategories((prev) => ({ ...prev, [cat.id]: !prev[cat.id] }))
+                  }
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                      style={{ background: cat.accentTint, color: cat.accent }}
+                    >
+                      <cat.icon className="h-3.5 w-3.5" strokeWidth={2.2} />
+                    </span>
+                    <span
+                      className="truncate text-[11px] font-semibold uppercase tracking-wider text-foreground"
+                    >
+                      {cat.title}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-medium text-muted-foreground tabular-nums">
+                      {cat.items.length}
+                    </span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${
+                        isOpen ? "" : "-rotate-90"
+                      }`}
+                    />
+                  </div>
+                </button>
 
-              {openCategories[cat.id] && (
-                <div className="p-1 space-y-0.5">
-                  {cat.items.map((item) => {
-                    const isSelected = activeSlug === item.slug;
-                    return (
-                      <button
-                        key={item.slug}
-                        type="button"
-                        onClick={() => handleSelectSlug(item.slug)}
-                        className={`w-full text-left px-2.5 py-2 rounded-md text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
-                          isSelected
-                            ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                            : "text-muted-foreground hover:bg-slate-200/80 hover:text-foreground"
-                        }`}
-                      >
-                        <span className="truncate">{item.label}</span>
-                        {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />}
-                      </button>
-                    );
-                  })}
+                <div
+                  className="grid transition-all duration-200 ease-out"
+                  style={{
+                    gridTemplateRows: isOpen ? "1fr" : "0fr",
+                  }}
+                >
+                  <div className="overflow-hidden">
+                    <div className="p-1.5 pt-1 border-t border-border/70 space-y-0.5">
+                      {cat.items.map((item) => {
+                        const isSelected = activeSlug === item.slug;
+                        return (
+                          <button
+                            key={item.slug}
+                            type="button"
+                            onClick={() => handleSelectSlug(item.slug)}
+                            className={`w-full text-left pl-3 pr-2.5 py-2 rounded-md text-[13px] font-medium transition-all flex items-center justify-between cursor-pointer relative ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            }`}
+                          >
+                            {!isSelected && (
+                              <span
+                                className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                style={{ background: cat.accent }}
+                              />
+                            )}
+                            <span className="truncate">{item.label}</span>
+                            {isSelected && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              </div>
+            );
+          })}
+        </nav>
 
         {/* Right Panel: Active Submodule Component */}
-        <div className="min-w-0 rounded-xl border bg-card shadow-2xs overflow-hidden">
+        <div className="min-w-0 rounded-xl border bg-card shadow-sm overflow-hidden">
           {renderActiveConfigComponent(activeSlug)}
         </div>
       </div>
@@ -346,6 +396,23 @@ const SOCIAL_MEDIA_PLATFORMS = [
   { id: "youtube", label: "YouTube", icon: "bi-youtube", placeholder: "https://youtube.com/yourchannel" },
   { id: "whatsapp", label: "WhatsApp", icon: "bi-whatsapp", placeholder: "https://wa.me/yourphonenumber" },
 ];
+
+const orgLabel = "block text-xs font-medium mb-1.5";
+const orgInput = "w-full h-9 px-3 border rounded-md text-sm border-input bg-background transition-all";
+const orgSecondaryBtn = "inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border bg-background hover:bg-muted cursor-pointer transition-colors";
+const orgDangerBtn = "inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border border-red-200 text-red-600 bg-background hover:bg-red-50 cursor-pointer transition-colors";
+
+function OrgSection({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg border bg-card p-4 @container">
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {hint && <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
 
 function OrganizationDetailsPage() {
   const toast = useToast();
@@ -417,9 +484,8 @@ function OrganizationDetailsPage() {
     loginImages: [],
     loginVideo: null
   });
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
   const [logoWidth, setLogoWidth] = useState(200);
   const [logoHeight, setLogoHeight] = useState(100);
 
@@ -486,8 +552,9 @@ function OrganizationDetailsPage() {
 
   // Show logo adjustment modal
   const showLogoAdjustModal = () => {
-    let currentW = data.logoWidth;
-    let currentH = data.logoHeight;
+    const clampLogo = (v: number) => Math.min(120, Math.max(40, Number(v) || 120));
+    let currentW = clampLogo(data.logoWidth);
+    let currentH = clampLogo(data.logoHeight);
     let selectedLayout: "center-stack" | "side-by-side" | null = null;
     let currentBorderRadius = data.logoBorderRadius || 0;
     let currentFontSize = data.nameFontSize;
@@ -591,9 +658,9 @@ function OrganizationDetailsPage() {
               <div style="margin-bottom: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                   <label style="font-size: 13px; font-weight: 600; color: #222;">🔘 Logo Border Radius</label>
-                  <span style="font-size: 13px; font-weight: 700; color: #1e3c72; background: #f0f4ff; padding: 4px 12px; border-radius: 6px;" id="radius-display">0px</span>
+                  <span style="font-size: 13px; font-weight: 700; color: #1e3c72; background: #f0f4ff; padding: 4px 12px; border-radius: 6px;" id="radius-display">${currentBorderRadius}px</span>
                 </div>
-                <input type="range" id="logo-radius-slider" value="0" min="0" max="50" step="2" style="width: 100%; height: 6px; border-radius: 5px; background: #e5e7eb; outline: none; -webkit-appearance: none; appearance: none; cursor: pointer;">
+                <input type="range" id="logo-radius-slider" value="${currentBorderRadius}" min="0" max="50" step="2" style="width: 100%; height: 6px; border-radius: 5px; background: #e5e7eb; outline: none; -webkit-appearance: none; appearance: none; cursor: pointer;">
                 <style>
                   #logo-radius-slider::-webkit-slider-thumb {
                     -webkit-appearance: none;
@@ -620,9 +687,9 @@ function OrganizationDetailsPage() {
               <div style="margin-bottom: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                   <label style="font-size: 13px; font-weight: 600; color: #222;">📝 Name Font Size</label>
-                  <span style="font-size: 13px; font-weight: 700; color: #1e3c72; background: #f0f4ff; padding: 4px 12px; border-radius: 6px;" id="fontsize-display">24px</span>
+                  <span style="font-size: 13px; font-weight: 700; color: #1e3c72; background: #f0f4ff; padding: 4px 12px; border-radius: 6px;" id="fontsize-display">${currentFontSize}px</span>
                 </div>
-                <input type="range" id="name-fontsize-slider" value="24" min="16" max="36" step="2" style="width: 100%; height: 6px; border-radius: 5px; background: #e5e7eb; outline: none; -webkit-appearance: none; appearance: none; cursor: pointer;">
+                <input type="range" id="name-fontsize-slider" value="${currentFontSize}" min="16" max="40" step="2" style="width: 100%; height: 6px; border-radius: 5px; background: #e5e7eb; outline: none; -webkit-appearance: none; appearance: none; cursor: pointer;">
                 <style>
                   #name-fontsize-slider::-webkit-slider-thumb {
                     -webkit-appearance: none;
@@ -848,17 +915,9 @@ function OrganizationDetailsPage() {
     loadOrganizationDetails();
   }, []);
 
-  useEffect(() => {
-    if (data.loginImages.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % data.loginImages.length);
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [data.loginImages.length]);
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    e.target.value = "";
     const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
     const MIN_WIDTH = 800;
     const MAX_WIDTH = 2000;
@@ -909,34 +968,39 @@ function OrganizationDetailsPage() {
       ...prev,
       loginImages: prev.loginImages.filter((_, i) => i !== index)
     }));
-    if (currentImageIndex >= data.loginImages.length - 1) {
-      setCurrentImageIndex(0);
-    }
   };
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
-    const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200MB
+    const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
     if (file.size > MAX_VIDEO_SIZE) {
-      showNotification(`Video file is too large. Maximum file size is 200MB. Current size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`, "error");
+      showNotification(`Video file is too large. Maximum file size is 50MB. Current size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`, "error");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
+    // Upload the file itself; only its URL goes into the org details payload
+    // (a base64 video blows past the request body limit and Mongo's 16MB document cap).
+    setVideoUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const response: any = await http.postForm("/organization-details/video", form);
+      const url = response?.data?.url;
+      if (!url) throw new Error("Upload did not return a URL");
       setData((prev) => ({
         ...prev,
-        loginVideo: event.target?.result as string
+        loginVideo: url
       }));
-      setShowVideo(true);
-    };
-    reader.onerror = () => {
-      showNotification("Failed to load video. Please ensure it's a valid video file.", "error");
-    };
-    reader.readAsDataURL(file);
+      showNotification("Video uploaded. Click 'Save Changes' to apply it to the login page.", "success");
+    } catch (err: any) {
+      showNotification(`Failed to upload video: ${err?.message || "unknown error"}`, "error");
+    } finally {
+      setVideoUploading(false);
+    }
   };
 
   const removeVideo = () => {
@@ -944,7 +1008,6 @@ function OrganizationDetailsPage() {
       ...prev,
       loginVideo: null
     }));
-    setShowVideo(false);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -953,10 +1016,6 @@ function OrganizationDetailsPage() {
 
     const MIN_LOGO_SIZE = 10 * 1024; // 10KB
     const MAX_LOGO_SIZE = 500 * 1024; // 500KB
-    const MIN_WIDTH = 200;
-    const MAX_WIDTH = 500;
-    const MIN_HEIGHT = 100;
-    const MAX_HEIGHT = 500;
 
     if (file.size < MIN_LOGO_SIZE) {
       showNotification(`Logo file is too small. Minimum file size is 20KB. Current size: ${(file.size / 1024).toFixed(2)}KB`, "error");
@@ -972,18 +1031,14 @@ function OrganizationDetailsPage() {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        // Set default dimensions based on actual image or use suggested values
-        const suggestedWidth = Math.min(Math.max(img.width, MIN_WIDTH), MAX_WIDTH);
-        const suggestedHeight = Math.min(Math.max(img.height, MIN_HEIGHT), MAX_HEIGHT);
-
+        // Display box defaults to 120×120 (object-fit keeps the aspect ratio)
         setData((prev) => ({
           ...prev,
           logo: event.target?.result as string,
-          logoWidth: suggestedWidth,
-          logoHeight: suggestedHeight
+          logoWidth: 120,
+          logoHeight: 120
         }));
-        showNotification("Logo uploaded successfully! ✨ Click 'Adjust Size' to customize dimensions.", "success");
-        setTimeout(() => showLogoAdjustModal(), 500);
+        showNotification("Logo uploaded successfully.", "success");
       };
       img.onerror = () => {
         showNotification("Failed to load logo. Please ensure it's a valid image file.", "error");
@@ -1131,162 +1186,156 @@ function OrganizationDetailsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold">Organization Details</h2>
-        <p className="text-sm text-muted-foreground mt-1">Configure your organization information and login page branding</p>
+    <div className="p-6 space-y-5 @container">
+      {/* Header with always-reachable Save */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold">Organization Details</h2>
+          <p className="text-sm text-muted-foreground">Configure your organization information and login page branding</p>
+        </div>
+        <Button onClick={save} disabled={loading || videoUploading} className="shrink-0 px-6">
+          {loading ? "Saving..." : "Save Changes"}
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8">
-        {/* Left Side - Form */}
-        <div className="space-y-4">
-          {/* Organization Name */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Organization Name *</label>
-            <input
-              data-field="name"
-              type="text"
-              value={data.name}
-              onChange={(e) => setData({ ...data, name: e.target.value })}
-              placeholder="Enter organization name"
-              className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
-            />
-          </div>
-
-          {/* Tag Line */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Tag Line / Motto *</label>
-            <input
-              data-field="tagline"
-              type="text"
-              value={data.tagline}
-              onChange={(e) => setData({ ...data, tagline: e.target.value })}
-              placeholder="Enter your organization's tag line"
-              className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
-            />
-          </div>
-
-          {/* Nature of Business */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Nature of Business *</label>
-            <select
-              data-field="natureOfBusiness"
-              value={data.natureOfBusiness}
-              onChange={(e) => setData({ ...data, natureOfBusiness: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
-            >
-              <option value="">Select nature of business</option>
-              {NATURE_OF_BUSINESS.map((nature) => (
-                <option key={nature} value={nature}>
-                  {nature}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Address Fields */}
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-sm font-semibold mb-3">Address Details</h3>
-
-            <div className="mb-3">
-              <label className="block text-sm font-medium mb-2">Street Address *</label>
-              <input
-                data-field="street"
-                type="text"
-                value={data.address.street}
-                onChange={(e) => setData({ ...data, address: { ...data.address, street: e.target.value } })}
-                placeholder="Enter street address"
-                className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-1 @5xl:grid-cols-2 gap-5 items-start">
+        {/* Left column - organization info */}
+        <div className="space-y-5 min-w-0">
+          <OrgSection title="Basic Information">
+            <div className="grid grid-cols-1 @md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-2">City *</label>
+                <label className={orgLabel}>Organization Name *</label>
+                <input
+                  data-field="name"
+                  type="text"
+                  value={data.name}
+                  onChange={(e) => setData({ ...data, name: e.target.value })}
+                  placeholder="Enter organization name"
+                  className={orgInput}
+                />
+              </div>
+              <div>
+                <label className={orgLabel}>Nature of Business *</label>
+                <select
+                  data-field="natureOfBusiness"
+                  value={data.natureOfBusiness}
+                  onChange={(e) => setData({ ...data, natureOfBusiness: e.target.value })}
+                  className={orgInput}
+                >
+                  <option value="">Select nature of business</option>
+                  {NATURE_OF_BUSINESS.map((nature) => (
+                    <option key={nature} value={nature}>
+                      {nature}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="@md:col-span-2">
+                <label className={orgLabel}>Tag Line / Motto *</label>
+                <input
+                  data-field="tagline"
+                  type="text"
+                  value={data.tagline}
+                  onChange={(e) => setData({ ...data, tagline: e.target.value })}
+                  placeholder="Enter your organization's tag line"
+                  className={orgInput}
+                />
+              </div>
+            </div>
+          </OrgSection>
+
+          <OrgSection title="Address">
+            <div className="grid grid-cols-2 @xl:grid-cols-4 gap-3">
+              <div className="col-span-2 @xl:col-span-4">
+                <label className={orgLabel}>Street Address *</label>
+                <input
+                  data-field="street"
+                  type="text"
+                  value={data.address.street}
+                  onChange={(e) => setData({ ...data, address: { ...data.address, street: e.target.value } })}
+                  placeholder="Enter street address"
+                  className={orgInput}
+                />
+              </div>
+              <div>
+                <label className={orgLabel}>City *</label>
                 <input
                   data-field="city"
                   type="text"
                   value={data.address.city}
                   onChange={(e) => setData({ ...data, address: { ...data.address, city: e.target.value } })}
                   placeholder="City"
-                  className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
+                  className={orgInput}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">State *</label>
+                <label className={orgLabel}>State *</label>
                 <input
                   data-field="state"
                   type="text"
                   value={data.address.state}
                   onChange={(e) => setData({ ...data, address: { ...data.address, state: e.target.value } })}
                   placeholder="State"
-                  className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
+                  className={orgInput}
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-sm font-medium mb-2">Country *</label>
+                <label className={orgLabel}>Country *</label>
                 <input
                   data-field="country"
                   type="text"
                   value={data.address.country}
                   onChange={(e) => setData({ ...data, address: { ...data.address, country: e.target.value } })}
                   placeholder="Country"
-                  className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
+                  className={orgInput}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Postal Code</label>
+                <label className={orgLabel}>Postal Code</label>
                 <input
                   type="text"
                   value={data.address.postalCode}
                   onChange={(e) => setData({ ...data, address: { ...data.address, postalCode: e.target.value } })}
                   placeholder="Postal code"
-                  className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background"
+                  className={orgInput}
                 />
               </div>
             </div>
-          </div>
+          </OrgSection>
 
-          {/* Contact Information */}
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-sm font-semibold mb-3">Contact Information</h3>
-
-            <div className="mb-3">
-              <label className="block text-sm font-medium mb-2">Mobile Number *</label>
-              <input
-                data-field="mobile"
-                type="tel"
-                value={data.contactInfo.mobile}
-                onChange={(e) => setData({ ...data, contactInfo: { ...data.contactInfo, mobile: e.target.value } })}
-                placeholder="Enter mobile number"
-                className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
-              />
+          <OrgSection title="Contact Information">
+            <div className="grid grid-cols-1 @md:grid-cols-2 gap-3">
+              <div>
+                <label className={orgLabel}>Mobile Number *</label>
+                <input
+                  data-field="mobile"
+                  type="tel"
+                  value={data.contactInfo.mobile}
+                  onChange={(e) => setData({ ...data, contactInfo: { ...data.contactInfo, mobile: e.target.value } })}
+                  placeholder="Enter mobile number"
+                  className={orgInput}
+                />
+              </div>
+              <div>
+                <label className={orgLabel}>Email Address *</label>
+                <input
+                  data-field="email"
+                  type="email"
+                  value={data.contactInfo.email}
+                  onChange={(e) => setData({ ...data, contactInfo: { ...data.contactInfo, email: e.target.value } })}
+                  placeholder="Enter email address"
+                  className={orgInput}
+                />
+              </div>
             </div>
+          </OrgSection>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Email Address *</label>
-              <input
-                data-field="email"
-                type="email"
-                value={data.contactInfo.email}
-                onChange={(e) => setData({ ...data, contactInfo: { ...data.contactInfo, email: e.target.value } })}
-                placeholder="Enter email address"
-                className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Social Media Links */}
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-sm font-semibold mb-3">Social Media Links</h3>
-            <div className="space-y-3">
+          <OrgSection title="Social Media Links">
+            <div className="grid grid-cols-1 @md:grid-cols-2 gap-3">
               {SOCIAL_MEDIA_PLATFORMS.map((platform) => (
                 <div key={platform.id}>
-                  <label className="block text-sm font-medium mb-2">
-                    <i className={`bi ${platform.icon} mr-2`}></i>
+                  <label className={orgLabel}>
+                    <i className={`bi ${platform.icon} mr-1.5`}></i>
                     {platform.label}
                   </label>
                   <input
@@ -1302,378 +1351,259 @@ function OrganizationDetailsPage() {
                       })
                     }
                     placeholder={platform.placeholder}
-                    className="w-full px-3 py-2 border rounded-md text-sm border-input bg-background"
+                    className={orgInput}
                   />
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Text Colors */}
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-sm font-semibold mb-3">🎨 Text Colors</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">Organization Name Color</label>
-                <input
-                  type="color"
-                  value={data.nameColor || "#222"}
-                  onChange={(e) => setData({ ...data, nameColor: e.target.value })}
-                  className="w-16 h-10 border rounded-md border-input cursor-pointer"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Tagline Color</label>
-                <input
-                  type="color"
-                  value={data.taglineColor || "#666"}
-                  onChange={(e) => setData({ ...data, taglineColor: e.target.value })}
-                  className="w-16 h-10 border rounded-md border-input cursor-pointer"
-                />
-              </div>
-            </div>
-          </div>
-
-          <Button onClick={save} disabled={loading} className="w-full mt-6">
-            {loading ? "Saving..." : "Save Changes"}
-          </Button>
+          </OrgSection>
         </div>
 
-        {/* Right Side - Logo, Image Upload & Preview */}
-        <div className="space-y-4">
-          {/* Logo Upload Section */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Organization Logo</label>
-            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
-              <div className="text-xs text-amber-900">
-                <div className="font-semibold mb-2">📋 Logo Specifications:</div>
-                <ul className="space-y-1 ml-2">
-                  <li>• <strong>Dimensions:</strong> 200px × 100px (min) to 500px × 500px (max)</li>
-                  <li>• <strong>File Size:</strong> 10KB (min) to 500KB (max)</li>
-                  <li>• <strong>Format:</strong> JPG, PNG</li>
-                  <li>• <strong>Location:</strong> Displays above login form</li>
-                </ul>
+        {/* Right column - login page branding */}
+        <div className="space-y-5 min-w-0">
+          <OrgSection
+            title="Logo & Login Header"
+            hint="Logo: JPG/PNG · 10KB–500KB · 200×100px to 500×500px"
+          >
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              style={{ display: "none" }}
+              id="logo-upload"
+            />
+            <div className="flex items-center gap-4">
+              <div className="h-20 w-36 shrink-0 rounded-md border bg-muted/40 flex items-center justify-center overflow-hidden">
+                {data.logo ? (
+                  <img src={data.logo} alt="Organization Logo" className="max-h-full max-w-full object-contain p-2" />
+                ) : (
+                  <span className="text-2xl">🏢</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <label htmlFor="logo-upload" className={orgSecondaryBtn}>
+                  {data.logo ? "Replace" : "Upload Logo"}
+                </label>
+                {data.logo && (
+                  <button onClick={removeLogo} className={orgDangerBtn}>
+                    Remove
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Logo Preview */}
-            {data.logo && (
-              <div className="mb-4 flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                <img src={data.logo} alt="Organization Logo" className="h-16 max-w-xs object-contain" />
-                <div className="flex gap-2">
-                  <button
-                    onClick={showLogoAdjustModal}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Adjust Size
-                  </button>
-                  <button
-                    onClick={removeLogo}
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                  >
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <div>
+                <label className={orgLabel}>Name Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={data.nameColor || "#222"}
+                    onChange={(e) => setData({ ...data, nameColor: e.target.value })}
+                    className="h-9 w-12 border rounded-md border-input cursor-pointer bg-background"
+                  />
+                  <span className="text-xs font-mono text-muted-foreground">{data.nameColor || "#222"}</span>
+                </div>
+              </div>
+              <div>
+                <label className={orgLabel}>Tagline Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={data.taglineColor || "#666"}
+                    onChange={(e) => setData({ ...data, taglineColor: e.target.value })}
+                    className="h-9 w-12 border rounded-md border-input cursor-pointer bg-background"
+                  />
+                  <span className="text-xs font-mono text-muted-foreground">{data.taglineColor || "#666"}</span>
+                </div>
+              </div>
+            </div>
+
+            {data.logo && data.name && (
+              <div className="mt-4 pt-4 border-t space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium">Display Style</span>
+                  <div className="inline-flex rounded-md border p-0.5 bg-muted/40">
+                    {([
+                      ["center-stack", "Logo Top"],
+                      ["side-by-side", "Logo Left"]
+                    ] as const).map(([value, label]) => (
+                      <button
+                        key={value}
+                        onClick={() => setData({ ...data, loginLayout: value })}
+                        className={`px-3 py-1 rounded text-xs font-medium transition ${
+                          data.loginLayout === value ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 @md:grid-cols-2 gap-x-5 gap-y-3">
+                  {([
+                    ["logoWidth", "Logo Width", 40, 120, 5],
+                    ["logoHeight", "Logo Height", 40, 120, 5],
+                    ["logoBorderRadius", "Logo Border Radius", 0, 50, 2],
+                    ["nameFontSize", "Name Font Size", 16, 40, 1],
+                    ["taglineFontSize", "Tagline Font Size", 10, 24, 1]
+                  ] as const).map(([key, label, min, max, step]) => (
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium">{label}</label>
+                        <span className="text-[11px] font-mono text-muted-foreground">{data[key] ?? min}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={data[key] ?? min}
+                        onChange={(e) => setData({ ...data, [key]: Number(e.target.value) })}
+                        className="org-range w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Header preview: mirrors how the login page renders the header */}
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">Preview</div>
+                  <div className="bg-gradient-to-b from-blue-100 to-blue-50 border border-blue-300 rounded-lg p-4">
+                    <div style={{
+                      display: "flex",
+                      flexDirection: data.loginLayout === "side-by-side" ? "row" : "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: data.loginLayout === "side-by-side" ? "12px" : "8px",
+                    }}>
+                      <img
+                        src={data.logo}
+                        alt="Logo Preview"
+                        style={{
+                          maxWidth: `${data.logoWidth || 120}px`,
+                          maxHeight: `${data.logoHeight || 120}px`,
+                          objectFit: "contain",
+                          borderRadius: `${data.logoBorderRadius || 0}px`,
+                        }}
+                      />
+                      {/* divs, not h1/p: a global stylesheet forces heading/paragraph colors with !important */}
+                      <div style={{ textAlign: data.loginLayout === "side-by-side" ? "left" : "center" }}>
+                        <div style={{
+                          fontSize: `${data.nameFontSize}px`,
+                          fontWeight: 700,
+                          lineHeight: 1.2,
+                          color: data.nameColor || "#222",
+                        }}>
+                          {data.name}
+                        </div>
+                        {data.tagline && (
+                          <div style={{
+                            fontSize: `${data.taglineFontSize}px`,
+                            color: data.taglineColor || "#666",
+                            marginTop: "4px",
+                          }}>
+                            {data.tagline}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </OrgSection>
+
+          <OrgSection
+            title="Login Video"
+            hint="MP4, WebM or MOV · max 50MB · 1 video"
+          >
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              onChange={handleVideoUpload}
+              style={{ display: "none" }}
+              id="video-upload"
+            />
+            {videoUploading ? (
+              <div className="aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                <div className="h-6 w-6 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+                Uploading video…
+              </div>
+            ) : data.loginVideo ? (
+              <div className="space-y-2">
+                <video
+                  key={data.loginVideo}
+                  src={data.loginVideo}
+                  controls
+                  preload="metadata"
+                  className="w-full aspect-video rounded-lg bg-black object-contain"
+                />
+                <div className="flex justify-end gap-2">
+                  <label htmlFor="video-upload" className={orgSecondaryBtn}>
+                    Replace Video
+                  </label>
+                  <button onClick={removeVideo} className={orgDangerBtn}>
                     Remove
                   </button>
                 </div>
               </div>
-            )}
-
-            {/* Logo Upload Button */}
-            <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-amber-50 transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                style={{ display: "none" }}
-                id="logo-upload"
-              />
-              <label htmlFor="logo-upload" className="cursor-pointer">
-                <div className="text-xl mb-2">🏢</div>
-                <div className="font-medium text-sm">Upload Logo</div>
-                <div className="text-xs text-gray-500 mt-1">JPG, PNG (Max 500KB)</div>
-              </label>
-            </div>
-          </div>
-
-          {/* Layout & Styling Section */}
-          {data.logo && data.name && (
-            <div className="border-t pt-4">
-              <label className="block text-sm font-medium mb-3">Login Header Layout</label>
-
-              {/* Layout Options */}
-              <div className="space-y-3 mb-4">
-                <div>
-                  <label className="text-xs font-medium block mb-2">Display Style</label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setData({ ...data, loginLayout: "center-stack" })}
-                      className={`flex-1 px-3 py-2 rounded text-xs font-medium transition ${
-                        data.loginLayout === "center-stack"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                    >
-                      Logo Top
-                    </button>
-                    <button
-                      onClick={() => setData({ ...data, loginLayout: "side-by-side" })}
-                      className={`flex-1 px-3 py-2 rounded text-xs font-medium transition ${
-                        data.loginLayout === "side-by-side"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                    >
-                      Logo Left
-                    </button>
-                  </div>
-                </div>
-
-                {/* Logo Size Slider */}
-                <div>
-                  <label className="text-xs font-medium block mb-2">Logo Size: {data.logoSize}px</label>
-                  <input
-                    type="range"
-                    min="40"
-                    max="100"
-                    value={data.logoSize}
-                    onChange={(e) => setData({ ...data, logoSize: Number(e.target.value) })}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Name Font Size */}
-                <div>
-                  <label className="text-xs font-medium block mb-2">Name Font Size: {data.nameFontSize}px</label>
-                  <input
-                    type="range"
-                    min="16"
-                    max="40"
-                    value={data.nameFontSize}
-                    onChange={(e) => setData({ ...data, nameFontSize: Number(e.target.value) })}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Tagline Font Size */}
-                <div>
-                  <label className="text-xs font-medium block mb-2">Tagline Font Size: {data.taglineFontSize}px</label>
-                  <input
-                    type="range"
-                    min="10"
-                    max="24"
-                    value={data.taglineFontSize}
-                    onChange={(e) => setData({ ...data, taglineFontSize: Number(e.target.value) })}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
-              {/* Preview */}
-              <div className="bg-gradient-to-b from-blue-100 to-blue-50 border border-blue-300 rounded-lg p-4 mb-2">
-                <div style={{
-                  textAlign: data.loginLayout === "center-stack" ? "center" : "left",
-                  display: data.loginLayout === "side-by-side" ? "flex" : "block",
-                  gap: data.loginLayout === "side-by-side" ? "12px" : "0",
-                  alignItems: data.loginLayout === "side-by-side" ? "center" : "normal",
-                }}>
-                  {data.logo && (
-                    <img
-                      src={data.logo}
-                      alt="Logo Preview"
-                      style={{
-                        maxHeight: `${data.logoSize}px`,
-                        maxWidth: data.loginLayout === "side-by-side" ? "80px" : "100%",
-                        objectFit: "contain",
-                        marginBottom: data.loginLayout === "center-stack" ? "8px" : "0",
-                      }}
-                    />
-                  )}
-                  <div>
-                    {data.name && (
-                      <h1 style={{
-                        fontSize: `${data.nameFontSize}px`,
-                        fontWeight: 700,
-                        color: "#222",
-                        margin: "0 0 4px 0",
-                      }}>
-                        {data.name}
-                      </h1>
-                    )}
-                    {data.tagline && (
-                      <p style={{
-                        fontSize: `${data.taglineFontSize}px`,
-                        color: "#666",
-                        margin: "0",
-                      }}>
-                        {data.tagline}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="text-xs text-gray-500 text-center">Preview</div>
-            </div>
-          )}
-
-          <div className="border-t pt-4">
-            <label className="block text-sm font-medium mb-2">Login Page Images & Video (Max 5)</label>
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-              <div className="text-xs text-blue-900 space-y-3">
-                <div>
-                  <div className="font-semibold mb-2">🖼️ Image Specifications:</div>
-                  <ul className="space-y-1 ml-2">
-                    <li>• <strong>Dimensions:</strong> 800px × 400px (min) to 2000px × 1500px (max)</li>
-                    <li>• <strong>File Size:</strong> Maximum 1MB per image</li>
-                    <li>• <strong>Format:</strong> JPG, PNG</li>
-                    <li>• <strong>Total Images:</strong> Up to 5 images allowed</li>
-                  </ul>
-                </div>
-                <div className="border-t pt-3">
-                  <div className="font-semibold mb-2">🎬 Video Specifications:</div>
-                  <ul className="space-y-1 ml-2">
-                    <li>• <strong>File Size:</strong> Maximum 200MB</li>
-                    <li>• <strong>Format:</strong> MP4, WebM, MOV</li>
-                    <li>• <strong>Total Videos:</strong> Only 1 video allowed</li>
-                    <li>• <strong>Note:</strong> Video will replace images in preview</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Preview Tabs */}
-          {(data.loginImages.length > 0 || data.loginVideo) && (
-            <div className="flex gap-2 mb-3">
-              {data.loginImages.length > 0 && (
-                <button
-                  onClick={() => setShowVideo(false)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                    !showVideo
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  Images ({data.loginImages.length})
-                </button>
-              )}
-              {data.loginVideo && (
-                <button
-                  onClick={() => setShowVideo(true)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                    showVideo
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  Video
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Image Preview */}
-          {!showVideo && data.loginImages.length > 0 && (
-            <div className="rounded-lg overflow-hidden bg-muted h-[300px] flex items-center justify-center relative">
-              <img
-                src={data.loginImages[currentImageIndex]}
-                alt={`Image ${currentImageIndex + 1}`}
-                className="w-full h-full object-cover"
-              />
-              {data.loginImages.length > 1 && (
-                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-2">
-                  {data.loginImages.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentImageIndex(idx)}
-                      className={`h-2 w-2 rounded-full transition-colors cursor-pointer ${
-                        idx === currentImageIndex ? "bg-white" : "bg-white/50"
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Video Preview */}
-          {showVideo && data.loginVideo && (
-            <div className="rounded-lg overflow-hidden bg-muted h-[300px] flex items-center justify-center relative">
-              <video
-                src={data.loginVideo}
-                controls
-                className="w-full h-full object-cover"
-              />
-              <button
-                onClick={removeVideo}
-                className="absolute top-2 right-2 bg-red-600 text-white rounded text-sm px-3 py-1 hover:bg-red-700"
+            ) : (
+              <label
+                htmlFor="video-upload"
+                className="flex flex-col items-center justify-center gap-1 py-8 rounded-lg border-2 border-dashed cursor-pointer hover:bg-muted/50 transition-colors"
               >
-                Remove Video
-              </button>
-            </div>
-          )}
-
-          {/* Upload Areas */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Image Upload */}
-            <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageUpload}
-                style={{ display: "none" }}
-                id="image-upload"
-              />
-              <label htmlFor="image-upload" className="cursor-pointer">
-                <div className="text-xl mb-2">🖼️</div>
-                <div className="font-medium text-xs">Upload Images</div>
-                <div className="text-[11px] text-muted-foreground mt-1">JPG, PNG</div>
+                <span className="text-xl">🎬</span>
+                <span className="font-medium text-xs">Upload Video</span>
+                <span className="text-[11px] text-muted-foreground">Plays on the login page</span>
               </label>
-            </div>
+            )}
+          </OrgSection>
 
-            {/* Video Upload */}
-            <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-              <input
-                type="file"
-                accept="video/mp4,video/webm,video/quicktime"
-                onChange={handleVideoUpload}
-                style={{ display: "none" }}
-                id="video-upload"
-              />
-              <label htmlFor="video-upload" className="cursor-pointer">
-                <div className="text-xl mb-2">🎬</div>
-                <div className="font-medium text-xs">Upload Video</div>
-                <div className="text-[11px] text-muted-foreground mt-1">MP4, WebM</div>
-              </label>
+          <OrgSection
+            title={`Login Images (${data.loginImages.length}/5)`}
+            hint="JPG/PNG · max 1MB each · 800×400px to 2000×1500px"
+          >
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ display: "none" }}
+              id="image-upload"
+            />
+            <div className="grid grid-cols-3 @md:grid-cols-5 gap-2">
+              {data.loginImages.map((img, idx) => (
+                <div key={idx} className="relative aspect-[4/3] rounded-md overflow-hidden border group">
+                  <img src={img} alt={`Login image ${idx + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => removeImage(idx)}
+                    title="Remove image"
+                    className="absolute top-1 right-1 bg-black/60 text-white rounded text-xs w-5 h-5 flex items-center justify-center hover:bg-black/80"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {data.loginImages.length < 5 && (
+                <label
+                  htmlFor="image-upload"
+                  className="aspect-[4/3] rounded-md border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors text-muted-foreground"
+                >
+                  <span className="text-lg leading-none">+</span>
+                  <span className="text-[11px] mt-1">Add</span>
+                </label>
+              )}
             </div>
-          </div>
-
-          {/* Uploaded Images Grid */}
-          {data.loginImages.length > 0 && (
-            <div>
-              <div className="text-xs font-medium text-muted-foreground mb-3">
-                Uploaded Images ({data.loginImages.length}/5)
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {data.loginImages.map((img, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-md overflow-hidden border">
-                    <img
-                      src={img}
-                      alt={`Thumbnail ${idx + 1}`}
-                      className="w-full h-full object-cover cursor-pointer hover:opacity-80"
-                      onClick={() => setCurrentImageIndex(idx)}
-                    />
-                    <button
-                      onClick={() => removeImage(idx)}
-                      className="absolute top-1 right-1 bg-black/60 text-white rounded text-xs w-5 h-5 flex items-center justify-center hover:bg-black/80"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          </OrgSection>
         </div>
+      </div>
+
+      <div className="flex justify-end pt-1">
+        <Button onClick={save} disabled={loading || videoUploading} className="px-6">
+          {loading ? "Saving..." : "Save Changes"}
+        </Button>
       </div>
     </div>
   );

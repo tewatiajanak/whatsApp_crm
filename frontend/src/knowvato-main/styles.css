@@ -196,3 +196,40 @@
     font-size: 11px !important;
   }
 }
+
+/* Org details sliders: the event-manager stylesheet restyles every range input with
+   theme variables that only exist inside that module, leaving them invisible here. */
+input[type="range"].org-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].org-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #d1d5db;
+}
+input[type="range"].org-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+input[type="range"].org-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #d1d5db;
+}
+input[type="range"].org-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid #fff;
+}

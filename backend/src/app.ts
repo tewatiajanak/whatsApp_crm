@@ -19,7 +19,8 @@ export function createApp() {
   // capture raw body for webhook signature verification
   app.use(
     express.json({
-      limit: "2mb",
+      // org details carries up to 5 base64 login images + logo (~7.5MB); stays under Mongo's 16MB doc cap
+      limit: "12mb",
       verify: (req: any, _res, buf) => {
         if (req.originalUrl.startsWith("/webhooks")) req.rawBody = buf;
       },

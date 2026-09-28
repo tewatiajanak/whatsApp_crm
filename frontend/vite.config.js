@@ -29,6 +29,7 @@ export default defineConfig({
     proxy: {
       "/api": { target: "http://localhost:4001", changeOrigin: true },
       "/webhooks": { target: "http://localhost:4001", changeOrigin: true },
+      "/uploads": { target: "http://localhost:4001", changeOrigin: true },
     },
   },
 });
