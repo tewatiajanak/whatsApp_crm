@@ -60,6 +60,12 @@ import PhotoEditorPage from "./knowvato-main/pages/PhotoEditorPage";
 // Super Admin (Phase 3 stub — routes reserved, pages ship in P3)
 import SuperAdminLandingPage from "./knowvato-main/pages/SuperAdminLandingPage";
 
+// Participants (Phase 6 stub — Registration Engine + Participants 360°)
+import ParticipantsLayout from "./knowvato-main/routes/modules.participants";
+import ParticipantsIndex from "./knowvato-main/routes/modules.participants.index";
+import ParticipantsDuplicates from "./knowvato-main/routes/modules.participants.duplicates";
+import ParticipantsSegments from "./knowvato-main/routes/modules.participants.segments";
+
 function Protected({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <Spinner label="Starting…" />;
@@ -125,6 +131,11 @@ export default function App() {
                 stub until Phase 4 ships the real layout. */}
             <Route path=":eventId" element={<EventsWorkspace />} />
             <Route path=":eventId/*" element={<EventsWorkspace />} />
+          </Route>
+          <Route path="modules/participants" element={<ParticipantsLayout />}>
+            <Route index element={<ParticipantsIndex />} />
+            <Route path="duplicates" element={<ParticipantsDuplicates />} />
+            <Route path="segments" element={<ParticipantsSegments />} />
           </Route>
           <Route path="modules/utilities" element={<UtilitiesLayout />}>
             <Route index element={<UtilitiesOverviewPage />} />

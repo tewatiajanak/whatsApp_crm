@@ -29,6 +29,8 @@ import {
   CheckSquare,
   ListTodo,
   Activity,
+  Copy,
+  Filter,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -40,6 +42,7 @@ const modules = [
   { title: "Website Builder", slug: "website", icon: Globe2 },
   { title: "Communication", slug: "communication", icon: Megaphone },
   { title: "Front Office", slug: "front-office", icon: Building2 },
+  { title: "Participants", slug: "participants", icon: UserCheck },
   { title: "Reports & Analytics", slug: "reports", icon: BarChart3 },
   { title: "Utilities", slug: "utilities", icon: Sparkles },
 ];
@@ -83,6 +86,12 @@ const eventsSubmenu = [
 const utilitiesSubmenu = [
   { title: "QR Code", path: "https://qr.nirvaantechnologies.in", icon: QrCode, external: true },
   { title: "Video Edit", path: "https://fve.nirvaantechnologies.in", icon: Film, external: true },
+];
+
+const participantsSubmenu = [
+  { title: "All Participants", path: "/modules/participants", icon: Users, exact: true },
+  { title: "Duplicates", path: "/modules/participants/duplicates", icon: Copy },
+  { title: "Segments", path: "/modules/participants/segments", icon: Filter },
 ];
 
 export function AppSidebar() {
@@ -132,6 +141,45 @@ export function AppSidebar() {
               </Link>
               {eventsSubmenu.map((s) => {
                 const active = pathname === s.path;
+                const Icon = s.icon;
+                return (
+                  <Link
+                    key={s.path}
+                    to={s.path}
+                    onClick={handleLinkClick}
+                    title={s.title}
+                    className={`nav-link text-decoration-none flex items-center ${
+                      isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                    } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>{s.title}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ) : pathname.startsWith("/modules/participants") ? (
+          <div className="nav-section px-2 py-1">
+            {!isCollapsed && (
+              <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
+                Participants
+              </div>
+            )}
+            <div className="space-y-1">
+              <Link
+                to="/"
+                onClick={handleLinkClick}
+                title="Home"
+                className={`nav-link text-decoration-none flex items-center ${
+                  isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                } ${pathname === "/" ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+              >
+                <Home className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>Home</span>}
+              </Link>
+              {participantsSubmenu.map((s) => {
+                const active = s.exact ? pathname === s.path : pathname === s.path;
                 const Icon = s.icon;
                 return (
                   <Link
