@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   CreditCard,
   CalendarRange,
+  Library,
 } from "lucide-react";
 import { useBookmarks } from "@/lib/bookmarks";
 import SectionStubPage from "@/components/SectionStubPage";
@@ -75,6 +76,18 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "event-default-features", label: "Default Features" },
       { slug: "event-id-formats", label: "ID Formats" },
       { slug: "checklist-templates", label: "Checklist Templates" },
+    ],
+  },
+  {
+    id: "library",
+    title: "Library",
+    icon: Library,
+    accent: "var(--accent-foreground)",
+    accentTint: "var(--accent)",
+    items: [
+      { slug: "field-library", label: "Field Library" },
+      { slug: "form-templates", label: "Form Templates" },
+      { slug: "master-lists", label: "Master Lists" },
     ],
   },
   {
@@ -256,6 +269,7 @@ export default function ModulePage() {
     general: true,
     "security-access": true,
     "events-settings": true,
+    library: true,
     billing: true,
     templates: true,
     integrations: true,
@@ -433,6 +447,51 @@ export default function ModulePage() {
               "Categorized checklist items with due-offset (relative to event start)",
               "Assignee role or user, link-to route, overdue highlighting",
               "Apply a template to any event; items sync to the event checklist",
+            ]}
+          />
+        );
+      case "field-library":
+        return (
+          <SectionStubPage
+            title="Field Library"
+            description="Your organization's catalog of reusable dynamic fields. Define once, reuse across every registration, speaker, sponsor, feedback and survey form."
+            phase="Phase 5"
+            features={[
+              "30+ field types: text, number, email, phone, dropdown, multiselect, rating, NPS, date, file, signature, address, country/state/city cascade, formula, consent",
+              "System fields locked (first_name, last_name, email, phone, dob, gender, city, country)",
+              "Per-field validation: min/max, regex, custom rules, PII level for masking",
+              "Usage tracker — see every form the field is used in",
+              "Bulk import fields via JSON",
+            ]}
+          />
+        );
+      case "form-templates":
+        return (
+          <SectionStubPage
+            title="Form Templates"
+            description="A gallery of ready-to-use form blueprints — Corporate Conference Registration, School Event, Hackathon, Speaker Registration, Feedback, and more."
+            phase="Phase 5"
+            features={[
+              "Global (platform-shipped) templates and organization templates side by side",
+              "Category filters: Registration, Speaker, Sponsor, Feedback, Survey, Profile",
+              "Preview modal renders the template with the real FormRenderer",
+              "Use → creates a form in the target event, pre-filled with pages, fields, and logic",
+              "Save any event form as a template · Export / Import as JSON",
+            ]}
+            footer="Distinct from Communication Templates (WhatsApp / SMS / Email). Those are message blueprints; these are form blueprints."
+          />
+        );
+      case "master-lists":
+        return (
+          <SectionStubPage
+            title="Master Lists"
+            description="Big option sets that a dropdown or multiselect field can source from — Colleges, Departments, Countries, Product Categories."
+            phase="Phase 5"
+            features={[
+              "CSV import (label, value, optional parent for hierarchical lists)",
+              "Reuse one list across many forms — update once, all forms follow",
+              "Search, reorder, deactivate items without deleting them",
+              "Version history so old submissions keep resolving to their original label",
             ]}
           />
         );

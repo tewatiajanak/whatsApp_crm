@@ -62,6 +62,9 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "event-default-features",
   "event-id-formats",
   "checklist-templates",
+  "field-library",
+  "form-templates",
+  "master-lists",
 ]);
 
 const eventsSubmenu = [
