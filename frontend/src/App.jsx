@@ -36,6 +36,14 @@ import EventsRegistrants from "./knowvato-main/routes/modules.events.registrants
 import EventsScan from "./knowvato-main/routes/modules.events.scan";
 import EventsQr from "./knowvato-main/routes/modules.events.qr";
 import EventsBulkQr from "./knowvato-main/routes/modules.events.bulk-qr";
+// Phase 4 stubs — routes reserved so bookmarks resolve; pages ship in Phase 4.
+import EventsAll from "./knowvato-main/routes/modules.events.all";
+import EventsTemplates from "./knowvato-main/routes/modules.events.templates";
+import EventsCalendar from "./knowvato-main/routes/modules.events.calendar";
+import EventsChecklist from "./knowvato-main/routes/modules.events.checklist";
+import EventsTasks from "./knowvato-main/routes/modules.events.tasks";
+import EventsActivity from "./knowvato-main/routes/modules.events.activity";
+import EventsWorkspace from "./knowvato-main/routes/modules.events.workspace";
 import TemplatesWhatsapp from "./knowvato-main/routes/modules.templates-whatsapp";
 import TemplatesEmail from "./knowvato-main/routes/modules.templates-email";
 import TemplatesSms from "./knowvato-main/routes/modules.templates-sms";
@@ -105,6 +113,18 @@ export default function App() {
             <Route path="scan" element={<EventsScan />} />
             <Route path="qr" element={<EventsQr />} />
             <Route path="bulk-qr" element={<EventsBulkQr />} />
+            {/* Phase 4 stubs */}
+            <Route path="all" element={<EventsAll />} />
+            <Route path="templates" element={<EventsTemplates />} />
+            <Route path="calendar" element={<EventsCalendar />} />
+            <Route path="checklist" element={<EventsChecklist />} />
+            <Route path="tasks" element={<EventsTasks />} />
+            <Route path="activity" element={<EventsActivity />} />
+            {/* Per-event Workspace stub — /:eventId and every subpath (Overview,
+                Setup, Checklist, Tasks, Activity) all resolve to the workspace
+                stub until Phase 4 ships the real layout. */}
+            <Route path=":eventId" element={<EventsWorkspace />} />
+            <Route path=":eventId/*" element={<EventsWorkspace />} />
           </Route>
           <Route path="modules/utilities" element={<UtilitiesLayout />}>
             <Route index element={<UtilitiesOverviewPage />} />

@@ -11,11 +11,11 @@ import {
   LayoutDashboard,
   Settings as SettingsIcon,
   ShieldCheck,
-  Clock,
-  Construction,
   CreditCard,
+  CalendarRange,
 } from "lucide-react";
 import { useBookmarks } from "@/lib/bookmarks";
+import SectionStubPage from "@/components/SectionStubPage";
 
 // Import Full-Fledged Module Pages
 import WebsiteBuilderPage from "../pages/WebsiteBuilderPage";
@@ -60,6 +60,21 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "security", label: "Security" },
       { slug: "audit-logs", label: "Audit Logs" },
       { slug: "files", label: "Files" },
+    ],
+  },
+  {
+    id: "events-settings",
+    title: "Events",
+    icon: CalendarRange,
+    accent: "var(--info)",
+    accentTint: "var(--info-bg)",
+    items: [
+      { slug: "event-types", label: "Event Types" },
+      { slug: "event-categories", label: "Event Categories" },
+      { slug: "event-statuses", label: "Event Statuses" },
+      { slug: "event-default-features", label: "Default Features" },
+      { slug: "event-id-formats", label: "ID Formats" },
+      { slug: "checklist-templates", label: "Checklist Templates" },
     ],
   },
   {
@@ -240,6 +255,7 @@ export default function ModulePage() {
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     general: true,
     "security-access": true,
+    "events-settings": true,
     billing: true,
     templates: true,
     integrations: true,
@@ -257,7 +273,7 @@ export default function ModulePage() {
         return <UserManagementPage />;
       case "roles":
         return (
-          <ConfigStubPage
+          <SectionStubPage
             title="Roles & Permissions"
             description="Create custom roles and control every action across the workspace via a permission matrix."
             phase="Phase C"
@@ -271,7 +287,7 @@ export default function ModulePage() {
         );
       case "departments":
         return (
-          <ConfigStubPage
+          <SectionStubPage
             title="Departments"
             description="Model your organization hierarchy with nested departments, heads, and codes."
             phase="Phase D"
@@ -284,7 +300,7 @@ export default function ModulePage() {
         );
       case "security":
         return (
-          <ConfigStubPage
+          <SectionStubPage
             title="Security"
             description="Password policy, two-factor enforcement, session limits, and login history."
             phase="Phase F"
@@ -298,7 +314,7 @@ export default function ModulePage() {
         );
       case "audit-logs":
         return (
-          <ConfigStubPage
+          <SectionStubPage
             title="Audit Logs"
             description="Append-only trail of every create / update / delete across the workspace."
             phase="Phase E"
@@ -312,7 +328,7 @@ export default function ModulePage() {
         );
       case "files":
         return (
-          <ConfigStubPage
+          <SectionStubPage
             title="File Manager"
             description="Central store for uploads with folders, tags, previews, and signed URLs."
             phase="Phase F"
@@ -326,7 +342,7 @@ export default function ModulePage() {
         );
       case "subscription-usage":
         return (
-          <ConfigStubPage
+          <SectionStubPage
             title="Subscription & Usage"
             description="Your current plan, features included, and live usage meters for every limit."
             phase="Phase 3"
@@ -336,6 +352,87 @@ export default function ModulePage() {
               "Threshold alerts at 80 / 90 / 100% (configurable by the platform)",
               "Upgrade CTA and side-by-side plan comparison",
               "Invoice history and payment methods (arrives with Phase 15 checkout)",
+            ]}
+          />
+        );
+      case "event-types":
+        return (
+          <SectionStubPage
+            title="Event Types"
+            description="Configurable event templates — Conference, Workshop, Webinar, Hackathon, Blood Donation Camp, and 20+ more — each with its own default features, fields, and forms."
+            phase="Phase 4"
+            features={[
+              "Seed library of 25+ system event types with icon, color, and description",
+              "Custom types created without a developer (defaults propagate to new events of that type)",
+              "Per-type defaults: features, form template, pass template, checklist template, ticket types, workflows",
+              "Reorder, activate / deactivate, clone",
+            ]}
+          />
+        );
+      case "event-categories":
+        return (
+          <SectionStubPage
+            title="Event Categories"
+            description="Tag events with a category hierarchy for filtering, reporting, and public listings."
+            phase="Phase 4"
+            features={[
+              "Nested category tree with drag-to-reparent",
+              "Color assignment per category",
+              "Filter events and reports by category",
+            ]}
+          />
+        );
+      case "event-statuses":
+        return (
+          <SectionStubPage
+            title="Event Statuses"
+            description="Design your own status lifecycle: labels, colors, allowed transitions, and side effects."
+            phase="Phase 4"
+            features={[
+              "Custom statuses in addition to system defaults (Draft, Published, Live, Completed, Archived)",
+              "Allowed-transitions graph — enforced by the status machine on the server",
+              "Side effects per status: open / close registration, lock editing, public visibility",
+              "Visual pipeline editor",
+            ]}
+          />
+        );
+      case "event-default-features":
+        return (
+          <SectionStubPage
+            title="Default Event Features"
+            description="Set the feature toggles that new events start with (approval, payment, waitlist, seating…)."
+            phase="Phase 4"
+            features={[
+              "Master toggle list for every event feature flag",
+              "Per Event Type overrides",
+              "Plan-locked features shown with lock icon and upgrade tooltip",
+            ]}
+          />
+        );
+      case "event-id-formats":
+        return (
+          <SectionStubPage
+            title="Event ID Formats"
+            description="Define the pattern used to generate human-readable IDs for events, registrations, participants, tickets."
+            phase="Phase 4"
+            features={[
+              "Token chips: {YYYY} {YY} {MM} {FY} {SEQ:n} {EVENTCODE} {ORGCODE}",
+              "Live example preview",
+              "Per Event Type overrides",
+              "Atomic server-side counter — no client-side ID generation",
+            ]}
+          />
+        );
+      case "checklist-templates":
+        return (
+          <SectionStubPage
+            title="Checklist Templates"
+            description="Pre-built checklists for venue, speakers, sponsors, registration, passes, volunteers, communication."
+            phase="Phase 4"
+            features={[
+              "Categorized checklist items with due-offset (relative to event start)",
+              "Assignee role or user, link-to route, overdue highlighting",
+              "Apply a template to any event; items sync to the event checklist",
             ]}
           />
         );
@@ -480,65 +577,6 @@ export default function ModulePage() {
         <div className="min-w-0 rounded-xl border bg-card shadow-sm overflow-hidden">
           {renderActiveConfigComponent(activeSlug)}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ConfigStubPage({
-  title,
-  description,
-  phase,
-  features,
-}: {
-  title: string;
-  description: string;
-  phase: string;
-  features: string[];
-}) {
-  return (
-    <div className="p-6 md:p-8">
-      <div className="flex items-start justify-between gap-4 pb-5 border-b">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          <p className="text-sm text-muted-foreground mt-1">{description}</p>
-        </div>
-        <span
-          className="inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider border"
-          style={{
-            background: "var(--warning-bg)",
-            color: "var(--warning)",
-            borderColor: "color-mix(in srgb, var(--warning) 25%, transparent)",
-          }}
-        >
-          <Clock className="h-3 w-3" />
-          Coming in {phase}
-        </span>
-      </div>
-
-      <div className="mt-6 max-w-2xl">
-        <div className="flex items-center gap-2 mb-3">
-          <Construction className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Planned capabilities</h3>
-        </div>
-        <ul className="space-y-2.5">
-          {features.map((f) => (
-            <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-              <span
-                className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
-                style={{ background: "var(--primary)" }}
-              />
-              <span className="leading-relaxed">{f}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="mt-8 pt-5 border-t">
-        <p className="text-xs text-muted-foreground">
-          This module is scheduled for a future phase. The menu placement and slug are finalized so
-          bookmarks, deep links, and breadcrumbs will keep working when the page ships.
-        </p>
       </div>
     </div>
   );

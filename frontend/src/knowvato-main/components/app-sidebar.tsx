@@ -24,6 +24,11 @@ import {
   X,
   Sparkles,
   Film,
+  List,
+  Calendar as CalendarIcon,
+  CheckSquare,
+  ListTodo,
+  Activity,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -51,13 +56,25 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "audit-logs",
   "files",
   "subscription-usage",
+  "event-types",
+  "event-categories",
+  "event-statuses",
+  "event-default-features",
+  "event-id-formats",
+  "checklist-templates",
 ]);
 
 const eventsSubmenu = [
-  { title: "Dashboard", path: "/modules/events", icon: LayoutDashboard, exact: true },
+  { title: "Overview", path: "/modules/events", icon: LayoutDashboard, exact: true },
+  { title: "All Events", path: "/modules/events/all", icon: List },
   { title: "Create Event", path: "/modules/events/create", icon: CalendarPlus },
+  { title: "Event Templates", path: "/modules/events/templates", icon: Layers },
+  { title: "Calendar", path: "/modules/events/calendar", icon: CalendarIcon },
+  { title: "Checklist", path: "/modules/events/checklist", icon: CheckSquare },
+  { title: "Tasks", path: "/modules/events/tasks", icon: ListTodo },
   { title: "Registrants", path: "/modules/events/registrants", icon: UserCheck },
   { title: "Scan Pass", path: "/modules/events/scan", icon: ScanLine },
+  { title: "Activity Log", path: "/modules/events/activity", icon: Activity },
 ];
 
 const utilitiesSubmenu = [
