@@ -60,6 +60,9 @@ import PhotoEditorPage from "./knowvato-main/pages/PhotoEditorPage";
 // Super Admin (Phase 3 stub — routes reserved, pages ship in P3)
 import SuperAdminLandingPage from "./knowvato-main/pages/SuperAdminLandingPage";
 
+// Portals (Phase 9 stub — Speaker / Sponsor / Exhibitor self-service portals)
+import PortalLandingPage from "./knowvato-main/pages/PortalLandingPage";
+
 // Participants (Phase 6 stub — Registration Engine + Participants 360°)
 import ParticipantsLayout from "./knowvato-main/routes/modules.participants";
 import ParticipantsIndex from "./knowvato-main/routes/modules.participants.index";
@@ -83,6 +86,14 @@ export default function App() {
         <Route path="/public/enquiry-form/:formId" element={<div className="crm-theme"><PublicEnquiryForm /></div>} />
         <Route path="/public/landing-page/:pageId" element={<div className="crm-theme"><PublicLandingPage /></div>} />
         <Route path="/clp/enquirenow" element={<div className="crm-theme"><ClarwynEnquiryNow /></div>} />
+
+        {/* Speaker / Sponsor / Exhibitor portals (Phase 9 stub).
+            Rendered outside MainLayout so portal users don't see the
+            organization's admin sidebar. Wildcard catches any subpath so
+            /portal/speaker/sessions, /portal/sponsor/benefits etc. all
+            resolve to the same landing page until the real portals ship. */}
+        <Route path="/portal/:role" element={<PortalLandingPage />} />
+        <Route path="/portal/:role/*" element={<PortalLandingPage />} />
 
         {/* Standalone Full-screen Bot Builder routes */}
         <Route

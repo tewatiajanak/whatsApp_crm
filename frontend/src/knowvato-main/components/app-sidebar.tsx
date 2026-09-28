@@ -71,6 +71,8 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "form-templates",
   "master-lists",
   "pass-templates",
+  "venues",
+  "seating-maps",
 ]);
 
 const eventsSubmenu = [

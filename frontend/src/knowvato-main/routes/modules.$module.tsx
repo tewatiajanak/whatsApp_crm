@@ -14,6 +14,7 @@ import {
   CreditCard,
   CalendarRange,
   Library,
+  Building2,
 } from "lucide-react";
 import { useBookmarks } from "@/lib/bookmarks";
 import SectionStubPage from "@/components/SectionStubPage";
@@ -89,6 +90,17 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "form-templates", label: "Form Templates" },
       { slug: "master-lists", label: "Master Lists" },
       { slug: "pass-templates", label: "Pass Templates" },
+    ],
+  },
+  {
+    id: "facilities",
+    title: "Facilities",
+    icon: Building2,
+    accent: "var(--info)",
+    accentTint: "var(--info-bg)",
+    items: [
+      { slug: "venues", label: "Venues" },
+      { slug: "seating-maps", label: "Seating Maps" },
     ],
   },
   {
@@ -273,6 +285,7 @@ export default function ModulePage() {
     "security-access": true,
     "events-settings": true,
     library: true,
+    facilities: true,
     billing: true,
     templates: true,
     integrations: true,
@@ -525,6 +538,38 @@ export default function ModulePage() {
               "Reuse one list across many forms — update once, all forms follow",
               "Search, reorder, deactivate items without deleting them",
               "Version history so old submissions keep resolving to their original label",
+            ]}
+          />
+        );
+      case "venues":
+        return (
+          <SectionStubPage
+            title="Venues"
+            description="Reusable physical spaces — hotels, convention centers, campuses, stadiums, offices — with a hierarchy of buildings, floors, halls, and rooms."
+            phase="Phase 9"
+            features={[
+              "Venue library with type, address, geo, contact, amenities, photos",
+              "Tree: Building → Floor → Hall → Room with per-room capacity by layout",
+              "Layouts per room: theatre, classroom, round table, U-shape, boardroom, cabaret, standing",
+              "Facilities checklist (projector, mic, AC…), accessibility notes",
+              "Reused across events — pick venue when creating a new event",
+              "'Events held here' history per venue",
+            ]}
+          />
+        );
+      case "seating-maps":
+        return (
+          <SectionStubPage
+            title="Seating Maps"
+            description="A drag-and-drop Seating Designer (react-konva) that outputs reusable seat layouts. Attach a map to a room or clone it into an event for real seat allocation."
+            phase="Phase 9"
+            features={[
+              "Layout presets: theatre N×M with curve/aisles, classroom, round tables, U-shape, boardroom",
+              "Section tool: group seats into VIP / General / Premium with color + price tier",
+              "Row labels (A–Z, numeric, skip I/O), seat numbering direction, block / accessible marking",
+              "Stage, aisles, exits, pillars as canvas objects with labels",
+              "Zoom / pan / smart guides; mobile pinch-zoom viewer with tap-to-assign",
+              "Auto-assign at checkout: participant self-select via seat_selector form field",
             ]}
           />
         );
