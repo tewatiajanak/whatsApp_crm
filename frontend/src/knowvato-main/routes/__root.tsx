@@ -59,6 +59,7 @@ const TITLES: Record<string, string> = {
   "/portal/speaker": "Speaker Portal",
   "/portal/sponsor": "Sponsor Portal",
   "/portal/exhibitor": "Exhibitor Portal",
+  "/scan": "Scanner PWA",
   "/sa": "Super Admin",
   "/sa/organizations": "Super Admin - Organizations",
   "/sa/plans": "Super Admin - Plans",

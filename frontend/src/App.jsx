@@ -63,6 +63,9 @@ import SuperAdminLandingPage from "./knowvato-main/pages/SuperAdminLandingPage";
 // Portals (Phase 9 stub — Speaker / Sponsor / Exhibitor self-service portals)
 import PortalLandingPage from "./knowvato-main/pages/PortalLandingPage";
 
+// Scanner PWA (Phase 10 stub — installable, camera-first, offline-first)
+import ScannerPWALandingPage from "./knowvato-main/pages/ScannerPWALandingPage";
+
 // Participants (Phase 6 stub — Registration Engine + Participants 360°)
 import ParticipantsLayout from "./knowvato-main/routes/modules.participants";
 import ParticipantsIndex from "./knowvato-main/routes/modules.participants.index";
@@ -94,6 +97,12 @@ export default function App() {
             resolve to the same landing page until the real portals ship. */}
         <Route path="/portal/:role" element={<PortalLandingPage />} />
         <Route path="/portal/:role/*" element={<PortalLandingPage />} />
+
+        {/* Scanner PWA (Phase 10 stub). Installable, camera-first,
+            offline-first. Rendered outside MainLayout — gate staff open
+            this URL on their phones and add it to home screen. */}
+        <Route path="/scan" element={<ScannerPWALandingPage />} />
+        <Route path="/scan/*" element={<ScannerPWALandingPage />} />
 
         {/* Standalone Full-screen Bot Builder routes */}
         <Route
