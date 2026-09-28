@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Clock,
   Construction,
+  CreditCard,
 } from "lucide-react";
 import { useBookmarks } from "@/lib/bookmarks";
 
@@ -59,6 +60,16 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "security", label: "Security" },
       { slug: "audit-logs", label: "Audit Logs" },
       { slug: "files", label: "Files" },
+    ],
+  },
+  {
+    id: "billing",
+    title: "Billing",
+    icon: CreditCard,
+    accent: "var(--destructive)",
+    accentTint: "var(--destructive-bg)",
+    items: [
+      { slug: "subscription-usage", label: "Subscription & Usage" },
     ],
   },
   {
@@ -229,6 +240,7 @@ export default function ModulePage() {
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     general: true,
     "security-access": true,
+    billing: true,
     templates: true,
     integrations: true,
   });
@@ -309,6 +321,21 @@ export default function ModulePage() {
               "Grid / list view with image and PDF preview",
               "Signed URL access for private files",
               "Storage-used meter and per-file audit trail",
+            ]}
+          />
+        );
+      case "subscription-usage":
+        return (
+          <ConfigStubPage
+            title="Subscription & Usage"
+            description="Your current plan, features included, and live usage meters for every limit."
+            phase="Phase 3"
+            features={[
+              "Current plan card with renewal date and billing duration",
+              "Per-limit meters: events, participants, users, storage, emails, SMS, WhatsApp",
+              "Threshold alerts at 80 / 90 / 100% (configurable by the platform)",
+              "Upgrade CTA and side-by-side plan comparison",
+              "Invoice history and payment methods (arrives with Phase 15 checkout)",
             ]}
           />
         );

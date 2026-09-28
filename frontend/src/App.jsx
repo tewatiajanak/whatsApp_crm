@@ -49,6 +49,9 @@ import QRCodeUtilityPage from "./knowvato-main/pages/QRCodeUtilityPage";
 import VideoEditorPage from "./knowvato-main/pages/VideoEditorPage";
 import PhotoEditorPage from "./knowvato-main/pages/PhotoEditorPage";
 
+// Super Admin (Phase 3 stub — routes reserved, pages ship in P3)
+import SuperAdminLandingPage from "./knowvato-main/pages/SuperAdminLandingPage";
+
 function Protected({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <Spinner label="Starting…" />;
@@ -110,6 +113,10 @@ export default function App() {
             <Route path="photo-edit" element={<PhotoEditorPage />} />
           </Route>
           <Route path="modules/:module" element={<ModulePage />} />
+          {/* Super Admin — reserved for Phase 3. All /sa/* subroutes render the
+              same landing page until the real pages ship, so bookmarks work. */}
+          <Route path="sa" element={<SuperAdminLandingPage />} />
+          <Route path="sa/*" element={<SuperAdminLandingPage />} />
         </Route>
 
         {/* WhatsApp CRM Routes */}

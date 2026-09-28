@@ -50,6 +50,7 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "security",
   "audit-logs",
   "files",
+  "subscription-usage",
 ]);
 
 const eventsSubmenu = [

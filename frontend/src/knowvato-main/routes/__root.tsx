@@ -29,6 +29,16 @@ const TITLES: Record<string, string> = {
   "/modules/security": "Configuration - Security",
   "/modules/audit-logs": "Configuration - Audit Logs",
   "/modules/files": "Configuration - Files",
+  "/modules/subscription-usage": "Configuration - Subscription & Usage",
+  "/sa": "Super Admin",
+  "/sa/organizations": "Super Admin - Organizations",
+  "/sa/plans": "Super Admin - Plans",
+  "/sa/plans/preview": "Super Admin - Plan Comparison Preview",
+  "/sa/billing-durations": "Super Admin - Billing Durations",
+  "/sa/features": "Super Admin - Features",
+  "/sa/limits": "Super Admin - Limits",
+  "/sa/masters": "Super Admin - Masters",
+  "/sa/settings": "Super Admin - Platform Settings",
 };
 
 function MainHeader() {
