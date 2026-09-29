@@ -481,17 +481,21 @@ a { color: var(--primary); }
   display: flex; align-items: center; padding: 0 20px; gap: 4px; position: sticky; top: 0; z-index: 10;
 }
 .content {
-  padding: 20px;
+  padding: 0;
   flex: 1;
 }
 
 .crm-theme .content,
 .app-shell .content {
-  padding: 20px;
+  padding: 0;
 }
 
+/* Page-level wrappers own their own padding now. The .content shell
+   provides layout scaffolding only. Individual pages use their own p-4
+   (or equivalent) so the outer breathing room matches the internal
+   column gap consistently on every page. */
 .content > * {
-  max-width: 1440px;
+  max-width: 1600px;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
@@ -499,14 +503,8 @@ a { color: var(--primary); }
 
 @media (min-width: 1024px) {
   .topbar {
-    padding-left: 32px;
-    padding-right: 32px;
-  }
-
-  .content,
-  .crm-theme .content,
-  .app-shell .content {
-    padding: 32px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 
