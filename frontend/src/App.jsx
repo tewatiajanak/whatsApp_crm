@@ -85,6 +85,10 @@ import PortalLandingPage from "./knowvato-main/pages/PortalLandingPage";
 // Scanner PWA (Phase 10 stub — installable, camera-first, offline-first)
 import ScannerPWALandingPage from "./knowvato-main/pages/ScannerPWALandingPage";
 
+// Participant portal + public event discovery (Phase 14 stubs)
+import ParticipantPortalLandingPage from "./knowvato-main/pages/ParticipantPortalLandingPage";
+import DiscoveryPortalLandingPage from "./knowvato-main/pages/DiscoveryPortalLandingPage";
+
 // Participants (Phase 6 stub — Registration Engine + Participants 360°)
 import ParticipantsLayout from "./knowvato-main/routes/modules.participants";
 import ParticipantsIndex from "./knowvato-main/routes/modules.participants.index";
@@ -122,6 +126,19 @@ export default function App() {
             this URL on their phones and add it to home screen. */}
         <Route path="/scan" element={<ScannerPWALandingPage />} />
         <Route path="/scan/*" element={<ScannerPWALandingPage />} />
+
+        {/* Participant portal (Phase 14 stub) — /me and every subpath.
+            Rendered outside MainLayout so participants don't see the
+            organization's admin sidebar. */}
+        <Route path="/me" element={<ParticipantPortalLandingPage />} />
+        <Route path="/me/*" element={<ParticipantPortalLandingPage />} />
+
+        {/* Public event discovery (Phase 14 stub) — /explore lists every
+            public event on the platform; /o/:orgSlug is the per-org
+            public page listing that organization's events. */}
+        <Route path="/explore" element={<DiscoveryPortalLandingPage />} />
+        <Route path="/o/:orgSlug" element={<DiscoveryPortalLandingPage />} />
+        <Route path="/o/:orgSlug/*" element={<DiscoveryPortalLandingPage />} />
 
         {/* Standalone Full-screen Bot Builder routes */}
         <Route

@@ -46,6 +46,7 @@ const CONFIGURATION_CATEGORIES = [
     accentTint: "color-mix(in srgb, var(--primary) 12%, transparent)",
     items: [
       { slug: "organization-details", label: "Organization Details" },
+      { slug: "branding", label: "Branding & White-label" },
     ],
   },
   {
@@ -61,6 +62,7 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "security", label: "Security" },
       { slug: "audit-logs", label: "Audit Logs" },
       { slug: "files", label: "Files" },
+      { slug: "privacy-requests", label: "Privacy Requests" },
     ],
   },
   {
@@ -89,6 +91,7 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "form-templates", label: "Form Templates" },
       { slug: "master-lists", label: "Master Lists" },
       { slug: "pass-templates", label: "Pass Templates" },
+      { slug: "page-templates", label: "Landing Page Templates" },
     ],
   },
   {
@@ -309,6 +312,40 @@ export default function ModulePage() {
     switch (slug) {
       case "organization-details":
         return <OrganizationDetailsPage />;
+      case "branding":
+        return (
+          <SectionStubPage
+            title="Branding & White-label"
+            description="One place to make the whole product look like yours — dashboard theme, email header/footer, login page, public event pages, and a custom domain."
+            phase="Phase 14"
+            features={[
+              "Logos (light / dark), favicon, and admin app theme (CSS vars applied to the whole dashboard)",
+              "Brand colors (primary / secondary / accent) with WCAG AA contrast check",
+              "Fonts from the allowed Google Fonts list (loaded once, cached)",
+              "Email branding: header logo, footer text, colors — used by every Phase 11 template",
+              "Login page branding (already partially wired via Organization Details)",
+              "Custom domain: point events.yourcompany.com → your org login + public event pages, with DNS verification",
+              "'Remove Powered by Knowvato' — plan-gated white_label feature",
+              "PWA manifest picks up your theme color and icons automatically",
+            ]}
+          />
+        );
+      case "privacy-requests":
+        return (
+          <SectionStubPage
+            title="Privacy Requests"
+            description="Participant data-privacy queue — export, delete, or rectify requests raised from the participant portal, with SLA tracking and audit trail."
+            phase="Phase 14"
+            features={[
+              "Types: Export (JSON / ZIP job), Delete (anonymize PII, keep immutable financial records per R21), Rectify",
+              "SLA countdown to the legally required due date",
+              "Actions: Approve → run job · Reject with reason · Reassign · Mark complete",
+              "Consent history per participant (which version of terms they accepted, when)",
+              "Cookie banner settings for public event pages",
+              "Every action audit-logged",
+            ]}
+          />
+        );
       case "users":
         return <UserManagementPage />;
       case "roles":
@@ -581,6 +618,23 @@ export default function ModulePage() {
               "Zoom / pan / smart guides; mobile pinch-zoom viewer with tap-to-assign",
               "Auto-assign at checkout: participant self-select via seat_selector form field",
             ]}
+          />
+        );
+      case "page-templates":
+        return (
+          <SectionStubPage
+            title="Landing Page Templates"
+            description="Seeded landing-page blueprints per event type — Conference, Workshop, Sports, Cultural, School, Webinar, Exhibition — with pre-arranged sections, ready to clone into an event website."
+            phase="Phase 14"
+            features={[
+              "Section-based page builder output — Hero, Event Info, About, Stats, Speakers, Agenda, Sponsors, Tickets, Registration, Gallery, FAQ, Countdown, CTA",
+              "Preview modal renders the template inside the real public renderer",
+              "Use → creates a SitePage on the event with pages and sections pre-arranged",
+              "Save any event page as a template (organization-shared or global)",
+              "Category filters: Conference, Workshop, Sports, Cultural, School, Webinar, Exhibition, VIP",
+              "Export / import as JSON",
+            ]}
+            footer="Distinct from Form / Pass / Communication templates. These are website page blueprints."
           />
         );
       case "pass-templates":

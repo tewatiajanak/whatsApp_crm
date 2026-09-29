@@ -83,6 +83,9 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "seating-maps",
   "message-delivery",
   "staff-notifications",
+  "branding",
+  "privacy-requests",
+  "page-templates",
 ]);
 
 const eventsSubmenu = [
