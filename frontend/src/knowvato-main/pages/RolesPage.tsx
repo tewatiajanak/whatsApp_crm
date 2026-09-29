@@ -4,13 +4,12 @@ import { useToast } from "../../context/ToastContext";
 import {
   ShieldCheck,
   Plus,
-  Search,
   Save,
   Trash2,
   X,
-  Users,
   Loader2,
 } from "lucide-react";
+import { UIButton, SearchInput } from "../components/UIKit";
 
 type Role = {
   _id: string;
@@ -156,20 +155,14 @@ export default function RolesPage() {
           </div>
           <p className="text-sm text-muted-foreground mt-1">Control what each role can view, create, edit, or delete across all modules.</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm" style={{ background: "var(--primary)" }}>
-          <Plus className="h-4 w-4" />
+        <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           New role
-        </button>
+        </UIButton>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
         <div className="space-y-2">
-          <div className="rounded-lg border bg-card p-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search roles…" className="w-full h-8 pl-7 pr-2 rounded border bg-background text-sm" />
-            </div>
-          </div>
+          <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search roles…" />
           <div className="rounded-xl border bg-card overflow-hidden">
             {loading && <div className="p-6 text-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin inline mr-1" />Loading…</div>}
             {!loading && filtered.length === 0 && <div className="p-6 text-center text-xs text-muted-foreground">No roles</div>}
@@ -265,10 +258,9 @@ export default function RolesPage() {
               </div>
 
               <div className="flex items-center gap-2 pt-3 border-t">
-                <button onClick={save} disabled={!form.name.trim() || saving} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm disabled:opacity-40" style={{ background: "var(--primary)" }}>
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                <UIButton onClick={save} disabled={!form.name.trim()} loading={saving} leftIcon={<Save className="h-3.5 w-3.5" />}>
                   {editing ? "Save changes" : "Create role"}
-                </button>
+                </UIButton>
               </div>
             </div>
           )}

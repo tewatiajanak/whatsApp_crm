@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { http } from "../../api";
 import { useToast } from "../../context/ToastContext";
-import { Building2, Plus, Search, Trash2, Pencil, Loader2, X, Save } from "lucide-react";
+import { Building2, Plus, Trash2, Pencil, Loader2, X, Save } from "lucide-react";
+import { UIButton, SearchInput } from "../components/UIKit";
 
 type Dept = {
   _id: string;
@@ -79,18 +80,12 @@ export default function DepartmentsPage() {
           </div>
           <p className="text-sm text-muted-foreground mt-1">Organize your team by department. Users can be assigned one department each.</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm" style={{ background: "var(--primary)" }}>
-          <Plus className="h-4 w-4" />
+        <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           New department
-        </button>
+        </UIButton>
       </div>
 
-      <div className="rounded-lg border bg-card p-2">
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className="w-full h-9 pl-8 pr-3 rounded border bg-background text-sm" />
-        </div>
-      </div>
+      <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" containerClassName="max-w-md" />
 
       <div className="rounded-xl border bg-card overflow-hidden">
         <table className="w-full text-sm">
@@ -112,12 +107,12 @@ export default function DepartmentsPage() {
                 <td className="px-4 py-2.5 text-xs text-muted-foreground">{d.createdAt ? new Date(d.createdAt).toLocaleDateString("en-IN") : "—"}</td>
                 <td className="px-4 py-2.5 text-right">
                   <div className="inline-flex items-center gap-1">
-                    <button onClick={() => openEdit(d)} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+                    <UIButton size="icon-sm" variant="ghost" onClick={() => openEdit(d)}>
                       <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button onClick={() => remove(d)} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-600">
+                    </UIButton>
+                    <UIButton size="icon-sm" variant="danger" onClick={() => remove(d)}>
                       <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    </UIButton>
                   </div>
                 </td>
               </tr>
@@ -142,11 +137,10 @@ export default function DepartmentsPage() {
               <input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} className="mt-1 w-full h-9 px-3 rounded-md border bg-background text-sm" />
             </div>
             <div className="flex gap-2 pt-2 border-t">
-              <button onClick={() => setShowForm(false)} className="flex-1 h-9 rounded-md text-sm font-medium border hover:bg-accent">Cancel</button>
-              <button onClick={save} disabled={!form.name.trim() || saving} className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md text-sm font-medium text-white shadow-sm disabled:opacity-40" style={{ background: "var(--primary)" }}>
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              <UIButton variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancel</UIButton>
+              <UIButton onClick={save} disabled={!form.name.trim()} loading={saving} leftIcon={<Save className="h-3.5 w-3.5" />} className="flex-1">
                 {editing ? "Save" : "Create"}
-              </button>
+              </UIButton>
             </div>
           </div>
         </div>

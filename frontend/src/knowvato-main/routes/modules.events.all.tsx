@@ -4,7 +4,6 @@ import { useEventData } from "@/event-manager/context/EventDataContext";
 import {
   ArrowLeft,
   Plus,
-  Search,
   CalendarDays,
   MapPin,
   Users,
@@ -18,6 +17,7 @@ import {
   Building2,
   Sparkles,
 } from "lucide-react";
+import { UIButton, SearchInput } from "@/components/UIKit";
 
 type Ev = any;
 
@@ -282,15 +282,9 @@ export default function EventsAllPage() {
             Browse, filter, and create — everything you need to manage your events in one place.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm hover:opacity-90 transition-opacity"
-          style={{ background: "var(--primary)" }}
-        >
-          <Plus className="h-4 w-4" />
+        <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           Create Event
-        </button>
+        </UIButton>
       </div>
 
       {/* Status tabs — nested-radius math: outer(16px) − padding(4px) = inner(12px) */}
@@ -339,20 +333,17 @@ export default function EventsAllPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="rounded-xl border bg-card p-3 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, venue, organizer…"
-            className="w-full h-9 pl-8 pr-3 rounded-md border border-input bg-background text-sm"
-          />
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, venue, organizer…"
+          containerClassName="flex-1 min-w-[240px] max-w-md"
+        />
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm min-w-[160px]"
+          className="ui-input min-w-[160px]"
         >
           <option value="">All types</option>
           {(eventTypes as any[])
@@ -363,33 +354,24 @@ export default function EventsAllPage() {
               </option>
             ))}
         </select>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">From</span>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="h-9 px-2 rounded-md border border-input bg-background text-xs"
-          />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">To</span>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="h-9 px-2 rounded-md border border-input bg-background text-xs"
-          />
-        </div>
+        <input
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+          className="ui-input"
+          title="From"
+        />
+        <input
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+          className="ui-input"
+          title="To"
+        />
         {hasFilter && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="inline-flex items-center gap-1 h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
+          <UIButton size="sm" variant="ghost" onClick={clearFilters} leftIcon={<X className="h-3.5 w-3.5" />}>
             Clear
-          </button>
+          </UIButton>
         )}
         <div className="ml-auto text-xs text-muted-foreground flex items-center gap-1.5">
           <FilterIcon className="h-3.5 w-3.5" />
@@ -446,14 +428,9 @@ export default function EventsAllPage() {
                           : "Try adjusting your search or clearing the filters."}
                       </div>
                       {(events as Ev[]).length === 0 && (
-                        <button
-                          onClick={openCreate}
-                          className="mt-2 inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm"
-                          style={{ background: "var(--primary)" }}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
+                        <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
                           Create your first event
-                        </button>
+                        </UIButton>
                       )}
                     </div>
                   </td>
@@ -548,29 +525,19 @@ export default function EventsAllPage() {
                       </td>
                       <td className="px-4 py-2.5 text-right" onClick={(ev) => ev.stopPropagation()}>
                         <div className="inline-flex items-center gap-1">
-                          <button
-                            onClick={() => openEditFor(e)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-                            title="Edit"
-                          >
+                          <UIButton size="icon-sm" variant="ghost" onClick={() => openEditFor(e)} title="Edit">
                             <Pencil className="h-3.5 w-3.5" />
-                          </button>
+                          </UIButton>
                           <Link
                             to={`/modules/events/${e.id}`}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                            className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon"
                             title="Open workspace"
-                            style={{ textDecoration: "none" }}
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(e)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-600"
-                            title="Delete"
-                          >
+                          <UIButton size="icon-sm" variant="danger" onClick={() => handleDelete(e)} title="Delete">
                             <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          </UIButton>
                         </div>
                       </td>
                     </tr>

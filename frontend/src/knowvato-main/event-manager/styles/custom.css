@@ -11,17 +11,18 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.04 260);
 
-  /* Brand */
-  --primary: #0f172a;
-  --primary-foreground: #ffffff;
+  /* Brand — inherit crm-theme teal so every button/link matches the rest
+     of the app instead of drifting into dark navy. */
+  --primary: #217E79;
+  --primary-foreground: #FAFDFD;
 
-  /* Neutrals */
-  --secondary: oklch(0.96 0.01 260);
-  --secondary-foreground: oklch(0.25 0.05 265);
-  --muted: oklch(0.96 0.008 260);
-  --muted-foreground: oklch(0.5 0.03 260);
-  --accent: oklch(0.94 0.04 265);
-  --accent-foreground: oklch(0.3 0.1 265);
+  /* Neutrals — match crm-theme so accent/muted look identical everywhere */
+  --secondary: #E6EEEE;
+  --secondary-foreground: #2C5655;
+  --muted: #F4F2EE;
+  --muted-foreground: #66797D;
+  --accent: #E2ECEB;
+  --accent-foreground: #286663;
 
   /* Semantic status */
   --destructive: oklch(0.6 0.22 25);

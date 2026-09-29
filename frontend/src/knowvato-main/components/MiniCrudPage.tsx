@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Trash2, Pencil, X, Save, type LucideIcon } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Save, type LucideIcon } from "lucide-react";
+import { UIButton, SearchInput } from "./UIKit";
 
 type Field = {
   key: string;
@@ -120,17 +121,18 @@ export default function MiniCrudPage({
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{description}</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm" style={{ background: accent }}>
-          <Plus className="h-4 w-4" />
+        <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           {createLabel}
-        </button>
+        </UIButton>
       </div>
 
-      <div className="rounded-lg border bg-card p-2 flex items-center gap-2">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className="w-full h-9 pl-8 pr-3 rounded border bg-background text-sm" />
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search…"
+          containerClassName="flex-1 max-w-md"
+        />
         <div className="ml-auto text-xs text-muted-foreground">{filtered.length} of {items.length}</div>
       </div>
 
@@ -160,12 +162,12 @@ export default function MiniCrudPage({
                   ))}
                   <td className="px-4 py-2.5 text-right">
                     <div className="inline-flex items-center gap-1">
-                      <button onClick={() => openEdit(row)} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+                      <UIButton size="icon-sm" variant="ghost" onClick={() => openEdit(row)} title="Edit">
                         <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => remove(row)} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-600">
+                      </UIButton>
+                      <UIButton size="icon-sm" variant="danger" onClick={() => remove(row)} title="Delete">
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      </UIButton>
                     </div>
                   </td>
                 </tr>
@@ -182,7 +184,9 @@ export default function MiniCrudPage({
           <div className="bg-card rounded-xl border shadow-2xl w-full max-w-lg p-5 space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div className="text-lg font-semibold">{editing ? "Edit" : createLabel}</div>
-              <button onClick={() => setShowForm(false)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent"><X className="h-4 w-4" /></button>
+              <UIButton size="icon-sm" variant="ghost" onClick={() => setShowForm(false)}>
+                <X className="h-4 w-4" />
+              </UIButton>
             </div>
             {fields.map((f) => (
               <div key={f.key}>
@@ -209,11 +213,12 @@ export default function MiniCrudPage({
               </div>
             ))}
             <div className="flex gap-2 pt-2 border-t">
-              <button onClick={() => setShowForm(false)} className="flex-1 h-9 rounded-md text-sm font-medium border hover:bg-accent">Cancel</button>
-              <button onClick={save} className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md text-sm font-medium text-white shadow-sm" style={{ background: accent }}>
-                <Save className="h-3.5 w-3.5" />
+              <UIButton variant="outline" onClick={() => setShowForm(false)} className="flex-1">
+                Cancel
+              </UIButton>
+              <UIButton onClick={save} leftIcon={<Save className="h-3.5 w-3.5" />} className="flex-1">
                 {editing ? "Save" : "Create"}
-              </button>
+              </UIButton>
             </div>
           </div>
         </div>

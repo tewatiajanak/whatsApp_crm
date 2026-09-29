@@ -1,16 +1,16 @@
 /* src/index.css */
 
 
-/* Default theme variables (Clean Slate) */
+/* Default theme variables — mirror crm-theme so em-shell blends in */
 .em-shell {
-  --primary: #0f172a;
-  --primary-foreground: #ffffff;
+  --primary: #217E79;
+  --primary-foreground: #FAFDFD;
   --background: var(--page-bg, #FAF8F5);
   --surface: #FFFFFF;
-  --foreground: #0f172a;
-  --pill: #f1f5f9;
-  --pill-text: #0f172a;
-  --tab-track: #e2e8f0;
+  --foreground: #253338;
+  --pill: #F4F2EE;
+  --pill-text: #253338;
+  --tab-track: #E6EEEE;
 }
 
 .em-shell *,

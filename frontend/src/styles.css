@@ -63,10 +63,172 @@
   --base-font-size: 12.5px;
   --base-line-height: 1.45;
   --btn-height: 34px;
-  --btn-height-sm: 30px;
+  --btn-height-sm: 28px;
   --input-height: 34px;
+  --control-radius: 8px;
 
   font-family: 'DM Sans', 'Segoe UI', sans-serif !important;
+}
+
+/* Global design-system utility classes — used across the app so every
+   button and every search input looks and behaves identically. */
+.crm-theme .ui-btn,
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--btn-height, 34px);
+  padding: 0 14px;
+  border-radius: var(--control-radius, 8px);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif !important;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1;
+}
+.crm-theme .ui-btn:focus-visible,
+.ui-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.crm-theme .ui-btn[disabled],
+.ui-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.crm-theme .ui-btn-primary,
+.ui-btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-button);
+}
+.crm-theme .ui-btn-primary:hover:not([disabled]),
+.ui-btn-primary:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--primary) 92%, black 8%);
+}
+
+.crm-theme .ui-btn-outline,
+.ui-btn-outline {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+.crm-theme .ui-btn-outline:hover:not([disabled]),
+.ui-btn-outline:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--foreground) 5%, var(--card));
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+
+.crm-theme .ui-btn-ghost,
+.ui-btn-ghost {
+  background: transparent;
+  color: var(--muted-foreground);
+}
+.crm-theme .ui-btn-ghost:hover:not([disabled]),
+.ui-btn-ghost:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  color: var(--foreground);
+}
+
+.crm-theme .ui-btn-danger,
+.ui-btn-danger {
+  background: transparent;
+  color: var(--muted-foreground);
+  border-color: transparent;
+}
+.crm-theme .ui-btn-danger:hover:not([disabled]),
+.ui-btn-danger:hover:not([disabled]) {
+  background: var(--destructive-bg);
+  color: var(--destructive);
+}
+
+.crm-theme .ui-btn-sm,
+.ui-btn-sm {
+  height: var(--btn-height-sm, 28px);
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.crm-theme .ui-btn-icon,
+.ui-btn-icon {
+  height: var(--btn-height, 34px);
+  width: var(--btn-height, 34px);
+  padding: 0;
+}
+.crm-theme .ui-btn-icon.ui-btn-sm,
+.ui-btn-icon.ui-btn-sm {
+  height: var(--btn-height-sm, 28px);
+  width: var(--btn-height-sm, 28px);
+}
+
+/* Search input group — icon + input in a unified pill */
+.crm-theme .ui-search,
+.ui-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--input-height, 34px);
+  min-width: 220px;
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius, 8px);
+  background: var(--card);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.crm-theme .ui-search:focus-within,
+.ui-search:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.crm-theme .ui-search-icon,
+.ui-search-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 100%;
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+.crm-theme .ui-search-input,
+.ui-search-input {
+  flex: 1;
+  height: 100%;
+  padding: 0 12px 0 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--foreground);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif !important;
+}
+.crm-theme .ui-search-input::placeholder,
+.ui-search-input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+/* Standard input (labels/select/date) */
+.crm-theme .ui-input,
+.ui-input {
+  height: var(--input-height, 34px);
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius, 8px);
+  background: var(--card);
+  font-size: 13px;
+  color: var(--foreground);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.crm-theme .ui-input:focus,
+.ui-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
 *, *::before, *::after {
