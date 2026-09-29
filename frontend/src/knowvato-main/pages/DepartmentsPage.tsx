@@ -3,6 +3,7 @@ import { http } from "../../api";
 import { useToast } from "../../context/ToastContext";
 import { Building2, Plus, Trash2, Pencil, Loader2, X, Save } from "lucide-react";
 import { UIButton, SearchInput } from "../components/UIKit";
+import { fmtDate } from "../utils/date";
 
 type Dept = {
   _id: string;
@@ -91,26 +92,26 @@ export default function DepartmentsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-muted-foreground" style={{ background: "var(--muted-background)" }}>
-              <th className="px-4 py-3 text-left font-medium">Department</th>
-              <th className="px-4 py-3 text-left font-medium">Order</th>
-              <th className="px-4 py-3 text-left font-medium">Created</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+              <th className="px-4 py-2.5 text-left font-medium w-20">Sr No</th>
+              <th className="px-4 py-2.5 text-left font-medium">Department</th>
+              <th className="px-4 py-2.5 text-left font-medium w-32">Created</th>
+              <th className="px-4 py-2.5 text-right font-medium w-24">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && <tr><td colSpan={4} className="px-4 py-10 text-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…</td></tr>}
             {!loading && filtered.length === 0 && <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">No departments yet. Add your first one.</td></tr>}
-            {!loading && filtered.map((d) => (
+            {!loading && filtered.map((d, i) => (
               <tr key={d._id} className="border-t hover:bg-accent/30">
+                <td className="px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{i + 1}</td>
                 <td className="px-4 py-2.5 font-medium text-foreground">{d.name}</td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">{d.order ?? "—"}</td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">{d.createdAt ? new Date(d.createdAt).toLocaleDateString("en-IN") : "—"}</td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">{fmtDate(d.createdAt)}</td>
                 <td className="px-4 py-2.5 text-right">
                   <div className="inline-flex items-center gap-1">
-                    <UIButton size="icon-sm" variant="ghost" onClick={() => openEdit(d)}>
+                    <UIButton size="icon-sm" variant="ghost" onClick={() => openEdit(d)} title="Edit">
                       <Pencil className="h-3.5 w-3.5" />
                     </UIButton>
-                    <UIButton size="icon-sm" variant="danger" onClick={() => remove(d)}>
+                    <UIButton size="icon-sm" variant="danger" onClick={() => remove(d)} title="Delete">
                       <Trash2 className="h-3.5 w-3.5" />
                     </UIButton>
                   </div>
@@ -133,8 +134,8 @@ export default function DepartmentsPage() {
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1 w-full h-9 px-3 rounded-md border bg-background text-sm" placeholder="e.g. Sales" />
             </div>
             <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Order</label>
-              <input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} className="mt-1 w-full h-9 px-3 rounded-md border bg-background text-sm" />
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Sort priority</label>
+              <input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} className="mt-1 w-full h-9 px-3 rounded-md border bg-background text-sm" placeholder="Lower value shows first" />
             </div>
             <div className="flex gap-2 pt-2 border-t">
               <UIButton variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancel</UIButton>

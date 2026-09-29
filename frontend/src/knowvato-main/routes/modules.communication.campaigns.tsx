@@ -15,6 +15,7 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { fmtDate } from "@/utils/date";
 
 type Campaign = {
   _id: string;
@@ -250,7 +251,7 @@ export default function CommunicationCampaignsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-IN") : "—"}
+                      {fmtDate(c.createdAt)}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <button

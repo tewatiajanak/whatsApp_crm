@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FolderOpen, ArrowLeft, Play, Trash2, Star, Search } from "lucide-react";
+import { fmtDate } from "@/utils/date";
 
 type SavedReport = {
   id: string;
@@ -83,7 +84,7 @@ export default function ReportsSavedPage() {
       </div>
       <div className="mt-3 pt-3 border-t flex items-center justify-between">
         <div className="text-[11px] text-muted-foreground">
-          Saved {new Date(r.createdAt).toLocaleDateString("en-IN")}
+          Saved {fmtDate(r.createdAt)}
         </div>
         <Link
           to="/modules/reports/builder"

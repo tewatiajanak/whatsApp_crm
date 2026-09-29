@@ -11,6 +11,7 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { fmtDate } from "@/utils/date";
 
 type WF = {
   _id: string;
@@ -161,7 +162,7 @@ export default function AutomationWorkflowsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {w.createdAt ? new Date(w.createdAt).toLocaleDateString("en-IN") : "—"}
+                      {fmtDate(w.createdAt)}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="inline-flex items-center gap-1">

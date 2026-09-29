@@ -18,6 +18,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { UIButton, SearchInput } from "@/components/UIKit";
+import { fmtDate } from "@/utils/date";
 
 type Ev = any;
 
@@ -59,19 +60,6 @@ const statusStyle = (s: string) => {
       };
     default:
       return { bg: "var(--warning-bg)", fg: "var(--warning)" };
-  }
-};
-
-const fmtDate = (d?: string) => {
-  if (!d) return "—";
-  try {
-    return new Date(d).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return d;
   }
 };
 

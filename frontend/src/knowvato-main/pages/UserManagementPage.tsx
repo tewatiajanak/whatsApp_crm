@@ -178,55 +178,6 @@ export default function UserManagementPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Active Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">{users.filter((u) => u.status === "Active").length}</div>
-            <p className="text-xs text-emerald-600 mt-1">✓ Multi-tenant isolated access</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Roles</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">5 Defined</div>
-            <p className="text-xs text-muted-foreground mt-1">Admin, Manager, Counsellor, Front Desk</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Invitations</CardTitle>
-            <Mail className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">
-              {users.filter((u) => u.status === "Invited").length}
-            </div>
-            <p className="text-xs text-amber-600 mt-1">Awaiting email confirmation</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Security Status</CardTitle>
-            <Key className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-emerald-600">2FA Enforced</div>
-            <p className="text-xs text-muted-foreground mt-1">BCrypt + JWT 7d expiry</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Filter and Actions Bar */}
       <Card className="p-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">

@@ -43,7 +43,7 @@ export const UIButton = forwardRef<HTMLButtonElement, UIButtonProps>(
     return (
       <button ref={ref} className={cls} disabled={disabled || loading} {...rest}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : leftIcon}
-        {size !== "icon" && size !== "icon-sm" && children}
+        {children}
         {rightIcon}
       </button>
     );
