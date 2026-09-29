@@ -113,6 +113,8 @@ const CONFIGURATION_CATEGORIES = [
     accentTint: "var(--destructive-bg)",
     items: [
       { slug: "subscription-usage", label: "Subscription & Usage" },
+      { slug: "platform-invoices", label: "Platform Invoices" },
+      { slug: "billing-details", label: "Billing Details & Methods" },
       { slug: "payment-gateways", label: "Payment Gateways" },
       { slug: "taxes-invoicing", label: "Taxes & Invoicing" },
     ],
@@ -430,6 +432,39 @@ export default function ModulePage() {
               "Upgrade CTA and side-by-side plan comparison",
               "Invoice history and payment methods (arrives with Phase 15 checkout)",
             ]}
+          />
+        );
+      case "platform-invoices":
+        return (
+          <SectionStubPage
+            title="Platform Invoices"
+            description="Invoices you receive from the platform (Knowvato) for your subscription. Distinct from Taxes & Invoicing, which is invoices you issue to your own customers."
+            phase="Phase 15"
+            features={[
+              "Invoice list with number (SUB / FY / SEQ), date, plan, duration, amount, GST breakup, PDF",
+              "Payment History timeline: purchases, renewals, upgrades, refunds — with transaction id and gateway",
+              "Subscription History timeline: trial → active → renewed → plan changed → cancelled → reactivated",
+              "Download PDF, resend email, dispute link",
+              "Filter by financial year, plan, status; export as CSV / XLSX for accounting",
+            ]}
+            footer="These are your platform-billing invoices (money FROM you TO Knowvato). For invoices you issue to your event customers, see Taxes & Invoicing."
+          />
+        );
+      case "billing-details":
+        return (
+          <SectionStubPage
+            title="Billing Details & Payment Methods"
+            description="Your organization's platform-billing profile: legal name, address (state for GST place of supply), GSTIN, finance contacts, and saved payment methods for renewals."
+            phase="Phase 15"
+            features={[
+              "Billing profile: legal name, address, country, state, GSTIN (optional / required per platform settings)",
+              "Finance contacts — who receives invoices, expiry reminders, dunning notices",
+              "Saved payment methods (tokenized via gateway; card brand / last4 / UPI handle masked)",
+              "Set default method, remove method, add method (routes through platform payment gateway)",
+              "Auto-renew toggle, with policy explanation and next-charge preview",
+              "Every change audit-logged; secrets never returned by API",
+            ]}
+            footer="Distinct from Payment Gateways below (which is the money flow from YOUR customers to YOU)."
           />
         );
       case "payment-gateways":

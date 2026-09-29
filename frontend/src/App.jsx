@@ -89,6 +89,11 @@ import ScannerPWALandingPage from "./knowvato-main/pages/ScannerPWALandingPage";
 import ParticipantPortalLandingPage from "./knowvato-main/pages/ParticipantPortalLandingPage";
 import DiscoveryPortalLandingPage from "./knowvato-main/pages/DiscoveryPortalLandingPage";
 
+// SaaS billing surfaces (Phase 15 stubs)
+import PricingLandingPage from "./knowvato-main/pages/PricingLandingPage";
+import CheckoutLandingPage from "./knowvato-main/pages/CheckoutLandingPage";
+import OnboardingLandingPage from "./knowvato-main/routes/onboarding";
+
 // Participants (Phase 6 stub — Registration Engine + Participants 360°)
 import ParticipantsLayout from "./knowvato-main/routes/modules.participants";
 import ParticipantsIndex from "./knowvato-main/routes/modules.participants.index";
@@ -139,6 +144,12 @@ export default function App() {
         <Route path="/explore" element={<DiscoveryPortalLandingPage />} />
         <Route path="/o/:orgSlug" element={<DiscoveryPortalLandingPage />} />
         <Route path="/o/:orgSlug/*" element={<DiscoveryPortalLandingPage />} />
+
+        {/* Public SaaS billing routes (Phase 15 stubs) — pricing page and
+            the signup → pay → activate checkout flow. Both rendered
+            outside MainLayout since visitors aren't logged in yet. */}
+        <Route path="/pricing" element={<PricingLandingPage />} />
+        <Route path="/checkout" element={<CheckoutLandingPage />} />
 
         {/* Standalone Full-screen Bot Builder routes */}
         <Route
@@ -221,6 +232,10 @@ export default function App() {
           {/* Command Center (Phase 13 stub) — full-screen search fallback
               for mobile; desktop opens Ctrl+K palette overlay in Phase 13. */}
           <Route path="search" element={<CommandCenterPage />} />
+          {/* Onboarding wizard (Phase 15 stub) — post-activation first-run
+              experience. Rendered inside MainLayout since the org is
+              already logged in at this point. */}
+          <Route path="onboarding" element={<OnboardingLandingPage />} />
           {/* Super Admin — reserved for Phase 3. All /sa/* subroutes render the
               same landing page until the real pages ship, so bookmarks work. */}
           <Route path="sa" element={<SuperAdminLandingPage />} />
