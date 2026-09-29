@@ -310,10 +310,10 @@ export default function EventsAllPage() {
               role="tab"
               aria-selected={active}
               onClick={() => setStatusTab(t.key)}
-              className={`relative inline-flex items-center gap-2 h-9 px-4 text-sm font-medium transition-all whitespace-nowrap ${
+              className={`relative inline-flex items-center gap-2 h-9 px-4 text-sm font-medium transition-colors whitespace-nowrap ${
                 active
                   ? "shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               style={
                 active
@@ -322,7 +322,7 @@ export default function EventsAllPage() {
                       color: "var(--accent-foreground)",
                       borderRadius: "12px",
                     }
-                  : { borderRadius: "12px" }
+                  : { background: "transparent", borderRadius: "12px" }
               }
             >
               <span>{t.label}</span>
