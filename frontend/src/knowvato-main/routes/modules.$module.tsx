@@ -92,6 +92,7 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "master-lists", label: "Master Lists" },
       { slug: "pass-templates", label: "Pass Templates" },
       { slug: "page-templates", label: "Landing Page Templates" },
+      { slug: "certificate-templates", label: "Certificate Templates" },
     ],
   },
   {
@@ -653,6 +654,24 @@ export default function ModulePage() {
               "Zoom / pan / smart guides; mobile pinch-zoom viewer with tap-to-assign",
               "Auto-assign at checkout: participant self-select via seat_selector form field",
             ]}
+          />
+        );
+      case "certificate-templates":
+        return (
+          <SectionStubPage
+            title="Certificate Templates"
+            description="Reusable certificate designs — Participation, Speaker, Volunteer, Achievement, Workshop, Winner, Merit — with A4 / Letter, landscape / portrait, and signature elements."
+            phase="Phase 12"
+            features={[
+              "Canvas Designer (same react-konva engine as Pass Designer) with A4 / Letter presets, landscape or portrait, 300 dpi",
+              "Signatory elements with name / title / signature image; multiple signatories per template",
+              "Verify QR element (points to /verify/:code) + certificate-number element with tokens",
+              "Eligibility conditions (ConditionGroup): attendance ≥ 75%, session attended, feedback submitted, score ≥ x",
+              "Applies to participant types and/or ticket types — auto-issue on event completed",
+              "Version history, save-as-template, apply to event",
+              "Seeded library: Participation, Speaker, Volunteer, Achievement, Workshop",
+            ]}
+            footer="Distinct from Pass Templates. Passes are what participants show at the gate; certificates are what they earn after."
           />
         );
       case "page-templates":

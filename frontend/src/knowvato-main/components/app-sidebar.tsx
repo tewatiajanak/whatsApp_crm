@@ -39,6 +39,9 @@ import {
   CalendarClock,
   Download,
   TrendingUp,
+  GitBranch,
+  PlayCircle,
+  Webhook,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -49,6 +52,7 @@ const modules = [
   { title: "CRM", slug: "whatsapp", icon: MessageSquare },
   { title: "Website Builder", slug: "website", icon: Globe2 },
   { title: "Communication", slug: "communication", icon: Megaphone },
+  { title: "Automation", slug: "automation", icon: GitBranch },
   { title: "Front Office", slug: "front-office", icon: Building2 },
   { title: "Participants", slug: "participants", icon: UserCheck },
   { title: "Reports & Analytics", slug: "reports", icon: BarChart3 },
@@ -88,6 +92,7 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "branding",
   "privacy-requests",
   "page-templates",
+  "certificate-templates",
 ]);
 
 const eventsSubmenu = [
@@ -120,6 +125,13 @@ const communicationSubmenu = [
   { title: "Automated Messages", path: "/modules/communication/automated-messages", icon: Zap },
   { title: "Message Logs", path: "/modules/communication/logs", icon: ScrollText },
   { title: "Notification Center", path: "/modules/communication/notification-center", icon: Bell },
+];
+
+const automationSubmenu = [
+  { title: "Workflows", path: "/modules/automation", icon: GitBranch, exact: true },
+  { title: "Workflow Templates", path: "/modules/automation/templates", icon: Layers },
+  { title: "Runs", path: "/modules/automation/runs", icon: PlayCircle },
+  { title: "Webhooks", path: "/modules/automation/webhooks", icon: Webhook },
 ];
 
 const reportsSubmenu = [
@@ -177,6 +189,45 @@ export function AppSidebar() {
                 {!isCollapsed && <span>Home</span>}
               </Link>
               {eventsSubmenu.map((s) => {
+                const active = pathname === s.path;
+                const Icon = s.icon;
+                return (
+                  <Link
+                    key={s.path}
+                    to={s.path}
+                    onClick={handleLinkClick}
+                    title={s.title}
+                    className={`nav-link text-decoration-none flex items-center ${
+                      isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                    } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>{s.title}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ) : pathname.startsWith("/modules/automation") ? (
+          <div className="nav-section px-2 py-1">
+            {!isCollapsed && (
+              <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
+                Automation
+              </div>
+            )}
+            <div className="space-y-1">
+              <Link
+                to="/"
+                onClick={handleLinkClick}
+                title="Home"
+                className={`nav-link text-decoration-none flex items-center ${
+                  isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                } ${pathname === "/" ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+              >
+                <Home className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>Home</span>}
+              </Link>
+              {automationSubmenu.map((s) => {
                 const active = pathname === s.path;
                 const Icon = s.icon;
                 return (

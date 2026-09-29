@@ -54,6 +54,13 @@ import CommunicationLogs from "./knowvato-main/routes/modules.communication.logs
 import CommunicationNotificationCenter from "./knowvato-main/routes/modules.communication.notification-center";
 import NotificationsPage from "./knowvato-main/routes/notifications";
 
+// Phase 12 Automation submenu — Workflows / Templates / Runs / Webhooks
+import AutomationLayout from "./knowvato-main/routes/modules.automation";
+import AutomationWorkflows from "./knowvato-main/routes/modules.automation.index";
+import AutomationTemplates from "./knowvato-main/routes/modules.automation.templates";
+import AutomationRuns from "./knowvato-main/routes/modules.automation.runs";
+import AutomationWebhooks from "./knowvato-main/routes/modules.automation.webhooks";
+
 // Phase 13 Reports submenu — Overview + 5 stubs
 import ReportsLayout from "./knowvato-main/routes/modules.reports";
 import ReportsIndex from "./knowvato-main/routes/modules.reports.index";
@@ -93,6 +100,9 @@ import DiscoveryPortalLandingPage from "./knowvato-main/pages/DiscoveryPortalLan
 import PricingLandingPage from "./knowvato-main/pages/PricingLandingPage";
 import CheckoutLandingPage from "./knowvato-main/pages/CheckoutLandingPage";
 import OnboardingLandingPage from "./knowvato-main/routes/onboarding";
+
+// Certificate verification (Phase 12 public stub)
+import CertificateVerifyLandingPage from "./knowvato-main/pages/CertificateVerifyLandingPage";
 
 // Participants (Phase 6 stub — Registration Engine + Participants 360°)
 import ParticipantsLayout from "./knowvato-main/routes/modules.participants";
@@ -150,6 +160,12 @@ export default function App() {
             outside MainLayout since visitors aren't logged in yet. */}
         <Route path="/pricing" element={<PricingLandingPage />} />
         <Route path="/checkout" element={<CheckoutLandingPage />} />
+
+        {/* Certificate verification (Phase 12 public stub) — the QR on
+            every certificate points here. Public, no auth, minimal
+            data. /verify with no code shows manual-entry landing. */}
+        <Route path="/verify" element={<CertificateVerifyLandingPage />} />
+        <Route path="/verify/:code" element={<CertificateVerifyLandingPage />} />
 
         {/* Standalone Full-screen Bot Builder routes */}
         <Route
@@ -210,6 +226,12 @@ export default function App() {
             <Route path="automated-messages" element={<CommunicationAutomated />} />
             <Route path="logs" element={<CommunicationLogs />} />
             <Route path="notification-center" element={<CommunicationNotificationCenter />} />
+          </Route>
+          <Route path="modules/automation" element={<AutomationLayout />}>
+            <Route index element={<AutomationWorkflows />} />
+            <Route path="templates" element={<AutomationTemplates />} />
+            <Route path="runs" element={<AutomationRuns />} />
+            <Route path="webhooks" element={<AutomationWebhooks />} />
           </Route>
           <Route path="modules/reports" element={<ReportsLayout />}>
             <Route index element={<ReportsIndex />} />
