@@ -63,6 +63,7 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "audit-logs", label: "Audit Logs" },
       { slug: "files", label: "Files" },
       { slug: "privacy-requests", label: "Privacy Requests" },
+      { slug: "backup-export", label: "Backup & Export" },
     ],
   },
   {
@@ -156,6 +157,7 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "integrations-sms", label: "SMS Integration" },
       { slug: "integrations-push", label: "Push Notifications" },
       { slug: "integrations-facebook", label: "Facebook Integration" },
+      { slug: "integrations-api-keys", label: "API Access & Keys" },
       { slug: "integrations-other", label: "Other API Integration" },
     ],
   },
@@ -331,6 +333,23 @@ export default function ModulePage() {
               "'Remove Powered by Knowvato' — plan-gated white_label feature",
               "PWA manifest picks up your theme color and icons automatically",
             ]}
+          />
+        );
+      case "backup-export":
+        return (
+          <SectionStubPage
+            title="Backup & Export"
+            description="Full-organization data export as an encrypted ZIP — participants, registrations, payments, attendance, sessions, feedback, and a file manifest — with scheduled recurring exports."
+            phase="Phase 16"
+            features={[
+              "Full export: participants, registrations, payments, attendance, sessions, feedback, files (manifest with signed URLs)",
+              "One-off export (job runs in background, emailed link when ready) or scheduled (weekly / monthly)",
+              "Delivery: email link or push to your own S3 bucket (adapter)",
+              "AES-256-encrypted ZIP with a passphrase you provide at request time",
+              "Includes a JSON schema file so the export is self-describing",
+              "Every export audit-logged; expired archives auto-purged per retention setting",
+            ]}
+            footer="Distinct from Reports → Exports & Downloads. That's report-shaped data (CSV/XLSX/PDF); this is a full-fidelity organizational backup."
           />
         );
       case "privacy-requests":
@@ -743,6 +762,24 @@ export default function ModulePage() {
               "Preset routing: escalate after N minutes if not acknowledged",
               "Personal override in every user's profile",
             ]}
+          />
+        );
+      case "integrations-api-keys":
+        return (
+          <SectionStubPage
+            title="API Access & Keys"
+            description="Programmatic access for your systems — create API keys scoped to specific permissions and rate-limited by your plan."
+            phase="Phase 16"
+            features={[
+              "Create API keys with a name, scope (read / write per module), and expiration",
+              "Rate limits per key, metered against your plan's api_calls_month limit",
+              "Public integrator endpoints: GET events, GET sessions, POST registrations, GET pass, POST checkins/scan, GET participants, POST feedback",
+              "Bearer-token authentication, IP allow-list optional per key",
+              "One-click Swagger docs (link opens /api/docs pre-filtered to public integrator API)",
+              "Key revocation is instant; usage history retained 90 days",
+              "Secrets shown once at creation, never returned again",
+            ]}
+            footer="Distinct from the internal-app tokens used by your own users. These keys are for third-party systems (your CRM, your data warehouse, partner platforms)."
           />
         );
       case "integrations-push":

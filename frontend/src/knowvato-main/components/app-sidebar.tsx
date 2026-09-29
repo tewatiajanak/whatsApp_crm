@@ -93,6 +93,7 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "privacy-requests",
   "page-templates",
   "certificate-templates",
+  "backup-export",
 ]);
 
 const eventsSubmenu = [

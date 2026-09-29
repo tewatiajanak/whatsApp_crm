@@ -32,6 +32,8 @@ const TITLES: Record<string, string> = {
   "/modules/message-delivery": "Configuration - Message Delivery",
   "/modules/staff-notifications": "Configuration - Staff Notifications",
   "/modules/integrations-push": "Configuration - Push Notifications Integration",
+  "/modules/integrations-api-keys": "Configuration - API Access & Keys",
+  "/modules/backup-export": "Configuration - Backup & Export",
   "/modules/front-office": "Front Office",
   "/modules/reports": "Reports & Analytics - Overview",
   "/modules/reports/builder": "Reports - Report Builder",
