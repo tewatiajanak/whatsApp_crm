@@ -324,17 +324,23 @@ export default function ModulePage() {
   // Configuration / Templates / Integrations PERSISTENT 2-Column Shell
   const activeSlug = activeModule === "settings" ? "configuration" : activeModule;
 
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    general: true,
-    "security-access": true,
-    "events-settings": true,
-    library: true,
-    facilities: true,
-    billing: true,
-    notifications: true,
-    templates: true,
-    integrations: true,
-  });
+  // Accordion behaviour: only one Configuration group is expanded at a time.
+  // On first render the group containing the active submenu item auto-opens;
+  // otherwise everything is collapsed.
+  const activeCategoryId = CONFIGURATION_CATEGORIES.find((c) =>
+    c.items.some((it) => it.slug === activeSlug)
+  )?.id ?? null;
+
+  const [openCategoryId, setOpenCategoryId] = useState<string | null>(activeCategoryId);
+
+  // If the URL changes to another submenu inside a different group, expand
+  // that group so the user sees where they are.
+  useEffect(() => {
+    if (activeCategoryId && activeCategoryId !== openCategoryId) {
+      setOpenCategoryId(activeCategoryId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategoryId]);
 
   const handleSelectSlug = (slug: string) => {
     navigate(`/modules/${slug}`);
@@ -1222,7 +1228,7 @@ export default function ModulePage() {
         {/* Left Submenu Navigation */}
         <nav aria-label="Configuration sections" className="space-y-3 sticky top-[70px] self-start">
           {CONFIGURATION_CATEGORIES.map((cat) => {
-            const isOpen = openCategories[cat.id];
+            const isOpen = openCategoryId === cat.id;
             const hasActive = cat.items.some((item) => activeSlug === item.slug);
             return (
               <div
@@ -1239,9 +1245,7 @@ export default function ModulePage() {
                   type="button"
                   aria-expanded={isOpen}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left cursor-pointer transition-colors hover:bg-muted/40"
-                  onClick={() =>
-                    setOpenCategories((prev) => ({ ...prev, [cat.id]: !prev[cat.id] }))
-                  }
+                  onClick={() => setOpenCategoryId(isOpen ? null : cat.id)}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span
