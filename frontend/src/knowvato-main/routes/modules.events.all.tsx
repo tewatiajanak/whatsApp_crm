@@ -293,8 +293,12 @@ export default function EventsAllPage() {
         </button>
       </div>
 
-      {/* Status tabs */}
-      <div className="flex items-center gap-1 flex-wrap overflow-x-auto">
+      {/* Status tabs — grouped pill container */}
+      <div
+        className="inline-flex items-center gap-1 rounded-2xl border bg-card p-1.5 overflow-x-auto max-w-full shadow-sm"
+        role="tablist"
+        aria-label="Filter by status"
+      >
         {STATUS_TABS.map((t) => {
           const active = statusTab === t.key;
           const count = counts[t.key] ?? 0;
@@ -302,17 +306,24 @@ export default function EventsAllPage() {
             <button
               key={t.key}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setStatusTab(t.key)}
-              className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[13px] font-medium transition-colors ${
+              className={`relative inline-flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                 active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-accent text-accent-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
+              style={
+                active
+                  ? { color: "var(--accent-foreground)" }
+                  : undefined
+              }
             >
-              {t.label}
+              <span>{t.label}</span>
               <span
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                  active ? "bg-white/20" : "bg-muted"
+                className={`text-[10px] font-semibold tabular-nums transition-opacity ${
+                  active ? "opacity-70" : "opacity-50"
                 }`}
               >
                 {count}
