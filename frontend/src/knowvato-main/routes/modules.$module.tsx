@@ -25,6 +25,32 @@ import WebsiteBuilderPage from "../pages/WebsiteBuilderPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import FrontOfficePage from "../pages/FrontOfficePage";
 import EventTypesPage from "../pages/EventTypesPage";
+import RolesPage from "../pages/RolesPage";
+import DepartmentsPage from "../pages/DepartmentsPage";
+import AuditLogsPage from "../pages/AuditLogsPage";
+import MiniCrudPage from "../components/MiniCrudPage";
+import {
+  Tag,
+  Circle,
+  ToggleLeft,
+  Hash,
+  ClipboardList,
+  ListChecks,
+  Database,
+  Map,
+  Grid3x3,
+  Folder,
+  Award,
+  CreditCard as CreditIcon,
+  FileText,
+  Palette,
+  Lock,
+  Download,
+  ShieldAlert,
+  Key,
+  BellRing,
+  FileCheck,
+} from "lucide-react";
 import EmailIntegrationPage from "../pages/EmailIntegrationPage";
 import SmsIntegrationPage from "../pages/SmsIntegrationPage";
 import FacebookIntegrationPage from "../pages/FacebookIntegrationPage";
@@ -320,201 +346,316 @@ export default function ModulePage() {
         return <OrganizationDetailsPage />;
       case "branding":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Branding & White-label"
-            description="One place to make the whole product look like yours — dashboard theme, email header/footer, login page, public event pages, and a custom domain."
-            phase="Phase 14"
-            features={[
-              "Logos (light / dark), favicon, and admin app theme (CSS vars applied to the whole dashboard)",
-              "Brand colors (primary / secondary / accent) with WCAG AA contrast check",
-              "Fonts from the allowed Google Fonts list (loaded once, cached)",
-              "Email branding: header logo, footer text, colors — used by every Phase 11 template",
-              "Login page branding (already partially wired via Organization Details)",
-              "Custom domain: point events.yourcompany.com → your org login + public event pages, with DNS verification",
-              "'Remove Powered by Knowvato' — plan-gated white_label feature",
-              "PWA manifest picks up your theme color and icons automatically",
+            description="Brand-your-workspace assets, colors, and custom domains."
+            icon={Palette}
+            storageKey="em_branding"
+            createLabel="Add asset"
+            fields={[
+              { key: "type", label: "Asset type", type: "select", options: ["Logo (light)", "Logo (dark)", "Favicon", "Email header", "Custom domain", "Brand color"] },
+              { key: "value", label: "Value / URL / hex", required: true },
+              { key: "active", label: "Active", type: "select", options: ["yes", "no"] },
             ]}
+            columns={[
+              { key: "type", label: "Asset" },
+              { key: "value", label: "Value", render: (r) => r.type === "Brand color" ? <span className="inline-flex items-center gap-2"><span className="h-4 w-4 rounded" style={{ background: r.value }} /><code className="font-mono text-xs">{r.value}</code></span> : <span className="text-xs">{r.value}</span> },
+              { key: "active", label: "Active" },
+            ]}
+            seed={[
+              { id: "1", type: "Brand color", value: "#2249b7", active: "yes" },
+              { id: "2", type: "Custom domain", value: "events.mycompany.com", active: "no" },
+              { id: "3", type: "Email header", value: "https://cdn.example.com/logo-email.png", active: "yes" },
+            ]}
+            footer="For logo, name, tagline, and login page, see Organization Details above."
           />
         );
       case "backup-export":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Backup & Export"
-            description="Full-organization data export as an encrypted ZIP — participants, registrations, payments, attendance, sessions, feedback, and a file manifest — with scheduled recurring exports."
-            phase="Phase 16"
-            features={[
-              "Full export: participants, registrations, payments, attendance, sessions, feedback, files (manifest with signed URLs)",
-              "One-off export (job runs in background, emailed link when ready) or scheduled (weekly / monthly)",
-              "Delivery: email link or push to your own S3 bucket (adapter)",
-              "AES-256-encrypted ZIP with a passphrase you provide at request time",
-              "Includes a JSON schema file so the export is self-describing",
-              "Every export audit-logged; expired archives auto-purged per retention setting",
+            description="Full-organization backup jobs (encrypted ZIP)."
+            icon={Download}
+            storageKey="em_backup_jobs"
+            createLabel="New backup"
+            fields={[
+              { key: "name", label: "Backup name", required: true, placeholder: "Weekly full backup" },
+              { key: "cadence", label: "Cadence", type: "select", options: ["one-off", "daily", "weekly", "monthly"] },
+              { key: "delivery", label: "Delivery", type: "select", options: ["Email link", "S3 bucket"] },
+              { key: "includes", label: "Includes (comma-separated)", placeholder: "participants,payments,files" },
+              { key: "status", label: "Last status", type: "select", options: ["scheduled", "running", "completed", "failed"] },
             ]}
-            footer="Distinct from Reports → Exports & Downloads. That's report-shaped data (CSV/XLSX/PDF); this is a full-fidelity organizational backup."
+            columns={[
+              { key: "name", label: "Backup" },
+              { key: "cadence", label: "Cadence" },
+              { key: "delivery", label: "Delivery" },
+              { key: "status", label: "Status" },
+            ]}
+            seed={[
+              { id: "1", name: "Weekly full backup", cadence: "weekly", delivery: "Email link", includes: "all", status: "completed" },
+              { id: "2", name: "Monthly to S3", cadence: "monthly", delivery: "S3 bucket", includes: "all", status: "scheduled" },
+            ]}
+            footer="Distinct from Reports → Exports (report-shaped data). This is a full-fidelity encrypted org backup."
           />
         );
       case "privacy-requests":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Privacy Requests"
-            description="Participant data-privacy queue — export, delete, or rectify requests raised from the participant portal, with SLA tracking and audit trail."
-            phase="Phase 14"
-            features={[
-              "Types: Export (JSON / ZIP job), Delete (anonymize PII, keep immutable financial records per R21), Rectify",
-              "SLA countdown to the legally required due date",
-              "Actions: Approve → run job · Reject with reason · Reassign · Mark complete",
-              "Consent history per participant (which version of terms they accepted, when)",
-              "Cookie banner settings for public event pages",
-              "Every action audit-logged",
+            description="Participant data-privacy queue — export, delete, rectify."
+            icon={ShieldAlert}
+            storageKey="em_privacy_requests"
+            createLabel="Log request"
+            fields={[
+              { key: "participant", label: "Participant name / email", required: true },
+              { key: "type", label: "Type", type: "select", options: ["Export", "Delete / Anonymize", "Rectify"] },
+              { key: "status", label: "Status", type: "select", options: ["Open", "In progress", "Approved", "Rejected", "Completed"] },
+              { key: "dueBy", label: "Due by", placeholder: "YYYY-MM-DD" },
+              { key: "note", label: "Notes", type: "textarea" },
+            ]}
+            columns={[
+              { key: "participant", label: "Participant" },
+              { key: "type", label: "Type" },
+              { key: "status", label: "Status" },
+              { key: "dueBy", label: "Due by" },
+            ]}
+            seed={[
+              { id: "1", participant: "priya@example.com", type: "Export", status: "In progress", dueBy: "2026-10-15", note: "GDPR right-to-access" },
+              { id: "2", participant: "old_user@example.com", type: "Delete / Anonymize", status: "Completed", dueBy: "2026-09-20", note: "Account deletion request" },
             ]}
           />
         );
       case "users":
         return <UserManagementPage />;
       case "roles":
-        return (
-          <SectionStubPage
-            title="Roles & Permissions"
-            description="Create custom roles and control every action across the workspace via a permission matrix."
-            phase="Phase C"
-            features={[
-              "System role library with clone-to-customize",
-              "Permission matrix — modules × actions (view / create / edit / delete)",
-              "Assign roles per-user and per-event (EventMember)",
-              "Mobile: accordion-per-module with switches",
-            ]}
-          />
-        );
+        return <RolesPage />;
       case "departments":
-        return (
-          <SectionStubPage
-            title="Departments"
-            description="Model your organization hierarchy with nested departments, heads, and codes."
-            phase="Phase D"
-            features={[
-              "Tree view with drag-to-reparent",
-              "Department head, code, and parent chain",
-              "Link users to departments and filter reports by dept",
-            ]}
-          />
-        );
+        return <DepartmentsPage />;
       case "security":
         return (
-          <SectionStubPage
-            title="Security"
-            description="Password policy, two-factor enforcement, session limits, and login history."
-            phase="Phase F"
-            features={[
-              "Password strength rules and reset cadence",
-              "Enforce 2FA for selected roles",
-              "Session timeout & concurrent-device limits",
-              "Login history with IP, device, and location",
+          <MiniCrudPage
+            title="Security Policies"
+            description="Password rules, 2FA enforcement, session limits."
+            icon={Lock}
+            storageKey="em_security_policies"
+            createLabel="Add policy"
+            fields={[
+              { key: "name", label: "Policy name", required: true },
+              { key: "type", label: "Type", type: "select", options: ["Password", "2FA", "Session", "IP restriction"] },
+              { key: "value", label: "Rule / value", placeholder: "e.g. min length 12" },
+              { key: "appliesTo", label: "Applies to (role)", placeholder: "all / role name" },
+              { key: "active", label: "Active", type: "select", options: ["yes", "no"] },
+            ]}
+            columns={[
+              { key: "name", label: "Policy" },
+              { key: "type", label: "Type" },
+              { key: "value", label: "Value" },
+              { key: "appliesTo", label: "Applies to" },
+              { key: "active", label: "Active" },
+            ]}
+            seed={[
+              { id: "1", name: "Minimum password length", type: "Password", value: "12 characters", appliesTo: "all", active: "yes" },
+              { id: "2", name: "Password expiry", type: "Password", value: "90 days", appliesTo: "all", active: "yes" },
+              { id: "3", name: "Enforce 2FA for admins", type: "2FA", value: "Required", appliesTo: "Administrator", active: "yes" },
+              { id: "4", name: "Session timeout", type: "Session", value: "8 hours idle", appliesTo: "all", active: "yes" },
             ]}
           />
         );
       case "audit-logs":
-        return (
-          <SectionStubPage
-            title="Audit Logs"
-            description="Append-only trail of every create / update / delete across the workspace."
-            phase="Phase E"
-            features={[
-              "Actor, action, entity, IP, device, and timestamp",
-              "Row drawer with before / after diff view (green added / red removed)",
-              "Filter by actor, action, entity, and date range",
-              "Export to CSV / Excel / JSON",
-            ]}
-          />
-        );
+        return <AuditLogsPage />;
       case "files":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="File Manager"
-            description="Central store for uploads with folders, tags, previews, and signed URLs."
-            phase="Phase F"
-            features={[
-              "Folder tree with drag-move and tags",
-              "Grid / list view with image and PDF preview",
-              "Signed URL access for private files",
-              "Storage-used meter and per-file audit trail",
+            description="Files uploaded across the workspace."
+            icon={Folder}
+            storageKey="em_files"
+            createLabel="Upload"
+            fields={[
+              { key: "name", label: "File name", required: true, placeholder: "report.pdf" },
+              { key: "folder", label: "Folder", placeholder: "e.g. reports/2026" },
+              { key: "type", label: "Type", type: "select", options: ["PDF", "Image", "Document", "Spreadsheet", "Other"] },
+              { key: "size", label: "Size", placeholder: "e.g. 1.4 MB" },
+              { key: "tags", label: "Tags", placeholder: "comma-separated" },
+            ]}
+            columns={[
+              { key: "name", label: "File" },
+              { key: "folder", label: "Folder" },
+              { key: "type", label: "Type" },
+              { key: "size", label: "Size" },
+              { key: "tags", label: "Tags" },
+            ]}
+            seed={[
+              { id: "1", name: "Q3 revenue report.pdf", folder: "reports/2026", type: "PDF", size: "245 KB", tags: "finance,q3" },
+              { id: "2", name: "Speaker headshots.zip", folder: "events/tech-conf", type: "Other", size: "18 MB", tags: "speakers,media" },
+              { id: "3", name: "GST invoice template.docx", folder: "templates", type: "Document", size: "124 KB", tags: "invoice,gst" },
             ]}
           />
         );
       case "subscription-usage":
         return (
-          <SectionStubPage
-            title="Subscription & Usage"
-            description="Your current plan, features included, and live usage meters for every limit. This is what you pay the platform for using Knowvato."
-            phase="Phase 3"
-            features={[
-              "Current plan card with renewal date and billing duration",
-              "Per-limit meters: events, participants, users, storage, emails, SMS, WhatsApp",
-              "Threshold alerts at 80 / 90 / 100% (configurable by the platform)",
-              "Upgrade CTA and side-by-side plan comparison",
-              "Invoice history and payment methods (arrives with Phase 15 checkout)",
-            ]}
-          />
+          <div className="p-6 md:p-8 space-y-4">
+            <div className="pb-4 border-b">
+              <div className="flex items-center gap-2">
+                <CreditIcon className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold text-foreground">Subscription & Usage</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">Your current plan and usage against limits.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-xl border bg-card p-4">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Current plan</div>
+                <div className="text-2xl font-semibold text-foreground mt-1">Professional</div>
+                <div className="text-xs text-muted-foreground mt-1">Yearly · ₹49,999 / year</div>
+                <div className="text-xs text-muted-foreground mt-3 pt-3 border-t">Renews on <strong className="text-foreground">15 March 2027</strong></div>
+              </div>
+              <div className="md:col-span-2 rounded-xl border bg-card p-4">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3">Usage this period</div>
+                <div className="space-y-3">
+                  {[
+                    { label: "Events", used: 8, total: 50 },
+                    { label: "Participants", used: 7500, total: 25000 },
+                    { label: "Users", used: 12, total: 25 },
+                    { label: "Storage", used: 18, total: 100, unit: " GB" },
+                    { label: "Emails this month", used: 8500, total: 10000 },
+                  ].map((m) => {
+                    const pct = Math.round((m.used / m.total) * 100);
+                    return (
+                      <div key={m.label}>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{m.label}</span>
+                          <span className="tabular-nums text-foreground">{m.used.toLocaleString()}{m.unit || ""} / {m.total.toLocaleString()}{m.unit || ""}</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, pct)}%`, background: pct > 90 ? "var(--destructive)" : pct > 75 ? "var(--warning)" : "var(--primary)" }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border bg-card p-4">
+              <div className="text-sm font-semibold text-foreground mb-1">Need more?</div>
+              <div className="text-xs text-muted-foreground">Upgrade to Enterprise for unlimited events, white-label, and priority support.</div>
+              <button className="mt-3 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm" style={{ background: "var(--primary)" }}>See plans</button>
+            </div>
+          </div>
         );
       case "platform-invoices":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Platform Invoices"
-            description="Invoices you receive from the platform (Knowvato) for your subscription. Distinct from Taxes & Invoicing, which is invoices you issue to your own customers."
-            phase="Phase 15"
-            features={[
-              "Invoice list with number (SUB / FY / SEQ), date, plan, duration, amount, GST breakup, PDF",
-              "Payment History timeline: purchases, renewals, upgrades, refunds — with transaction id and gateway",
-              "Subscription History timeline: trial → active → renewed → plan changed → cancelled → reactivated",
-              "Download PDF, resend email, dispute link",
-              "Filter by financial year, plan, status; export as CSV / XLSX for accounting",
+            description="Invoices you receive from Knowvato for your subscription."
+            icon={FileCheck}
+            storageKey="em_platform_invoices"
+            createLabel="Add invoice"
+            fields={[
+              { key: "number", label: "Invoice number", required: true },
+              { key: "date", label: "Date" },
+              { key: "amount", label: "Amount (₹)" },
+              { key: "status", label: "Status", type: "select", options: ["Paid", "Pending", "Overdue"] },
             ]}
-            footer="These are your platform-billing invoices (money FROM you TO Knowvato). For invoices you issue to your event customers, see Taxes & Invoicing."
+            columns={[
+              { key: "number", label: "Invoice #" },
+              { key: "date", label: "Date" },
+              { key: "amount", label: "Amount", render: (r) => <span className="tabular-nums">₹{r.amount}</span> },
+              { key: "status", label: "Status", render: (r) => <span className={r.status === "Paid" ? "text-success" : r.status === "Overdue" ? "text-red-600" : ""}>{r.status}</span> },
+            ]}
+            seed={[
+              { id: "1", number: "SUB/2526/00187", date: "2026-03-15", amount: "49,999", status: "Paid" },
+              { id: "2", number: "SUB/2425/00142", date: "2025-03-15", amount: "39,999", status: "Paid" },
+              { id: "3", number: "SUB/2425/00098", date: "2024-03-15", amount: "29,999", status: "Paid" },
+            ]}
           />
         );
       case "billing-details":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Billing Details & Payment Methods"
-            description="Your organization's platform-billing profile: legal name, address (state for GST place of supply), GSTIN, finance contacts, and saved payment methods for renewals."
-            phase="Phase 15"
-            features={[
-              "Billing profile: legal name, address, country, state, GSTIN (optional / required per platform settings)",
-              "Finance contacts — who receives invoices, expiry reminders, dunning notices",
-              "Saved payment methods (tokenized via gateway; card brand / last4 / UPI handle masked)",
-              "Set default method, remove method, add method (routes through platform payment gateway)",
-              "Auto-renew toggle, with policy explanation and next-charge preview",
-              "Every change audit-logged; secrets never returned by API",
+            description="Your platform-billing profile and saved payment methods for renewals."
+            icon={CreditIcon}
+            storageKey="em_billing_methods"
+            createLabel="Add method"
+            fields={[
+              { key: "type", label: "Type", type: "select", options: ["Card", "UPI", "Netbanking", "Billing address", "GSTIN", "Finance contact"] },
+              { key: "value", label: "Value (masked)", required: true, placeholder: "•••• 4242 or acme@upi" },
+              { key: "isDefault", label: "Default", type: "select", options: ["no", "yes"] },
             ]}
-            footer="Distinct from Payment Gateways below (which is the money flow from YOUR customers to YOU)."
+            columns={[
+              { key: "type", label: "Type" },
+              { key: "value", label: "Value", render: (r) => <code className="font-mono text-xs">{r.value}</code> },
+              { key: "isDefault", label: "Default" },
+            ]}
+            seed={[
+              { id: "1", type: "Card", value: "•••• 4242 (Visa)", isDefault: "yes" },
+              { id: "2", type: "GSTIN", value: "29ABCDE1234F1Z5", isDefault: "yes" },
+              { id: "3", type: "Finance contact", value: "finance@mycompany.com", isDefault: "yes" },
+              { id: "4", type: "Billing address", value: "Level 5, Sona Tower, MG Road, Bengaluru 560001", isDefault: "yes" },
+            ]}
           />
         );
       case "payment-gateways":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Payment Gateways"
-            description="Connect the payment providers your customers use to buy tickets. Distinct from your Knowvato subscription — this is money flowing from your attendees to you."
-            phase="Phase 7"
-            features={[
-              "Adapters: Razorpay · Stripe · PayPal · Cashfree · PayU · Offline (cash / cheque / bank transfer)",
-              "Add-gateway wizard: choose provider → paste credentials (masked, never returned) → copy webhook URL → Test connection",
-              "Set default gateway per currency; priority order for retries",
-              "Server-side verification: webhook is the source of truth, not the browser callback",
-              "AES-256-GCM encryption at rest for every secret",
+            description="Providers your customers use to buy tickets (money in)."
+            icon={CreditIcon}
+            storageKey="em_payment_gateways"
+            createLabel="Add gateway"
+            fields={[
+              { key: "provider", label: "Provider", type: "select", options: ["Razorpay", "Stripe", "PayPal", "Cashfree", "PayU", "Offline"] },
+              { key: "name", label: "Display name", required: true, placeholder: "e.g. Razorpay India" },
+              { key: "environment", label: "Environment", type: "select", options: ["test", "live"] },
+              { key: "currency", label: "Currency", placeholder: "INR" },
+              { key: "isDefault", label: "Default", type: "select", options: ["no", "yes"] },
+              { key: "priority", label: "Priority", type: "number" },
+              { key: "active", label: "Active", type: "select", options: ["yes", "no"] },
             ]}
+            columns={[
+              { key: "provider", label: "Provider" },
+              { key: "name", label: "Name" },
+              { key: "environment", label: "Env" },
+              { key: "currency", label: "Currency" },
+              { key: "isDefault", label: "Default" },
+              { key: "active", label: "Active" },
+            ]}
+            seed={[
+              { id: "1", provider: "Razorpay", name: "Razorpay India", environment: "live", currency: "INR", isDefault: "yes", priority: 1, active: "yes" },
+              { id: "2", provider: "Stripe", name: "Stripe International", environment: "live", currency: "USD", isDefault: "no", priority: 2, active: "yes" },
+              { id: "3", provider: "Offline", name: "Cash / Cheque / Bank transfer", environment: "live", currency: "INR", isDefault: "no", priority: 10, active: "yes" },
+            ]}
+            footer="Credentials are entered here in production — masked, encrypted, never returned by API."
           />
         );
       case "taxes-invoicing":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Taxes & Invoicing"
-            description="Configure how customer payments are taxed and invoiced — tax registrations per state, invoice series, and the invoice PDF template."
-            phase="Phase 7"
-            features={[
-              "GST / VAT registrations per state (GSTIN, place of supply) — intra-state → CGST + SGST, inter-state → IGST, export → zero-rated",
-              "Invoice number series with financial-year and org-code tokens: INV/{FY}/{SEQ:5}",
-              "Invoice PDF template (HTML editor with variable picker + live PDF preview)",
-              "Terms text, seller legal name / address / signatory",
-              "Void → credit note (never delete an invoice; corrections are new records)",
+            description="Tax registrations per state, invoice series, and invoice template."
+            icon={FileCheck}
+            storageKey="em_taxes_invoicing"
+            createLabel="Add rule"
+            fields={[
+              { key: "state", label: "State / Region", required: true },
+              { key: "gstin", label: "GSTIN", placeholder: "29ABCDE1234F1Z5" },
+              { key: "taxType", label: "Tax type", type: "select", options: ["GST (CGST+SGST)", "IGST", "VAT", "Zero-rated"] },
+              { key: "rate", label: "Total rate %", type: "number" },
+              { key: "invoiceSeries", label: "Invoice series", placeholder: "INV/{FY}/{SEQ:5}" },
+              { key: "applicableTo", label: "Applies to", type: "select", options: ["Tickets", "Subscriptions", "Both"] },
+            ]}
+            columns={[
+              { key: "state", label: "State" },
+              { key: "gstin", label: "GSTIN", render: (r) => <code className="text-xs font-mono">{r.gstin || "—"}</code> },
+              { key: "taxType", label: "Tax" },
+              { key: "rate", label: "Rate", render: (r) => `${r.rate}%` },
+              { key: "invoiceSeries", label: "Series", render: (r) => <code className="text-xs font-mono">{r.invoiceSeries}</code> },
+              { key: "applicableTo", label: "Applies to" },
+            ]}
+            seed={[
+              { id: "1", state: "Karnataka", gstin: "29ABCDE1234F1Z5", taxType: "GST (CGST+SGST)", rate: 18, invoiceSeries: "INV/{FY}/{SEQ:5}", applicableTo: "Tickets" },
+              { id: "2", state: "All other Indian states", gstin: "29ABCDE1234F1Z5", taxType: "IGST", rate: 18, invoiceSeries: "INV/{FY}/{SEQ:5}", applicableTo: "Tickets" },
+              { id: "3", state: "Export / International", gstin: "", taxType: "Zero-rated", rate: 0, invoiceSeries: "INV/{FY}/{SEQ:5}", applicableTo: "Tickets" },
             ]}
           />
         );
@@ -522,198 +663,395 @@ export default function ModulePage() {
         return <EventTypesPage />;
       case "event-categories":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Event Categories"
-            description="Tag events with a category hierarchy for filtering, reporting, and public listings."
-            phase="Phase 4"
-            features={[
-              "Nested category tree with drag-to-reparent",
-              "Color assignment per category",
-              "Filter events and reports by category",
+            description="Categories for grouping and filtering events."
+            icon={Tag}
+            storageKey="em_event_categories_config"
+            createLabel="Add category"
+            fields={[
+              { key: "name", label: "Name", required: true },
+              { key: "color", label: "Color", type: "color" },
+              { key: "description", label: "Description", type: "textarea" },
+            ]}
+            columns={[
+              { key: "name", label: "Category", render: (r) => <div className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ background: r.color }} />{r.name}</div> },
+              { key: "description", label: "Description" },
+            ]}
+            seed={[
+              { id: "1", name: "Business", color: "#2249b7", description: "Corporate and B2B events" },
+              { id: "2", name: "Education", color: "#059669", description: "Schools, colleges, workshops" },
+              { id: "3", name: "Entertainment", color: "#dc2626", description: "Concerts, festivals, shows" },
+              { id: "4", name: "Sports", color: "#f97316", description: "Athletic and fitness events" },
+              { id: "5", name: "Cultural", color: "#a855f7", description: "Arts, music, dance" },
             ]}
           />
         );
       case "event-statuses":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Event Statuses"
-            description="Design your own status lifecycle: labels, colors, allowed transitions, and side effects."
-            phase="Phase 4"
-            features={[
-              "Custom statuses in addition to system defaults (Draft, Published, Live, Completed, Archived)",
-              "Allowed-transitions graph — enforced by the status machine on the server",
-              "Side effects per status: open / close registration, lock editing, public visibility",
-              "Visual pipeline editor",
+            description="Custom statuses for the event lifecycle with allowed transitions."
+            icon={Circle}
+            storageKey="em_event_statuses"
+            createLabel="Add status"
+            fields={[
+              { key: "label", label: "Label", required: true },
+              { key: "color", label: "Color", type: "color" },
+              { key: "order", label: "Order", type: "number" },
+              { key: "sideEffects", label: "Side effects (comma-separated)", placeholder: "openRegistration,publicVisible" },
+            ]}
+            columns={[
+              { key: "label", label: "Status", render: (r) => <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: r.color }} />{r.label}</span> },
+              { key: "order", label: "Order" },
+              { key: "sideEffects", label: "Side effects" },
+            ]}
+            seed={[
+              { id: "1", label: "Draft", color: "#94a3b8", order: 1, sideEffects: "" },
+              { id: "2", label: "Published", color: "#2249b7", order: 2, sideEffects: "publicVisible" },
+              { id: "3", label: "Registration Open", color: "#059669", order: 3, sideEffects: "openRegistration,publicVisible" },
+              { id: "4", label: "Live", color: "#dc2626", order: 4, sideEffects: "lockEditing" },
+              { id: "5", label: "Completed", color: "#0891b2", order: 5, sideEffects: "" },
+              { id: "6", label: "Archived", color: "#64748b", order: 6, sideEffects: "" },
             ]}
           />
         );
       case "event-default-features":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Default Event Features"
-            description="Set the feature toggles that new events start with (approval, payment, waitlist, seating…)."
-            phase="Phase 4"
-            features={[
-              "Master toggle list for every event feature flag",
-              "Per Event Type overrides",
-              "Plan-locked features shown with lock icon and upgrade tooltip",
+            description="Feature toggles that new events inherit unless overridden by their Event Type."
+            icon={ToggleLeft}
+            storageKey="em_default_features"
+            createLabel="Add feature"
+            fields={[
+              { key: "name", label: "Feature", required: true },
+              { key: "enabled", label: "Default", type: "select", options: ["enabled", "disabled"] },
+              { key: "planGate", label: "Plan-gated?", type: "select", options: ["no", "starter", "pro", "enterprise"] },
+              { key: "description", label: "What it does", type: "textarea" },
+            ]}
+            columns={[
+              { key: "name", label: "Feature" },
+              { key: "enabled", label: "Default" },
+              { key: "planGate", label: "Plan gate" },
+              { key: "description", label: "Description" },
+            ]}
+            seed={[
+              { id: "1", name: "Registration required", enabled: "enabled", planGate: "no", description: "Attendees must register to attend" },
+              { id: "2", name: "Approval workflow", enabled: "disabled", planGate: "no", description: "Manually approve each registration" },
+              { id: "3", name: "Paid tickets", enabled: "disabled", planGate: "starter", description: "Collect payment for tickets" },
+              { id: "4", name: "QR pass generation", enabled: "enabled", planGate: "no", description: "Generate QR-coded event passes" },
+              { id: "5", name: "Attendance tracking", enabled: "enabled", planGate: "no", description: "Log check-ins" },
+              { id: "6", name: "Certificates", enabled: "disabled", planGate: "pro", description: "Auto-generate participation certificates" },
+              { id: "7", name: "Multi-gate check-in", enabled: "disabled", planGate: "pro", description: "Support multiple entry gates" },
+              { id: "8", name: "Sponsor pages", enabled: "disabled", planGate: "starter", description: "Public sponsor listings" },
+              { id: "9", name: "White-label branding", enabled: "disabled", planGate: "enterprise", description: "Remove Knowvato branding" },
             ]}
           />
         );
       case "event-id-formats":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Event ID Formats"
-            description="Define the pattern used to generate human-readable IDs for events, registrations, participants, tickets."
-            phase="Phase 4"
-            features={[
-              "Token chips: {YYYY} {YY} {MM} {FY} {SEQ:n} {EVENTCODE} {ORGCODE}",
-              "Live example preview",
-              "Per Event Type overrides",
-              "Atomic server-side counter — no client-side ID generation",
+            description="Patterns for generating human-readable IDs. Tokens: {YYYY} {YY} {MM} {FY} {SEQ:n} {EVENTCODE} {ORGCODE}."
+            icon={Hash}
+            storageKey="em_id_formats"
+            createLabel="Add format"
+            fields={[
+              { key: "entity", label: "Entity", type: "select", options: ["Event", "Registration", "Ticket", "Participant", "Invoice", "Certificate"] },
+              { key: "pattern", label: "Pattern", required: true, placeholder: "EVT-{YYYY}-{SEQ:4}" },
+              { key: "example", label: "Example", placeholder: "EVT-2026-0001" },
+              { key: "resetOn", label: "Reset counter on", type: "select", options: ["never", "yearly", "monthly", "per event"] },
+            ]}
+            columns={[
+              { key: "entity", label: "Entity" },
+              { key: "pattern", label: "Pattern", render: (r) => <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{r.pattern}</code> },
+              { key: "example", label: "Example", render: (r) => <span className="text-xs text-muted-foreground font-mono">{r.example}</span> },
+              { key: "resetOn", label: "Reset" },
+            ]}
+            seed={[
+              { id: "1", entity: "Event", pattern: "EVT-{YYYY}-{SEQ:4}", example: "EVT-2026-0001", resetOn: "yearly" },
+              { id: "2", entity: "Registration", pattern: "REG-{EVENTCODE}-{SEQ:5}", example: "REG-TC26-00042", resetOn: "per event" },
+              { id: "3", entity: "Ticket", pattern: "TKT-{YYYY}{MM}-{SEQ:6}", example: "TKT-202610-000123", resetOn: "monthly" },
+              { id: "4", entity: "Invoice", pattern: "INV/{FY}/{SEQ:5}", example: "INV/2526/00187", resetOn: "yearly" },
+              { id: "5", entity: "Certificate", pattern: "CERT-{EVENTCODE}-{SEQ:6}", example: "CERT-WS26-000042", resetOn: "per event" },
             ]}
           />
         );
       case "checklist-templates":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Checklist Templates"
-            description="Pre-built checklists for venue, speakers, sponsors, registration, passes, volunteers, communication."
-            phase="Phase 4"
-            features={[
-              "Categorized checklist items with due-offset (relative to event start)",
-              "Assignee role or user, link-to route, overdue highlighting",
-              "Apply a template to any event; items sync to the event checklist",
+            description="Reusable pre-event checklists. Applied to an event copies items into its checklist."
+            icon={ClipboardList}
+            storageKey="em_checklist_templates"
+            createLabel="Add template"
+            fields={[
+              { key: "name", label: "Template name", required: true },
+              { key: "category", label: "Category", type: "select", options: ["Venue", "Speakers", "Sponsors", "Registration", "Passes", "Volunteers", "Communication", "Completion"] },
+              { key: "itemCount", label: "Number of items", type: "number" },
+              { key: "description", label: "Description", type: "textarea" },
+            ]}
+            columns={[
+              { key: "name", label: "Template" },
+              { key: "category", label: "Category" },
+              { key: "itemCount", label: "Items" },
+              { key: "description", label: "Description" },
+            ]}
+            seed={[
+              { id: "1", name: "Standard conference checklist", category: "Registration", itemCount: 24, description: "Venue, speakers, sponsors, pass design" },
+              { id: "2", name: "Webinar prep", category: "Communication", itemCount: 8, description: "Reminders, tech check, recording" },
+              { id: "3", name: "Sports event kit", category: "Registration", itemCount: 32, description: "Categories, BIB numbers, medical, timing" },
+              { id: "4", name: "Volunteer coordination", category: "Volunteers", itemCount: 12, description: "Recruit, brief, assign, feedback" },
             ]}
           />
         );
       case "field-library":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Field Library"
-            description="Your organization's catalog of reusable dynamic fields. Define once, reuse across every registration, speaker, sponsor, feedback and survey form."
-            phase="Phase 5"
-            features={[
-              "30+ field types: text, number, email, phone, dropdown, multiselect, rating, NPS, date, file, signature, address, country/state/city cascade, formula, consent",
-              "System fields locked (first_name, last_name, email, phone, dob, gender, city, country)",
-              "Per-field validation: min/max, regex, custom rules, PII level for masking",
-              "Usage tracker — see every form the field is used in",
-              "Bulk import fields via JSON",
+            description="Reusable dynamic fields for every form across your workspace."
+            icon={Database}
+            storageKey="em_field_library"
+            createLabel="Add field"
+            fields={[
+              { key: "key", label: "Machine name", required: true, placeholder: "meal_preference" },
+              { key: "label", label: "Display label", required: true, placeholder: "Meal Preference" },
+              { key: "type", label: "Type", type: "select", options: ["text", "number", "email", "phone", "dropdown", "multiselect", "rating", "date", "file", "signature", "address", "consent"] },
+              { key: "category", label: "Category", type: "select", options: ["Personal", "Professional", "Logistics", "Preferences", "Consent"] },
+              { key: "options", label: "Options (comma-separated for dropdown)", type: "textarea" },
+              { key: "required", label: "Required by default?", type: "select", options: ["no", "yes"] },
+              { key: "isSystem", label: "System field?", type: "select", options: ["no", "yes"] },
+            ]}
+            columns={[
+              { key: "label", label: "Field" },
+              { key: "key", label: "Key", render: (r) => <code className="text-xs font-mono text-muted-foreground">{r.key}</code> },
+              { key: "type", label: "Type" },
+              { key: "category", label: "Category" },
+              { key: "required", label: "Required" },
+            ]}
+            seed={[
+              { id: "1", key: "meal_preference", label: "Meal Preference", type: "dropdown", category: "Preferences", options: "Veg, Non-Veg, Jain, Vegan", required: "no", isSystem: "no" },
+              { id: "2", key: "tshirt_size", label: "T-Shirt Size", type: "dropdown", category: "Logistics", options: "XS, S, M, L, XL, XXL", required: "no", isSystem: "no" },
+              { id: "3", key: "dietary_restrictions", label: "Dietary Restrictions", type: "text", category: "Preferences", options: "", required: "no", isSystem: "no" },
+              { id: "4", key: "emergency_contact", label: "Emergency Contact", type: "phone", category: "Personal", options: "", required: "no", isSystem: "no" },
+              { id: "5", key: "company", label: "Company", type: "text", category: "Professional", options: "", required: "no", isSystem: "yes" },
+              { id: "6", key: "designation", label: "Designation", type: "text", category: "Professional", options: "", required: "no", isSystem: "yes" },
+              { id: "7", key: "accessibility_needs", label: "Accessibility Needs", type: "text", category: "Preferences", options: "", required: "no", isSystem: "no" },
+              { id: "8", key: "terms_consent", label: "I accept the terms", type: "consent", category: "Consent", options: "", required: "yes", isSystem: "yes" },
             ]}
           />
         );
       case "form-templates":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Form Templates"
-            description="A gallery of ready-to-use form blueprints — Corporate Conference Registration, School Event, Hackathon, Speaker Registration, Feedback, and more."
-            phase="Phase 5"
-            features={[
-              "Global (platform-shipped) templates and organization templates side by side",
-              "Category filters: Registration, Speaker, Sponsor, Feedback, Survey, Profile",
-              "Preview modal renders the template with the real FormRenderer",
-              "Use → creates a form in the target event, pre-filled with pages, fields, and logic",
-              "Save any event form as a template · Export / Import as JSON",
+            description="Blueprints for registration, speaker, sponsor, feedback, and survey forms."
+            icon={FileText}
+            storageKey="em_form_templates"
+            createLabel="Add template"
+            fields={[
+              { key: "name", label: "Template name", required: true },
+              { key: "purpose", label: "Purpose", type: "select", options: ["Registration", "Speaker", "Sponsor", "Exhibitor", "Volunteer", "Feedback", "Survey", "Profile"] },
+              { key: "category", label: "Event category", type: "select", options: ["Conference", "Workshop", "Webinar", "School", "Sports", "Cultural"] },
+              { key: "fieldCount", label: "Number of fields", type: "number" },
+              { key: "description", label: "Description", type: "textarea" },
             ]}
-            footer="Distinct from Communication Templates (WhatsApp / SMS / Email). Those are message blueprints; these are form blueprints."
+            columns={[
+              { key: "name", label: "Template" },
+              { key: "purpose", label: "Purpose" },
+              { key: "category", label: "Category" },
+              { key: "fieldCount", label: "Fields" },
+            ]}
+            seed={[
+              { id: "1", name: "Corporate Conference Registration", purpose: "Registration", category: "Conference", fieldCount: 18, description: "Standard conference reg with meal + t-shirt" },
+              { id: "2", name: "Speaker Application", purpose: "Speaker", category: "Conference", fieldCount: 12, description: "Bio, session pitch, travel needs" },
+              { id: "3", name: "Sponsor Onboarding", purpose: "Sponsor", category: "Conference", fieldCount: 8, description: "Package, contacts, brand assets" },
+              { id: "4", name: "Post-event Feedback", purpose: "Feedback", category: "Conference", fieldCount: 6, description: "NPS + rating + open text" },
+              { id: "5", name: "School Event Parent Consent", purpose: "Registration", category: "School", fieldCount: 10, description: "Student + parent details + consent" },
+            ]}
+            footer="Distinct from Communication Templates (WhatsApp / SMS / Email)."
           />
         );
       case "master-lists":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Master Lists"
-            description="Big option sets that a dropdown or multiselect field can source from — Colleges, Departments, Countries, Product Categories."
-            phase="Phase 5"
-            features={[
-              "CSV import (label, value, optional parent for hierarchical lists)",
-              "Reuse one list across many forms — update once, all forms follow",
-              "Search, reorder, deactivate items without deleting them",
-              "Version history so old submissions keep resolving to their original label",
+            description="Big option sets that dropdown fields can source from."
+            icon={ListChecks}
+            storageKey="em_master_lists"
+            createLabel="Add list"
+            fields={[
+              { key: "name", label: "List name", required: true },
+              { key: "itemCount", label: "Number of items", type: "number" },
+              { key: "hierarchical", label: "Hierarchical?", type: "select", options: ["no", "yes"] },
+              { key: "description", label: "Description", type: "textarea" },
+            ]}
+            columns={[
+              { key: "name", label: "List" },
+              { key: "itemCount", label: "Items" },
+              { key: "hierarchical", label: "Hierarchical" },
+            ]}
+            seed={[
+              { id: "1", name: "Indian Colleges", itemCount: 12000, hierarchical: "no", description: "Recognized Indian college list" },
+              { id: "2", name: "Countries", itemCount: 195, hierarchical: "no", description: "ISO country list" },
+              { id: "3", name: "Indian States", itemCount: 36, hierarchical: "yes", description: "States and Union Territories" },
+              { id: "4", name: "Product Categories", itemCount: 84, hierarchical: "yes", description: "Product / service taxonomy" },
+              { id: "5", name: "Industries", itemCount: 22, hierarchical: "no", description: "Industry classification" },
             ]}
           />
         );
       case "venues":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Venues"
-            description="Reusable physical spaces — hotels, convention centers, campuses, stadiums, offices — with a hierarchy of buildings, floors, halls, and rooms."
-            phase="Phase 9"
-            features={[
-              "Venue library with type, address, geo, contact, amenities, photos",
-              "Tree: Building → Floor → Hall → Room with per-room capacity by layout",
-              "Layouts per room: theatre, classroom, round table, U-shape, boardroom, cabaret, standing",
-              "Facilities checklist (projector, mic, AC…), accessibility notes",
-              "Reused across events — pick venue when creating a new event",
-              "'Events held here' history per venue",
+            description="Reusable physical spaces — hotels, convention centers, campuses, stadiums."
+            icon={Building2}
+            storageKey="em_venues"
+            createLabel="Add venue"
+            fields={[
+              { key: "name", label: "Venue name", required: true },
+              { key: "type", label: "Type", type: "select", options: ["Hotel", "Convention Center", "Campus", "Stadium", "Office", "Outdoor", "Virtual"] },
+              { key: "city", label: "City" },
+              { key: "capacity", label: "Total capacity", type: "number" },
+              { key: "address", label: "Address", type: "textarea" },
+              { key: "amenities", label: "Amenities (comma-separated)", placeholder: "AV, WiFi, Parking, Catering" },
+            ]}
+            columns={[
+              { key: "name", label: "Venue" },
+              { key: "type", label: "Type" },
+              { key: "city", label: "City" },
+              { key: "capacity", label: "Capacity" },
+              { key: "amenities", label: "Amenities" },
+            ]}
+            seed={[
+              { id: "1", name: "Grand Hyatt Gurugram", type: "Hotel", city: "Gurugram", capacity: 800, address: "MG Road, Gurugram", amenities: "AV, WiFi, Parking, Catering, Valet" },
+              { id: "2", name: "India Habitat Centre", type: "Convention Center", city: "New Delhi", capacity: 1200, address: "Lodhi Road, New Delhi", amenities: "AV, Multiple halls, Catering" },
+              { id: "3", name: "IISc Auditorium", type: "Campus", city: "Bengaluru", capacity: 500, address: "IISc Campus, Bengaluru", amenities: "AV, Live streaming, Recording" },
+              { id: "4", name: "The Leela Palace", type: "Hotel", city: "Mumbai", capacity: 600, address: "Andheri East, Mumbai", amenities: "AV, WiFi, Valet, Catering" },
+              { id: "5", name: "JLN Stadium", type: "Stadium", city: "New Delhi", capacity: 60000, address: "Lodhi Road", amenities: "Multi-gate, Parking, Emergency medical" },
             ]}
           />
         );
       case "seating-maps":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Seating Maps"
-            description="A drag-and-drop Seating Designer (react-konva) that outputs reusable seat layouts. Attach a map to a room or clone it into an event for real seat allocation."
-            phase="Phase 9"
-            features={[
-              "Layout presets: theatre N×M with curve/aisles, classroom, round tables, U-shape, boardroom",
-              "Section tool: group seats into VIP / General / Premium with color + price tier",
-              "Row labels (A–Z, numeric, skip I/O), seat numbering direction, block / accessible marking",
-              "Stage, aisles, exits, pillars as canvas objects with labels",
-              "Zoom / pan / smart guides; mobile pinch-zoom viewer with tap-to-assign",
-              "Auto-assign at checkout: participant self-select via seat_selector form field",
+            description="Reusable seat layouts — theatre, classroom, round tables, U-shape, boardroom."
+            icon={Map}
+            storageKey="em_seating_maps"
+            createLabel="Add layout"
+            fields={[
+              { key: "name", label: "Layout name", required: true },
+              { key: "type", label: "Style", type: "select", options: ["Theatre", "Classroom", "Round Tables", "U-shape", "Boardroom", "Cabaret", "Standing", "Custom"] },
+              { key: "totalSeats", label: "Total seats", type: "number" },
+              { key: "rows", label: "Rows", type: "number" },
+              { key: "sections", label: "Sections", placeholder: "VIP, Premium, General" },
+              { key: "venue", label: "Attached to venue" },
+            ]}
+            columns={[
+              { key: "name", label: "Layout" },
+              { key: "type", label: "Style" },
+              { key: "totalSeats", label: "Seats" },
+              { key: "sections", label: "Sections" },
+              { key: "venue", label: "Venue" },
+            ]}
+            seed={[
+              { id: "1", name: "Grand Ballroom theatre", type: "Theatre", totalSeats: 500, rows: 20, sections: "VIP, Premium, General", venue: "Grand Hyatt Gurugram" },
+              { id: "2", name: "Workshop room 3x3", type: "Round Tables", totalSeats: 60, rows: 6, sections: "General", venue: "IISc Auditorium" },
+              { id: "3", name: "Board room 20 seats", type: "Boardroom", totalSeats: 20, rows: 1, sections: "General", venue: "The Leela Palace" },
+              { id: "4", name: "Auditorium 1200", type: "Theatre", totalSeats: 1200, rows: 40, sections: "Balcony, Stalls, VIP", venue: "India Habitat Centre" },
             ]}
           />
         );
       case "certificate-templates":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Certificate Templates"
-            description="Reusable certificate designs — Participation, Speaker, Volunteer, Achievement, Workshop, Winner, Merit — with A4 / Letter, landscape / portrait, and signature elements."
-            phase="Phase 12"
-            features={[
-              "Canvas Designer (same react-konva engine as Pass Designer) with A4 / Letter presets, landscape or portrait, 300 dpi",
-              "Signatory elements with name / title / signature image; multiple signatories per template",
-              "Verify QR element (points to /verify/:code) + certificate-number element with tokens",
-              "Eligibility conditions (ConditionGroup): attendance ≥ 75%, session attended, feedback submitted, score ≥ x",
-              "Applies to participant types and/or ticket types — auto-issue on event completed",
-              "Version history, save-as-template, apply to event",
-              "Seeded library: Participation, Speaker, Volunteer, Achievement, Workshop",
+            description="Certificate designs — Participation, Speaker, Volunteer, Achievement, Workshop."
+            icon={Award}
+            storageKey="em_certificate_templates"
+            createLabel="Add design"
+            fields={[
+              { key: "name", label: "Design name", required: true },
+              { key: "kind", label: "Kind", type: "select", options: ["Participation", "Speaker", "Volunteer", "Achievement", "Workshop", "Winner", "Merit"] },
+              { key: "size", label: "Paper", type: "select", options: ["A4 Landscape", "A4 Portrait", "Letter Landscape"] },
+              { key: "eligibility", label: "Eligibility rule", placeholder: "attendance >= 75%" },
+              { key: "color", label: "Accent", type: "color" },
             ]}
-            footer="Distinct from Pass Templates. Passes are what participants show at the gate; certificates are what they earn after."
+            columns={[
+              { key: "name", label: "Design", render: (r) => <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded" style={{ background: r.color }} />{r.name}</span> },
+              { key: "kind", label: "Kind" },
+              { key: "size", label: "Paper" },
+              { key: "eligibility", label: "Eligibility" },
+            ]}
+            seed={[
+              { id: "1", name: "Standard participation", kind: "Participation", size: "A4 Landscape", eligibility: "attendance >= 75%", color: "#2249b7" },
+              { id: "2", name: "Speaker certificate", kind: "Speaker", size: "A4 Landscape", eligibility: "session_delivered", color: "#8b5cf6" },
+              { id: "3", name: "Volunteer appreciation", kind: "Volunteer", size: "A4 Portrait", eligibility: "volunteer_type", color: "#059669" },
+              { id: "4", name: "Winner — Top 3", kind: "Winner", size: "A4 Landscape", eligibility: "rank <= 3", color: "#eab308" },
+              { id: "5", name: "Workshop completion", kind: "Workshop", size: "A4 Portrait", eligibility: "sessions_attended == total", color: "#0891b2" },
+            ]}
           />
         );
       case "page-templates":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Landing Page Templates"
-            description="Seeded landing-page blueprints per event type — Conference, Workshop, Sports, Cultural, School, Webinar, Exhibition — with pre-arranged sections, ready to clone into an event website."
-            phase="Phase 14"
-            features={[
-              "Section-based page builder output — Hero, Event Info, About, Stats, Speakers, Agenda, Sponsors, Tickets, Registration, Gallery, FAQ, Countdown, CTA",
-              "Preview modal renders the template inside the real public renderer",
-              "Use → creates a SitePage on the event with pages and sections pre-arranged",
-              "Save any event page as a template (organization-shared or global)",
-              "Category filters: Conference, Workshop, Sports, Cultural, School, Webinar, Exhibition, VIP",
-              "Export / import as JSON",
+            description="Pre-built website blueprints per event type."
+            icon={Grid3x3}
+            storageKey="em_page_templates"
+            createLabel="Add template"
+            fields={[
+              { key: "name", label: "Template name", required: true },
+              { key: "category", label: "Event type", type: "select", options: ["Conference", "Workshop", "Sports", "Cultural", "School", "Webinar", "Exhibition", "VIP"] },
+              { key: "sections", label: "Number of sections", type: "number" },
+              { key: "description", label: "Description", type: "textarea" },
             ]}
-            footer="Distinct from Form / Pass / Communication templates. These are website page blueprints."
+            columns={[
+              { key: "name", label: "Template" },
+              { key: "category", label: "For" },
+              { key: "sections", label: "Sections" },
+            ]}
+            seed={[
+              { id: "1", name: "Tech Conference Hero", category: "Conference", sections: 12, description: "Hero + Countdown + Speakers + Agenda + Sponsors + Tickets" },
+              { id: "2", name: "Webinar Landing", category: "Webinar", sections: 6, description: "Hero + About + Speaker + Registration" },
+              { id: "3", name: "Sports Registration", category: "Sports", sections: 8, description: "Hero + Categories + Registration + FAQ + Gallery" },
+              { id: "4", name: "Workshop Enrollment", category: "Workshop", sections: 7, description: "Hero + About + Curriculum + Trainer + Registration" },
+              { id: "5", name: "Cultural Festival", category: "Cultural", sections: 10, description: "Hero + Program + Artists + Gallery + Tickets" },
+            ]}
           />
         );
       case "pass-templates":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Pass Templates"
-            description="Reusable badge and pass designs — General, VIP, Speaker, Staff, Exhibitor, Visitor, Student — with front and back layouts, ready to apply to any event."
-            phase="Phase 8"
-            features={[
-              "Drag-and-drop Canvas Designer (react-konva) with mm units, snap, guides, layers",
-              "Elements: text with auto-shrink, image, logo, participant photo, QR (hashed token), barcode (Code128 / EAN / PDF417), shapes, icons, dynamic fields, conditional blocks (e.g. VIP → gold ribbon)",
-              "Bind any field: {{participant.name}}, {{registration.code}}, ticket color band",
-              "Server-side rendering (puppeteer) is the source of truth — canvas preview matches print",
-              "Preset sizes: badge 4×3, A6, CR80; bleed + safe-zone overlays",
-              "Version history, save-as-template, apply to event",
+            description="Reusable badge and pass designs — General, VIP, Speaker, Staff, Exhibitor, Visitor, Student."
+            icon={Grid3x3}
+            storageKey="em_pass_templates"
+            createLabel="Add design"
+            fields={[
+              { key: "name", label: "Design name", required: true },
+              { key: "kind", label: "Kind", type: "select", options: ["General", "VIP", "Speaker", "Volunteer", "Staff", "Exhibitor", "Student", "Visitor"] },
+              { key: "size", label: "Size", type: "select", options: ["Badge 4×3", "A6", "CR80", "A5", "Custom"] },
+              { key: "sides", label: "Sides", type: "select", options: ["Front only", "Front + Back"] },
+              { key: "color", label: "Accent color", type: "color" },
             ]}
-            footer="Distinct from Form Templates and Communication Templates. Passes are what participants show at the gate."
+            columns={[
+              { key: "name", label: "Design", render: (r) => <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded" style={{ background: r.color }} />{r.name}</span> },
+              { key: "kind", label: "Kind" },
+              { key: "size", label: "Size" },
+              { key: "sides", label: "Sides" },
+            ]}
+            seed={[
+              { id: "1", name: "General attendee badge", kind: "General", size: "Badge 4×3", sides: "Front + Back", color: "#2249b7" },
+              { id: "2", name: "VIP pass — gold ribbon", kind: "VIP", size: "A6", sides: "Front + Back", color: "#eab308" },
+              { id: "3", name: "Speaker badge", kind: "Speaker", size: "Badge 4×3", sides: "Front + Back", color: "#8b5cf6" },
+              { id: "4", name: "Volunteer pass", kind: "Volunteer", size: "Badge 4×3", sides: "Front only", color: "#059669" },
+              { id: "5", name: "Exhibitor booth pass", kind: "Exhibitor", size: "A6", sides: "Front + Back", color: "#dc2626" },
+              { id: "6", name: "Student pass", kind: "Student", size: "Badge 4×3", sides: "Front only", color: "#f59e0b" },
+            ]}
+            footer="Passes are what participants show at the gate. Distinct from Certificate Templates (earned after)."
           />
         );
       case "templates-whatsapp":
@@ -724,65 +1062,120 @@ export default function ModulePage() {
         return <TemplatesSms />;
       case "message-delivery":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Message Delivery"
-            description="Choose the default provider per channel, set fallback order, quiet hours, daily caps, and tracking toggles that every message obeys."
-            phase="Phase 11"
-            features={[
-              "Per-channel default: which provider sends when nothing else is specified",
-              "Fallback order (drag list): e.g. WhatsApp → SMS → Email for critical alerts",
-              "Quiet hours: defer non-urgent messages between 22:00 – 07:00 in recipient timezone",
-              "Daily caps per channel (soft warn / hard stop)",
-              "Tracking toggles: email open pixel, click redirect, unsubscribe footer",
-              "Use platform provider (metered) vs use your own (plan-gated)",
+            description="Default provider per channel + fallback order + quiet hours + daily caps."
+            icon={BellRing}
+            storageKey="em_message_delivery"
+            createLabel="Add rule"
+            fields={[
+              { key: "channel", label: "Channel", type: "select", options: ["WhatsApp", "Email", "SMS", "Push"] },
+              { key: "defaultProvider", label: "Default provider", placeholder: "e.g. Meta Cloud API" },
+              { key: "fallback", label: "Fallback order (comma-separated)", placeholder: "WhatsApp,SMS,Email" },
+              { key: "quietHours", label: "Quiet hours", placeholder: "22:00–07:00 recipient TZ" },
+              { key: "dailyCap", label: "Daily cap", type: "number" },
+              { key: "tracking", label: "Tracking", type: "select", options: ["open + click", "open only", "off"] },
+            ]}
+            columns={[
+              { key: "channel", label: "Channel" },
+              { key: "defaultProvider", label: "Default" },
+              { key: "fallback", label: "Fallback" },
+              { key: "quietHours", label: "Quiet hours" },
+              { key: "dailyCap", label: "Cap" },
+              { key: "tracking", label: "Tracking" },
+            ]}
+            seed={[
+              { id: "1", channel: "WhatsApp", defaultProvider: "Meta Cloud API", fallback: "WhatsApp,SMS", quietHours: "22:00–07:00", dailyCap: 10000, tracking: "open + click" },
+              { id: "2", channel: "Email", defaultProvider: "SendGrid", fallback: "SendGrid,SMTP", quietHours: "None", dailyCap: 50000, tracking: "open + click" },
+              { id: "3", channel: "SMS", defaultProvider: "MSG91", fallback: "MSG91,Twilio", quietHours: "22:00–07:00", dailyCap: 5000, tracking: "off" },
+              { id: "4", channel: "Push", defaultProvider: "Web Push (VAPID)", fallback: "Push,In-app", quietHours: "22:00–07:00", dailyCap: 100000, tracking: "off" },
             ]}
           />
         );
       case "staff-notifications":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="Staff Notification Matrix"
-            description="Decide who on your team gets notified about which system events, on which channels. A matrix of roles × events × channels with quiet-hour respect."
-            phase="Phase 11"
-            features={[
-              "Rows: system events (new registration, payment failed, approval needed, device offline, plan limit reached, refund requested…)",
-              "Columns: in-app · email · push · WhatsApp",
-              "One toggle grid per role — Organization Admin, Event Manager, Registration Manager, Finance, Support, etc.",
-              "Preset routing: escalate after N minutes if not acknowledged",
-              "Personal override in every user's profile",
+            description="Who on your team gets notified about which system events."
+            icon={BellRing}
+            storageKey="em_staff_notifications"
+            createLabel="Add rule"
+            fields={[
+              { key: "event", label: "System event", type: "select", options: ["New registration", "Payment failed", "Approval needed", "Device offline", "Plan limit reached", "Refund requested", "New feedback", "Certificate issued"] },
+              { key: "role", label: "Notify role", type: "select", options: ["Administrator", "Event Manager", "Registration Manager", "Finance", "Support", "Marketing"] },
+              { key: "channels", label: "Channels (comma-separated)", placeholder: "in-app,email,whatsapp" },
+              { key: "escalate", label: "Escalate after (min)", type: "number" },
+              { key: "active", label: "Active", type: "select", options: ["yes", "no"] },
+            ]}
+            columns={[
+              { key: "event", label: "Event" },
+              { key: "role", label: "Notify" },
+              { key: "channels", label: "Channels" },
+              { key: "escalate", label: "Escalate" },
+              { key: "active", label: "Active" },
+            ]}
+            seed={[
+              { id: "1", event: "New registration", role: "Event Manager", channels: "in-app,email", escalate: 0, active: "yes" },
+              { id: "2", event: "Payment failed", role: "Finance", channels: "in-app,email,whatsapp", escalate: 15, active: "yes" },
+              { id: "3", event: "Approval needed", role: "Event Manager", channels: "in-app,email", escalate: 60, active: "yes" },
+              { id: "4", event: "Plan limit reached", role: "Administrator", channels: "in-app,email", escalate: 0, active: "yes" },
+              { id: "5", event: "Refund requested", role: "Finance", channels: "in-app,email", escalate: 30, active: "yes" },
             ]}
           />
         );
       case "integrations-api-keys":
         return (
-          <SectionStubPage
+          <MiniCrudPage
             title="API Access & Keys"
-            description="Programmatic access for your systems — create API keys scoped to specific permissions and rate-limited by your plan."
-            phase="Phase 16"
-            features={[
-              "Create API keys with a name, scope (read / write per module), and expiration",
-              "Rate limits per key, metered against your plan's api_calls_month limit",
-              "Public integrator endpoints: GET events, GET sessions, POST registrations, GET pass, POST checkins/scan, GET participants, POST feedback",
-              "Bearer-token authentication, IP allow-list optional per key",
-              "One-click Swagger docs (link opens /api/docs pre-filtered to public integrator API)",
-              "Key revocation is instant; usage history retained 90 days",
-              "Secrets shown once at creation, never returned again",
+            description="Bearer-token API keys for third-party integrations."
+            icon={Key}
+            storageKey="em_api_keys"
+            createLabel="Generate key"
+            fields={[
+              { key: "name", label: "Key name", required: true, placeholder: "Our CRM sync" },
+              { key: "scope", label: "Scope", type: "select", options: ["read-only", "read + write", "read + write + admin"] },
+              { key: "expiresOn", label: "Expires on", placeholder: "YYYY-MM-DD or never" },
+              { key: "ipAllowList", label: "IP allow-list", placeholder: "comma-separated or blank" },
+              { key: "active", label: "Active", type: "select", options: ["yes", "no"] },
             ]}
-            footer="Distinct from the internal-app tokens used by your own users. These keys are for third-party systems (your CRM, your data warehouse, partner platforms)."
+            columns={[
+              { key: "name", label: "Key name" },
+              { key: "scope", label: "Scope" },
+              { key: "expiresOn", label: "Expires" },
+              { key: "ipAllowList", label: "IP allow-list" },
+              { key: "active", label: "Active" },
+            ]}
+            seed={[
+              { id: "1", name: "CRM sync (production)", scope: "read + write", expiresOn: "2027-03-15", ipAllowList: "203.0.113.45", active: "yes" },
+              { id: "2", name: "Analytics pipeline", scope: "read-only", expiresOn: "never", ipAllowList: "", active: "yes" },
+              { id: "3", name: "Zapier integration", scope: "read + write", expiresOn: "never", ipAllowList: "", active: "yes" },
+            ]}
+            footer="Secrets are shown once at creation. Distinct from internal user tokens."
           />
         );
       case "integrations-push":
         return (
-          <SectionStubPage
-            title="Push Notifications"
-            description="Web Push (VAPID) for browser users and FCM for the mobile app — the same notification engine, one more channel."
-            phase="Phase 11"
-            features={[
-              "Web Push provider with VAPID keys (auto-generated, rotatable)",
-              "FCM provider for Android / iOS mobile app (Phase 16)",
-              "Subscription flow: user opts in from bell → browser prompt → token stored per device",
-              "Test push from Settings",
-              "Delivery reported by the provider webhook",
+          <MiniCrudPage
+            title="Push Notification Providers"
+            description="Web Push (VAPID) and FCM for mobile app."
+            icon={BellRing}
+            storageKey="em_push_providers"
+            createLabel="Add provider"
+            fields={[
+              { key: "provider", label: "Provider", type: "select", options: ["Web Push (VAPID)", "FCM (Android/iOS)", "APNs (iOS)"] },
+              { key: "name", label: "Display name", required: true },
+              { key: "environment", label: "Environment", type: "select", options: ["test", "live"] },
+              { key: "active", label: "Active", type: "select", options: ["yes", "no"] },
+            ]}
+            columns={[
+              { key: "provider", label: "Provider" },
+              { key: "name", label: "Name" },
+              { key: "environment", label: "Env" },
+              { key: "active", label: "Active" },
+            ]}
+            seed={[
+              { id: "1", provider: "Web Push (VAPID)", name: "Browser push (production)", environment: "live", active: "yes" },
+              { id: "2", provider: "FCM (Android/iOS)", name: "Mobile app push", environment: "live", active: "no" },
             ]}
           />
         );

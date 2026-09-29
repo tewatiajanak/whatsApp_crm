@@ -1,0 +1,156 @@
+import { useEffect, useMemo, useState } from "react";
+import { http } from "../../api";
+import { useToast } from "../../context/ToastContext";
+import { Building2, Plus, Search, Trash2, Pencil, Loader2, X, Save } from "lucide-react";
+
+type Dept = {
+  _id: string;
+  name: string;
+  order?: number;
+  createdAt?: string;
+};
+
+export default function DepartmentsPage() {
+  const toast = useToast() as any;
+  const [items, setItems] = useState<Dept[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<Dept | null>(null);
+  const [form, setForm] = useState({ name: "", order: 0 });
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res: any = await http.get("/designations?perPage=200&sort=order");
+      setItems(res?.data ?? res?.items ?? []);
+    } catch (e: any) {
+      toast?.error?.(e?.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((d) => d.name.toLowerCase().includes(q));
+  }, [items, search]);
+
+  const openCreate = () => { setEditing(null); setForm({ name: "", order: items.length }); setShowForm(true); };
+  const openEdit = (d: Dept) => { setEditing(d); setForm({ name: d.name, order: d.order || 0 }); setShowForm(true); };
+
+  const save = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      if (editing) await http.patch(`/designations/${editing._id}`, { name: form.name.trim(), order: form.order });
+      else await http.post("/designations", { name: form.name.trim(), order: form.order });
+      toast?.success?.(editing ? "Department updated" : "Department created");
+      setShowForm(false);
+      await load();
+    } catch (e: any) {
+      toast?.error?.(e?.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (d: Dept) => {
+    if (!confirm(`Delete "${d.name}"?`)) return;
+    try {
+      await http.del(`/designations/${d._id}`);
+      await load();
+    } catch (e: any) {
+      toast?.error?.(e?.message);
+    }
+  };
+
+  return (
+    <div className="p-6 md:p-8 space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b">
+        <div>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Departments</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">Organize your team by department. Users can be assigned one department each.</p>
+        </div>
+        <button onClick={openCreate} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm" style={{ background: "var(--primary)" }}>
+          <Plus className="h-4 w-4" />
+          New department
+        </button>
+      </div>
+
+      <div className="rounded-lg border bg-card p-2">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className="w-full h-9 pl-8 pr-3 rounded border bg-background text-sm" />
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-[11px] uppercase tracking-wider text-muted-foreground" style={{ background: "var(--muted-background)" }}>
+              <th className="px-4 py-3 text-left font-medium">Department</th>
+              <th className="px-4 py-3 text-left font-medium">Order</th>
+              <th className="px-4 py-3 text-left font-medium">Created</th>
+              <th className="px-4 py-3 text-right font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan={4} className="px-4 py-10 text-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…</td></tr>}
+            {!loading && filtered.length === 0 && <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">No departments yet. Add your first one.</td></tr>}
+            {!loading && filtered.map((d) => (
+              <tr key={d._id} className="border-t hover:bg-accent/30">
+                <td className="px-4 py-2.5 font-medium text-foreground">{d.name}</td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">{d.order ?? "—"}</td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">{d.createdAt ? new Date(d.createdAt).toLocaleDateString("en-IN") : "—"}</td>
+                <td className="px-4 py-2.5 text-right">
+                  <div className="inline-flex items-center gap-1">
+                    <button onClick={() => openEdit(d)} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => remove(d)} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-600">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowForm(false)}>
+          <div className="bg-card rounded-xl border shadow-2xl w-full max-w-md p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div className="text-lg font-semibold">{editing ? "Edit department" : "New department"}</div>
+              <button onClick={() => setShowForm(false)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent"><X className="h-4 w-4" /></button>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Name</label>
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1 w-full h-9 px-3 rounded-md border bg-background text-sm" placeholder="e.g. Sales" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Order</label>
+              <input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} className="mt-1 w-full h-9 px-3 rounded-md border bg-background text-sm" />
+            </div>
+            <div className="flex gap-2 pt-2 border-t">
+              <button onClick={() => setShowForm(false)} className="flex-1 h-9 rounded-md text-sm font-medium border hover:bg-accent">Cancel</button>
+              <button onClick={save} disabled={!form.name.trim() || saving} className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md text-sm font-medium text-white shadow-sm disabled:opacity-40" style={{ background: "var(--primary)" }}>
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {editing ? "Save" : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
