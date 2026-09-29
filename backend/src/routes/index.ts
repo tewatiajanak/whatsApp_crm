@@ -44,6 +44,8 @@ import { Registration } from "../models/Registration";
 import { WorkflowConfig } from "../models/WorkflowConfig";
 import { Tenant } from "../models/Tenant";
 import { OrganizationDetails } from "../models/OrganizationDetails";
+import { EventType } from "../models/EventType";
+import { EVENT_TYPE_DEFAULTS } from "../data/eventTypeDefaults";
 import { convertToLead } from "../services/leadService";
 
 const r = Router();
@@ -491,6 +493,56 @@ r.get("/users", require_("setup", "view"), userCrud.list);
 r.post("/users", require_("setup", "create"), userCrud.create);
 r.patch("/users/:id", require_("setup", "edit"), userCrud.update);
 r.delete("/users/:id", require_("setup", "del"), userCrud.remove);
+
+/* ---- Event Types (Setup) — PHASE-4 real impl ---- */
+const eventTypeCrud = crud(EventType, { module: "setup", searchFields: ["name", "key", "description"] });
+// Ensure the tenant has the seeded defaults; safe to call on every list request.
+async function ensureEventTypeDefaults(tenantId: any) {
+  const count = await EventType.countDocuments({ tenant: tenantId });
+  if (count > 0) return;
+  await EventType.insertMany(
+    EVENT_TYPE_DEFAULTS.map((d) => ({ ...d, tenant: tenantId, isSystem: true, isActive: true }))
+  );
+}
+r.get(
+  "/event-types",
+  require_("setup", "view"),
+  asyncHandler(async (req: any, res: any, next: any) => {
+    await ensureEventTypeDefaults(req.tenantId);
+    return eventTypeCrud.list(req, res, next);
+  })
+);
+r.post(
+  "/event-types/reset-defaults",
+  require_("setup", "edit"),
+  asyncHandler(async (req: any, res: any) => {
+    await EventType.deleteMany({ tenant: req.tenantId, isSystem: true });
+    await ensureEventTypeDefaults(req.tenantId);
+    const items = await EventType.find({ tenant: req.tenantId }).sort({ sortOrder: 1 });
+    ok(res, { reset: true, items });
+  })
+);
+r.get("/event-types/:id", require_("setup", "view"), eventTypeCrud.get);
+r.post("/event-types", require_("setup", "create"), eventTypeCrud.create);
+r.patch("/event-types/:id", require_("setup", "edit"), eventTypeCrud.update);
+r.delete("/event-types/:id", require_("setup", "del"), eventTypeCrud.remove);
+r.post(
+  "/event-types/reorder",
+  require_("setup", "edit"),
+  asyncHandler(async (req: any, res: any) => {
+    const items: Array<{ id: string; sortOrder: number }> = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (!items.length) throw new ApiError(400, "items array required");
+    await Promise.all(
+      items.map((it) =>
+        EventType.findOneAndUpdate(
+          { _id: it.id, tenant: req.tenantId },
+          { $set: { sortOrder: it.sortOrder } }
+        )
+      )
+    );
+    ok(res, { reordered: items.length });
+  })
+);
 
 /* ---- Integrations (Setup) ---- */
 const intCrud = crud(Integration, { module: "setup" });

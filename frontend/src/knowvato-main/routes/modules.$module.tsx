@@ -24,6 +24,7 @@ import SectionStubPage from "@/components/SectionStubPage";
 import WebsiteBuilderPage from "../pages/WebsiteBuilderPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import FrontOfficePage from "../pages/FrontOfficePage";
+import EventTypesPage from "../pages/EventTypesPage";
 import EmailIntegrationPage from "../pages/EmailIntegrationPage";
 import SmsIntegrationPage from "../pages/SmsIntegrationPage";
 import FacebookIntegrationPage from "../pages/FacebookIntegrationPage";
@@ -518,19 +519,7 @@ export default function ModulePage() {
           />
         );
       case "event-types":
-        return (
-          <SectionStubPage
-            title="Event Types"
-            description="Configurable event templates — Conference, Workshop, Webinar, Hackathon, Blood Donation Camp, and 20+ more — each with its own default features, fields, and forms."
-            phase="Phase 4"
-            features={[
-              "Seed library of 25+ system event types with icon, color, and description",
-              "Custom types created without a developer (defaults propagate to new events of that type)",
-              "Per-type defaults: features, form template, pass template, checklist template, ticket types, workflows",
-              "Reorder, activate / deactivate, clone",
-            ]}
-          />
-        );
+        return <EventTypesPage />;
       case "event-categories":
         return (
           <SectionStubPage

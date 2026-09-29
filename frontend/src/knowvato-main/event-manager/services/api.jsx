@@ -2,6 +2,12 @@
 // Persists each collection to localStorage so pages behave end-to-end
 // without a backend. Swap this file for a real fetch wrapper when you
 // wire the AWS backend in VS Code — all signatures match the original.
+//
+// EXCEPTION: `fetchEventTypes` (and its create/patch/remove siblings)
+// call the real backend at /event-types since PHASE-4 shipped that model
+// for real. The other endpoints are still localStorage-backed.
+
+import { http } from "../../../api";
 
 const PREFIX = "em_mock_";
 const delay = (v, ms = 80) => new Promise((r) => setTimeout(() => r(v), ms));
@@ -65,11 +71,62 @@ export const createEvent = (d) => create("events", d);
 export const patchEvent = (id, d) => update("events", id, d);
 export const removeEvent = (id) => remove("events", id);
 
-// Event Types
-export const fetchEventTypes = () => list("event-types");
-export const createEventType = (d) => create("event-types", d);
-export const patchEventType = (id, d) => update("event-types", id, d);
-export const removeEventType = (id) => remove("event-types", id);
+// Event Types — REAL backend (PHASE-4 shipped).
+// Normalized to the mock shape the old Event Manager pages expect:
+//   `.id` (Mongo _id), `.label` (alias of name), `.active` (alias of isActive).
+const normalizeEventType = (it) => {
+  if (!it) return it;
+  return {
+    ...it,
+    id: it._id || it.id,
+    label: it.name || it.label,
+    active: it.isActive !== undefined ? it.isActive : it.active !== false,
+  };
+};
+export const fetchEventTypes = async () => {
+  try {
+    const res = await http.get("/event-types?perPage=200&sort=sortOrder");
+    const items = res?.data ?? res?.items ?? (Array.isArray(res) ? res : []);
+    return items.map(normalizeEventType);
+  } catch (e) {
+    // Fallback to local mock if backend unreachable (dev without server up)
+    console.warn("[event-manager] /event-types unavailable, falling back to local", e?.message);
+    return read("event-types");
+  }
+};
+// Translate old field names (label, active) → backend names (name, isActive)
+const denormalizeEventType = (d) => {
+  if (!d) return d;
+  const out = { ...d };
+  if (out.label !== undefined && out.name === undefined) out.name = out.label;
+  if (out.active !== undefined && out.isActive === undefined) out.isActive = out.active;
+  delete out.label;
+  delete out.active;
+  return out;
+};
+export const createEventType = async (d) => {
+  const payload = denormalizeEventType(d);
+  // key is required by backend; auto-derive from name if missing
+  if (!payload.key && payload.name) {
+    payload.key = String(payload.name)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 40);
+  }
+  const res = await http.post("/event-types", payload);
+  return normalizeEventType(res?.data ?? res);
+};
+export const patchEventType = async (id, d) => {
+  const res = await http.patch(`/event-types/${id}`, denormalizeEventType(d));
+  return normalizeEventType(res?.data ?? res);
+};
+export const removeEventType = async (id) => {
+  await http.del(`/event-types/${id}`);
+  return { ok: true };
+};
 
 // Attendees (kept eventId arg for signature compatibility)
 export const fetchAttendees = (eventId) => {
