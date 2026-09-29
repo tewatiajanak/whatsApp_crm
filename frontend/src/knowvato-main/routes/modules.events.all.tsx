@@ -293,9 +293,9 @@ export default function EventsAllPage() {
         </button>
       </div>
 
-      {/* Status tabs — grouped pill container */}
+      {/* Status tabs — grouped pill container with distinctly rounded active pill */}
       <div
-        className="inline-flex items-center gap-1 rounded-2xl border bg-card p-1.5 overflow-x-auto max-w-full shadow-sm"
+        className="inline-flex items-center gap-0.5 rounded-xl border bg-card p-1 overflow-x-auto max-w-full shadow-sm"
         role="tablist"
         aria-label="Filter by status"
       >
@@ -309,21 +309,24 @@ export default function EventsAllPage() {
               role="tab"
               aria-selected={active}
               onClick={() => setStatusTab(t.key)}
-              className={`relative inline-flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+              className={`relative inline-flex items-center gap-2 h-8 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 active
-                  ? "bg-accent text-accent-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  ? "shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
               style={
                 active
-                  ? { color: "var(--accent-foreground)" }
+                  ? {
+                      background: "var(--accent)",
+                      color: "var(--accent-foreground)",
+                    }
                   : undefined
               }
             >
               <span>{t.label}</span>
               <span
-                className={`text-[10px] font-semibold tabular-nums transition-opacity ${
-                  active ? "opacity-70" : "opacity-50"
+                className={`text-[10px] font-semibold tabular-nums ${
+                  active ? "opacity-70" : "opacity-45"
                 }`}
               >
                 {count}
