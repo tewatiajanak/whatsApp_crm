@@ -293,11 +293,12 @@ export default function EventsAllPage() {
         </button>
       </div>
 
-      {/* Status tabs — grouped pill container with distinctly rounded active pill */}
+      {/* Status tabs — nested-radius math: outer(16px) − padding(4px) = inner(12px) */}
       <div
-        className="inline-flex items-center gap-0.5 rounded-xl border bg-card p-1 overflow-x-auto max-w-full shadow-sm"
+        className="inline-flex items-center gap-0.5 border bg-card overflow-x-auto max-w-full shadow-sm"
         role="tablist"
         aria-label="Filter by status"
+        style={{ borderRadius: "16px", padding: "4px" }}
       >
         {STATUS_TABS.map((t) => {
           const active = statusTab === t.key;
@@ -309,7 +310,7 @@ export default function EventsAllPage() {
               role="tab"
               aria-selected={active}
               onClick={() => setStatusTab(t.key)}
-              className={`relative inline-flex items-center gap-2 h-8 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`relative inline-flex items-center gap-2 h-9 px-4 text-sm font-medium transition-all whitespace-nowrap ${
                 active
                   ? "shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -319,8 +320,9 @@ export default function EventsAllPage() {
                   ? {
                       background: "var(--accent)",
                       color: "var(--accent-foreground)",
+                      borderRadius: "12px",
                     }
-                  : undefined
+                  : { borderRadius: "12px" }
               }
             >
               <span>{t.label}</span>
