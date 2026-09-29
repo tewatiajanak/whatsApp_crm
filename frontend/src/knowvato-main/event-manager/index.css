@@ -5,7 +5,7 @@
 .em-shell {
   --primary: #0f172a;
   --primary-foreground: #ffffff;
-  --background: var(--page-bg, #f8fafc);
+  --background: var(--page-bg, #FAF8F5);
   --surface: #FFFFFF;
   --foreground: #0f172a;
   --pill: #f1f5f9;

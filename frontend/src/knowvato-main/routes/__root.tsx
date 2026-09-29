@@ -12,7 +12,7 @@ const queryClient = new QueryClient();
 const TITLES: Record<string, string> = {
   "/": "Home",
   "/modules/events": "Event Manager - Overview",
-  "/modules/events/all": "Event Manager - All Events",
+  "/modules/events/all": "Event Manager - Events",
   "/modules/events/create": "Event Manager - Create Event",
   "/modules/events/templates": "Event Manager - Templates",
   "/modules/events/calendar": "Event Manager - Calendar",

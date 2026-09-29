@@ -2,8 +2,9 @@
 .em-shell {
   --radius: 0.625rem;
 
-  /* Surfaces */
-  --background: oklch(0.985 0.005 250);
+  /* Surfaces — match the crm-theme warm-paper canvas so the shell blends
+     with the rest of the app instead of forcing a cool-blue tint. */
+  --background: #FAF8F5;
   --foreground: oklch(0.18 0.04 260);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.04 260);

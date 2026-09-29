@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useEventData } from "@/event-manager/context/EventDataContext";
 import {
   ArrowLeft,
@@ -14,6 +14,9 @@ import {
   Loader2,
   Filter as FilterIcon,
   X,
+  Save,
+  Building2,
+  Sparkles,
 } from "lucide-react";
 
 type Ev = any;
@@ -54,7 +57,7 @@ const statusStyle = (s: string) => {
         bg: "color-mix(in srgb, var(--muted-foreground) 10%, transparent)",
         fg: "var(--muted-foreground)",
       };
-    default: // scheduled
+    default:
       return { bg: "var(--warning-bg)", fg: "var(--warning)" };
   }
 };
@@ -72,21 +75,69 @@ const fmtDate = (d?: string) => {
   }
 };
 
+type EventForm = {
+  eventName: string;
+  eventType: string;
+  organizer: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  venue: string;
+  city: string;
+  capacity: number;
+  description: string;
+};
+
+const EMPTY_FORM: EventForm = {
+  eventName: "",
+  eventType: "",
+  organizer: "",
+  startDate: "",
+  endDate: "",
+  startTime: "09:00",
+  endTime: "18:00",
+  venue: "",
+  city: "",
+  capacity: 100,
+  description: "",
+};
+
 export default function EventsAllPage() {
   const {
     events = [],
     eventsLoading,
     eventTypes = [],
     attendees = [],
+    addEvent,
+    updateEvent,
     deleteEvent,
     setSelectedEventId,
   } = useEventData() as any;
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [statusTab, setStatusTab] = useState("all");
   const [typeFilter, setTypeFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<EventForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
+  // Auto-open create drawer via ?create=1
+  useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setEditingId(null);
+      setForm(EMPTY_FORM);
+      setDrawerOpen(true);
+    } else if (searchParams.get("edit")) {
+      const ev = events.find((e: any) => e.id === searchParams.get("edit"));
+      if (ev) openEditFor(ev);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, events.length]);
 
   const typeMap = useMemo(() => {
     const m: Record<string, any> = {};
@@ -149,6 +200,62 @@ export default function EventsAllPage() {
 
   const hasFilter = !!(search || typeFilter || fromDate || toDate || statusTab !== "all");
 
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setDrawerOpen(true);
+    setSearchParams({ create: "1" });
+  };
+
+  const openEditFor = (e: any) => {
+    setEditingId(e.id);
+    setForm({
+      eventName: e.eventName || "",
+      eventType: e.eventType || "",
+      organizer: e.organizer || "",
+      startDate: e.startDate || "",
+      endDate: e.endDate || "",
+      startTime: e.startTime || "09:00",
+      endTime: e.endTime || "18:00",
+      venue: e.venue || "",
+      city: e.city || "",
+      capacity: e.capacity || 100,
+      description: e.description || "",
+    });
+    setDrawerOpen(true);
+    setSearchParams({ edit: e.id });
+    if (setSelectedEventId) setSelectedEventId(e.id);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(null);
+    // Clean the URL
+    if (searchParams.get("create") || searchParams.get("edit")) {
+      setSearchParams({});
+    }
+  };
+
+  const save = async () => {
+    if (!form.eventName.trim() || !form.startDate) {
+      alert("Event name and start date are required");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editingId) {
+        await updateEvent(editingId, form);
+      } else {
+        await addEvent(form);
+      }
+      closeDrawer();
+    } catch (e: any) {
+      alert(e?.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async (e: Ev) => {
     if (!confirm(`Delete "${e.eventName}"?`)) return;
     try {
@@ -156,10 +263,6 @@ export default function EventsAllPage() {
     } catch (err) {
       console.error(err);
     }
-  };
-
-  const openEvent = (e: Ev) => {
-    if (setSelectedEventId) setSelectedEventId(e.id);
   };
 
   return (
@@ -174,19 +277,20 @@ export default function EventsAllPage() {
           >
             <ArrowLeft className="h-3 w-3" /> Back to Event Manager
           </Link>
-          <h1 className="text-xl font-semibold tracking-tight mt-0.5 text-foreground">All Events</h1>
+          <h1 className="text-xl font-semibold tracking-tight mt-0.5 text-foreground">Events</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Every event in your workspace — search, filter, and drill in.
+            Browse, filter, and create — everything you need to manage your events in one place.
           </p>
         </div>
-        <Link
-          to="/modules/events/create?mode=new"
+        <button
+          type="button"
+          onClick={openCreate}
           className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm hover:opacity-90 transition-opacity"
-          style={{ background: "var(--primary)", textDecoration: "none" }}
+          style={{ background: "var(--primary)" }}
         >
           <Plus className="h-4 w-4" />
           Create Event
-        </Link>
+        </button>
       </div>
 
       {/* Status tabs */}
@@ -306,10 +410,36 @@ export default function EventsAllPage() {
               )}
               {!eventsLoading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                    {(events as Ev[]).length === 0
-                      ? "No events yet. Click 'Create Event' to add your first one."
-                      : "No events match your filters."}
+                  <td colSpan={7} className="px-4 py-16 text-center">
+                    <div className="inline-flex flex-col items-center gap-2">
+                      <div
+                        className="inline-flex h-12 w-12 items-center justify-center rounded-full"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                          color: "var(--primary)",
+                        }}
+                      >
+                        <Sparkles className="h-5 w-5" />
+                      </div>
+                      <div className="text-sm font-medium text-foreground">
+                        {(events as Ev[]).length === 0 ? "No events yet" : "No events match your filters"}
+                      </div>
+                      <div className="text-xs text-muted-foreground max-w-sm">
+                        {(events as Ev[]).length === 0
+                          ? "Click 'Create Event' to add your first one."
+                          : "Try adjusting your search or clearing the filters."}
+                      </div>
+                      {(events as Ev[]).length === 0 && (
+                        <button
+                          onClick={openCreate}
+                          className="mt-2 inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm"
+                          style={{ background: "var(--primary)" }}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Create your first event
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -322,7 +452,11 @@ export default function EventsAllPage() {
                   const capacity = e.capacity || 0;
                   const pct = capacity > 0 ? Math.min(100, Math.round((regs / capacity) * 100)) : 0;
                   return (
-                    <tr key={e.id} className="border-t hover:bg-accent/30 transition-colors">
+                    <tr
+                      key={e.id}
+                      className="border-t hover:bg-accent/30 transition-colors cursor-pointer"
+                      onClick={() => openEditFor(e)}
+                    >
                       <td className="px-4 py-2.5">
                         <div className="font-medium text-foreground truncate max-w-xs">
                           {e.eventName || <span className="italic text-muted-foreground">Untitled</span>}
@@ -396,17 +530,15 @@ export default function EventsAllPage() {
                           {s}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-2.5 text-right" onClick={(ev) => ev.stopPropagation()}>
                         <div className="inline-flex items-center gap-1">
-                          <Link
-                            to={`/modules/events/create?edit=${e.id}`}
-                            onClick={() => openEvent(e)}
+                          <button
+                            onClick={() => openEditFor(e)}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
                             title="Edit"
-                            style={{ textDecoration: "none" }}
                           >
                             <Pencil className="h-3.5 w-3.5" />
-                          </Link>
+                          </button>
                           <Link
                             to={`/modules/events/${e.id}`}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
@@ -432,6 +564,268 @@ export default function EventsAllPage() {
           </table>
         </div>
       </div>
+
+      {/* Drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 flex" onClick={closeDrawer}>
+          <div className="flex-1 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="w-full max-w-2xl bg-card border-l shadow-2xl overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer header */}
+            <div className="sticky top-0 z-10 bg-card border-b px-6 py-4 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider">
+                  {editingId ? "Edit event" : "New event"}
+                </div>
+                <div className="text-lg font-semibold text-foreground mt-0.5">
+                  {editingId ? form.eventName || "Untitled" : "Create a new event"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeDrawer}
+                className="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Basics */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color: "var(--primary)",
+                    }}
+                  >
+                    1
+                  </span>
+                  <div className="text-sm font-semibold text-foreground">Basics</div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Event name *
+                    </label>
+                    <input
+                      value={form.eventName}
+                      onChange={(e) => setForm({ ...form, eventName: e.target.value })}
+                      placeholder="e.g. Tech Conference 2026"
+                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Event type
+                      </label>
+                      <select
+                        value={form.eventType}
+                        onChange={(e) => setForm({ ...form, eventType: e.target.value })}
+                        className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      >
+                        <option value="">— choose —</option>
+                        {(eventTypes as any[])
+                          .filter((t) => t.active !== false)
+                          .map((t) => (
+                            <option key={t.id || t._id} value={t.id || t._id}>
+                              {t.label || t.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Organizer
+                      </label>
+                      <input
+                        value={form.organizer}
+                        onChange={(e) => setForm({ ...form, organizer: e.target.value })}
+                        placeholder="Your team or company"
+                        className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Short description
+                    </label>
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      placeholder="One-liner that sums up the event"
+                      rows={2}
+                      className="mt-1 w-full px-3 py-2 rounded-md border border-input bg-background text-sm resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Date & Time */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold"
+                    style={{
+                      background: "color-mix(in srgb, var(--info) 15%, transparent)",
+                      color: "var(--info)",
+                    }}
+                  >
+                    2
+                  </span>
+                  <div className="text-sm font-semibold text-foreground">Date & Time</div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Start date *
+                    </label>
+                    <input
+                      type="date"
+                      value={form.startDate}
+                      onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      End date
+                    </label>
+                    <input
+                      type="date"
+                      value={form.endDate}
+                      onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Start time
+                    </label>
+                    <input
+                      type="time"
+                      value={form.startTime}
+                      onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      End time
+                    </label>
+                    <input
+                      type="time"
+                      value={form.endTime}
+                      onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold"
+                    style={{
+                      background: "color-mix(in srgb, var(--success) 15%, transparent)",
+                      color: "var(--success)",
+                    }}
+                  >
+                    3
+                  </span>
+                  <div className="text-sm font-semibold text-foreground">Location</div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Venue
+                    </label>
+                    <div className="mt-1 relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <input
+                        value={form.venue}
+                        onChange={(e) => setForm({ ...form, venue: e.target.value })}
+                        placeholder="e.g. Grand Hyatt, Gurugram"
+                        className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      City
+                    </label>
+                    <input
+                      value={form.city}
+                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      placeholder="e.g. Gurugram"
+                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Capacity */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold"
+                    style={{
+                      background: "color-mix(in srgb, var(--warning) 15%, transparent)",
+                      color: "var(--warning)",
+                    }}
+                  >
+                    4
+                  </span>
+                  <div className="text-sm font-semibold text-foreground">Capacity</div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Total capacity
+                  </label>
+                  <div className="mt-1 relative max-w-[200px]">
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="number"
+                      value={form.capacity}
+                      onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })}
+                      min={0}
+                      className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-card border-t px-6 py-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={closeDrawer}
+                className="flex-1 h-10 rounded-md text-sm font-medium border hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving || !form.eventName.trim() || !form.startDate}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-md text-sm font-medium text-white shadow-sm disabled:opacity-40"
+                style={{ background: "var(--primary)" }}
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {editingId ? "Save changes" : "Create event"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

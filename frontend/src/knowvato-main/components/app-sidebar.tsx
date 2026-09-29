@@ -98,8 +98,7 @@ const CONFIGURATION_SUBSLUGS = new Set([
 
 const eventsSubmenu = [
   { title: "Overview", path: "/modules/events", icon: LayoutDashboard, exact: true },
-  { title: "All Events", path: "/modules/events/all", icon: List },
-  { title: "Create Event", path: "/modules/events/create", icon: CalendarPlus },
+  { title: "Events", path: "/modules/events/all", icon: List },
   { title: "Event Templates", path: "/modules/events/templates", icon: Layers },
   { title: "Calendar", path: "/modules/events/calendar", icon: CalendarIcon },
   { title: "Checklist", path: "/modules/events/checklist", icon: CheckSquare },
