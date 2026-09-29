@@ -278,7 +278,7 @@ export default function EventTypesPage() {
       </div>
 
       {/* Table */}
-      <div className="mt-4 rounded-xl border bg-card overflow-hidden">
+      <div className="mt-3 rounded-xl border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -286,17 +286,15 @@ export default function EventTypesPage() {
                 className="text-[11px] uppercase tracking-wider text-muted-foreground"
                 style={{ background: "var(--muted-background)" }}
               >
-                <th className="px-4 py-3 text-left font-medium">Type</th>
-                <th className="px-4 py-3 text-left font-medium">Key</th>
-                <th className="px-4 py-3 text-left font-medium">Description</th>
-                <th className="px-4 py-3 text-left font-medium">Active</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-2.5 text-left font-medium">Type</th>
+                <th className="px-4 py-2.5 text-center font-medium w-32">Status</th>
+                <th className="px-4 py-2.5 text-right font-medium w-24">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                  <td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin inline-block mr-2" />
                     Loading event types…
                   </td>
@@ -304,7 +302,7 @@ export default function EventTypesPage() {
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                  <td colSpan={3} className="px-4 py-12 text-center text-sm text-muted-foreground">
                     No event types match your search.
                   </td>
                 </tr>
@@ -323,36 +321,51 @@ export default function EventTypesPage() {
                         >
                           <i className={`${it.icon} text-[15px]`} />
                         </span>
-                        <div className="min-w-0">
-                          <div className="font-medium text-foreground flex items-center gap-1.5">
-                            {it.name}
-                            {it.isSystem && (
-                              <span
-                                title="System type — restore-safe"
-                                className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded"
-                                style={{
-                                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                                  color: "var(--primary)",
-                                }}
-                              >
-                                <Lock className="h-2.5 w-2.5" />
-                                System
-                              </span>
-                            )}
-                          </div>
+                        <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-foreground">{it.name}</span>
+                          {it.isSystem && (
+                            <span
+                              title="System type — restore-safe"
+                              className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded"
+                              style={{
+                                background: "color-mix(in srgb, var(--muted-foreground) 12%, transparent)",
+                                color: "var(--muted-foreground)",
+                              }}
+                            >
+                              <Lock className="h-2.5 w-2.5" />
+                              System
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5">
-                      <code className="text-[11px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                        {it.key}
-                      </code>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-[13px] max-w-md truncate">
-                      {it.description || <span className="italic opacity-60">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Switch checked={it.isActive} onCheckedChange={() => toggleActive(it)} />
+                    <td className="px-4 py-2.5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => toggleActive(it)}
+                        className="inline-flex items-center gap-2 group"
+                        title={it.isActive ? "Click to deactivate" : "Click to activate"}
+                      >
+                        <span
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                            it.isActive ? "" : "bg-muted"
+                          }`}
+                          style={it.isActive ? { background: "var(--primary)" } : undefined}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                              it.isActive ? "translate-x-4" : "translate-x-0.5"
+                            }`}
+                          />
+                        </span>
+                        <span
+                          className={`text-[11px] font-medium ${
+                            it.isActive ? "text-primary" : "text-muted-foreground"
+                          }`}
+                        >
+                          {it.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </button>
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="inline-flex items-center gap-1">
