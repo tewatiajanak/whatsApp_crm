@@ -26,13 +26,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Plus,
-  Search,
   Pencil,
   Trash2,
   RefreshCw,
   Lock,
   Loader2,
 } from "lucide-react";
+import { UIButton, SearchInput } from "../components/UIKit";
 
 type EventType = {
   _id: string;
@@ -255,28 +255,23 @@ export default function EventTypesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={resetDefaults} className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" />
+          <UIButton variant="outline" onClick={resetDefaults} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
             Restore defaults
-          </Button>
-          <Button size="sm" onClick={openCreate} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
+          </UIButton>
+          <UIButton onClick={openCreate} leftIcon={<Plus className="h-3.5 w-3.5" />}>
             Add event type
-          </Button>
+          </UIButton>
         </div>
       </div>
 
       {/* Toolbar */}
       <div className="mt-5 flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, key, or description…"
-            className="pl-8 h-9"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, key, or description…"
+          containerClassName="flex-1 min-w-[240px] max-w-md"
+        />
         <div className="text-xs text-muted-foreground">
           {loading ? "Loading…" : `${filtered.length} of ${items.length}`}
         </div>
@@ -361,24 +356,12 @@ export default function EventTypesPage() {
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="inline-flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openEdit(it)}
-                          title="Edit"
-                        >
+                        <UIButton size="icon-sm" variant="ghost" onClick={() => openEdit(it)} title="Edit">
                           <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                          onClick={() => setDeleteTarget(it)}
-                          title="Delete"
-                        >
+                        </UIButton>
+                        <UIButton size="icon-sm" variant="danger" onClick={() => setDeleteTarget(it)} title="Delete">
                           <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        </UIButton>
                       </div>
                     </td>
                   </tr>
@@ -520,13 +503,12 @@ export default function EventTypesPage() {
           </div>
 
           <SheetFooter className="mt-6 gap-2">
-            <Button variant="outline" onClick={() => setDrawerOpen(false)}>
+            <UIButton variant="outline" onClick={() => setDrawerOpen(false)}>
               Cancel
-            </Button>
-            <Button onClick={save} disabled={!canSave || saving}>
-              {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+            </UIButton>
+            <UIButton onClick={save} disabled={!canSave} loading={saving}>
               {editing ? "Save changes" : "Create event type"}
-            </Button>
+            </UIButton>
           </SheetFooter>
         </SheetContent>
       </Sheet>

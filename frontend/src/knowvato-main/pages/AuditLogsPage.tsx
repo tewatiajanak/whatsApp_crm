@@ -3,10 +3,10 @@ import { http } from "../../api";
 import {
   ScrollText,
   Loader2,
-  Search,
   Filter as FilterIcon,
   RefreshCw,
 } from "lucide-react";
+import { UIButton, SearchInput } from "../components/UIKit";
 
 type Log = { _id: string; action: string; module?: string; entity?: string; user?: string; ip?: string; createdAt: string };
 
@@ -88,10 +88,9 @@ export default function AuditLogsPage() {
           </div>
           <p className="text-sm text-muted-foreground mt-1">Every create, update, and delete across the workspace.</p>
         </div>
-        <button onClick={load} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-xs font-medium hover:bg-accent">
-          <RefreshCw className="h-3.5 w-3.5" />
+        <UIButton variant="outline" onClick={load} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
           Refresh
-        </button>
+        </UIButton>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -109,16 +108,13 @@ export default function AuditLogsPage() {
         ))}
       </div>
 
-      <div className="rounded-lg border bg-card p-2 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search action, entity, user…" className="w-full h-9 pl-8 pr-3 rounded border bg-background text-sm" />
-        </div>
-        <select value={action} onChange={(e) => setAction(e.target.value)} className="h-9 px-3 rounded border bg-background text-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search action, entity, user…" containerClassName="flex-1 min-w-[220px] max-w-md" />
+        <select value={action} onChange={(e) => setAction(e.target.value)} className="ui-input">
           <option value="all">All actions</option>
           {actions.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
-        <select value={module} onChange={(e) => setModule(e.target.value)} className="h-9 px-3 rounded border bg-background text-sm">
+        <select value={module} onChange={(e) => setModule(e.target.value)} className="ui-input">
           <option value="all">All modules</option>
           {modules.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
