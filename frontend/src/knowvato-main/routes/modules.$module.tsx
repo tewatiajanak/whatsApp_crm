@@ -1205,9 +1205,9 @@ export default function ModulePage() {
   };
 
   return (
-    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
+    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between gap-4 pb-2 border-b">
+      <div className="flex items-center justify-between gap-4 pb-3 border-b">
         <div>
           <Link
             to="/"
