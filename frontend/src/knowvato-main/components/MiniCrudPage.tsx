@@ -110,16 +110,16 @@ export default function MiniCrudPage({
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b">
+    <div className="p-4 md:p-5 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md" style={{ background: accentTint, color: accent }}>
-              <Icon className="h-4 w-4" strokeWidth={2.2} />
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md" style={{ background: accentTint, color: accent }}>
+              <Icon className="h-3.5 w-3.5" strokeWidth={2.2} />
             </span>
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            <h2 className="text-base font-semibold text-foreground leading-tight">{title}</h2>
           </div>
-          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{description}</p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-snug">{description}</p>
         </div>
         <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           {createLabel}

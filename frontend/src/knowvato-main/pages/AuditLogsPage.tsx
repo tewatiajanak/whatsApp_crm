@@ -79,14 +79,14 @@ export default function AuditLogsPage() {
   }, [items, search, action, module]);
 
   return (
-    <div className="p-6 md:p-8 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b">
+    <div className="p-4 md:p-5 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <div className="flex items-center gap-2">
-            <ScrollText className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Audit Logs</h2>
+            <ScrollText className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold text-foreground leading-tight">Audit Logs</h2>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Every create, update, and delete across the workspace.</p>
+          <p className="text-xs text-muted-foreground mt-1 leading-snug">Every create, update, and delete across the workspace.</p>
         </div>
         <UIButton variant="outline" onClick={load} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
           Refresh

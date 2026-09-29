@@ -266,19 +266,19 @@ export default function EventsAllPage() {
   };
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-2 border-b">
         <div>
           <Link
             to="/modules/events"
-            className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+            className="text-[11px] text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
             style={{ textDecoration: "none" }}
           >
             <ArrowLeft className="h-3 w-3" /> Back to Event Manager
           </Link>
-          <h1 className="text-xl font-semibold tracking-tight mt-0.5 text-foreground">Events</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight">Events</h1>
+          <p className="text-[11px] text-muted-foreground leading-tight">
             Browse, filter, and create — everything you need to manage your events in one place.
           </p>
         </div>

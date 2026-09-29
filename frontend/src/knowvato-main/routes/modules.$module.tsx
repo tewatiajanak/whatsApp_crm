@@ -1205,26 +1205,26 @@ export default function ModulePage() {
   };
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between gap-4 pb-3 border-b">
+      <div className="flex items-center justify-between gap-4 pb-2 border-b">
         <div>
           <Link
             to="/"
-            className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+            className="text-[11px] text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
             style={{ textDecoration: "none" }}
           >
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
-          <h1 className="text-xl font-semibold tracking-tight mt-0.5 text-foreground">Configuration</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight">Configuration</h1>
+          <p className="text-[11px] text-muted-foreground leading-tight">
             Manage your workspace preferences, templates, and third-party integrations.
           </p>
         </div>
       </div>
 
       {/* 2-Column Setup Layout: Left Submenu Sidebar (PERSISTENT) + Right Active Submodule Component */}
-      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4">
         {/* Left Submenu Navigation */}
         <nav aria-label="Configuration sections" className="space-y-3 sticky top-[70px] self-start">
           {CONFIGURATION_CATEGORIES.map((cat) => {

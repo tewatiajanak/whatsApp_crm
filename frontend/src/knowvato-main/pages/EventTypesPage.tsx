@@ -244,12 +244,12 @@ export default function EventTypesPage() {
   };
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-4 md:p-5">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 pb-5 border-b">
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-foreground">Event Types</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-base font-semibold text-foreground leading-tight">Event Types</h2>
+          <p className="text-xs text-muted-foreground mt-1 leading-snug">
             Templates for creating events. Each type carries defaults (icon, color, feature toggles)
             that pre-fill new events of that kind.
           </p>
@@ -265,7 +265,7 @@ export default function EventTypesPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="mt-5 flex items-center gap-3 flex-wrap">
+      <div className="mt-3 flex items-center gap-3 flex-wrap">
         <SearchInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}

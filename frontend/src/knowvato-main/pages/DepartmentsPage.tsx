@@ -71,14 +71,14 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b">
+    <div className="p-4 md:p-5 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Departments</h2>
+            <Building2 className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold text-foreground leading-tight">Departments</h2>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Organize your team by department. Users can be assigned one department each.</p>
+          <p className="text-xs text-muted-foreground mt-1 leading-snug">Organize your team by department. Users can be assigned one department each.</p>
         </div>
         <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           New department
