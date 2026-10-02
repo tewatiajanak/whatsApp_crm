@@ -118,60 +118,89 @@ export default function Dashboard() {
   }, [conversionStats.data, followupCounts, leadItems.length, totals]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f3f6f4", color: "#15241b", fontFamily: '"DM Sans", "Segoe UI", sans-serif', fontSize: 13 }}>
-      <main style={{ padding: "24px 28px 56px", maxWidth: 1400, width: "100%" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 30, letterSpacing: "-0.02em", fontWeight: 700, fontFamily: '"DM Sans", "Segoe UI", sans-serif' }}>CRM dashboard</h1>
-            <p style={{ margin: "6px 0 0", color: "#586a5f" }}>Live admissions pipeline for the current tenant. Updated from the existing CRM data.</p>
-          </div>
-          <button style={{ display: "inline-flex", alignItems: "center", gap: 8, border: 0, borderRadius: 10, padding: "10px 16px", fontWeight: 600, background: "#147a3d", color: "#fff" }}>
-            <i className="bi bi-download" /> Export
+    <div style={{ color: "var(--foreground)", fontSize: 13 }}>
+      <main style={{ maxWidth: 1280, width: "100%", margin: "0 auto" }}>
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", padding: "12px 0 18px", borderBottom: "1px solid var(--border)" }}>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1f2a2c", letterSpacing: "-0.04em", lineHeight: 1.2 }}>CRM dashboard</h1>
+          <button className="ui-btn ui-btn-primary">
+            <i className="bi bi-download" style={{ fontSize: 12.5, lineHeight: 1 }} /> Export
           </button>
+        </header>
+
+        <div style={{ marginTop: 18, marginBottom: 16, color: "#6d787a", fontSize: 12.5, lineHeight: 1.5 }}>
+          Live admissions pipeline for the current tenant. Updated from the existing CRM data.
         </div>
 
-        <section style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 1, background: "#e1e8e3", border: "1px solid #e1e8e3", borderRadius: 14, overflow: "hidden", marginBottom: 16 }}>
+        <section style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 16, marginBottom: 22 }}>
           {metrics.map((metric) => (
-            <div key={metric.label} style={{ background: metric.dark ? "#0e4a2a" : "#ffffff", color: metric.dark ? "#fff" : "#15241b", padding: "18px 20px 20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, color: metric.dark ? "rgba(255,255,255,0.78)" : "#586a5f", fontWeight: 500 }}>
-                <i className={`bi ${metric.icon}`} style={{ color: metric.dark ? "#7be0a3" : "#147a3d" }} />
-                {metric.label}
+            <div
+              key={metric.label}
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "14px 14px 12px",
+                minHeight: 100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, color: "#4b5a5b", fontWeight: 500, marginBottom: 6 }}>{metric.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.1, color: "#1e2d2d" }}>{metric.value}</div>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 36, letterSpacing: "-0.02em", marginTop: 10 }}>{metric.value}</div>
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: "var(--accent)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--accent-foreground)",
+                  fontSize: 14,
+                  marginLeft: 10,
+                  flexShrink: 0,
+                }}
+              >
+                <i className={`bi ${metric.icon}`} />
+              </div>
             </div>
           ))}
         </section>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 16, marginBottom: 16 }}>
-          <section style={{ background: "#fff", border: "1px solid #e1e8e3", borderRadius: 12, overflow: "hidden" }}>
-            <div style={{ padding: "18px 20px 14px" }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Lead pipeline</h2>
-              <p style={{ margin: "4px 0 0", color: "#586a5f", fontSize: 13 }}>Stage-wise totals from your current lead and conversion data.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 20, marginBottom: 20 }}>
+          <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ padding: "16px 18px 12px" }}>
+              <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1f2d2b" }}>Lead pipeline</h2>
+              <p style={{ margin: "2px 0 0", color: "#6d787a", fontSize: 11 }}>Stage-wise totals from your current lead and conversion data.</p>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "left" }}>Stage</th>
-                    <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "right" }}>Total</th>
-                    <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "left", width: "34%" }}>Progress</th>
-                    <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "left" }}>Status</th>
+                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Stage</th>
+                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "right" }}>Total</th>
+                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left", width: "34%" }}>Progress</th>
+                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stageRows.map((row) => (
                     <tr key={row.stage}>
-                      <th scope="row" style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", fontWeight: 500, textAlign: "left" }}>{row.stage}</th>
-                      <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", textAlign: "right" }}>{row.total}</td>
-                      <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3" }}>
+                      <th scope="row" style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", fontWeight: 500, textAlign: "left" }}>{row.stage}</th>
+                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", textAlign: "right" }}>{row.total}</td>
+                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <span style={{ flex: 1, height: 6, background: "#e3eee6", borderRadius: 3, overflow: "hidden", display: "inline-block" }}>
-                            <i style={{ display: "block", borderRadius: 3, width: `${row.pct}%`, height: "100%", background: "#25b25f" }} />
+                          <span style={{ flex: 1, height: 6, background: "var(--accent)", borderRadius: 3, overflow: "hidden", display: "inline-block" }}>
+                            <i style={{ display: "block", borderRadius: 3, width: `${row.pct}%`, height: "100%", background: "var(--primary)" }} />
                           </span>
                           <b style={{ fontWeight: 600, minWidth: 44, textAlign: "right" }}>{row.pct}%</b>
                         </div>
                       </td>
-                      <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", color: "#586a5f" }}>{row.date}</td>
+                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", color: "#6d787a" }}>{row.date}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -179,29 +208,29 @@ export default function Dashboard() {
             </div>
           </section>
 
-          <section style={{ background: "#fff", border: "1px solid #e1e8e3", borderRadius: 12, overflow: "hidden" }}>
-            <div style={{ padding: "18px 20px 14px" }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Source performance</h2>
-              <p style={{ margin: "4px 0 0", color: "#586a5f", fontSize: 13 }}>Lead generation by source from your live dataset.</p>
+          <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ padding: "16px 18px 12px" }}>
+              <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1f2d2b" }}>Source performance</h2>
+              <p style={{ margin: "2px 0 0", color: "#6d787a", fontSize: 11 }}>Lead generation by source from your live dataset.</p>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "left" }}>Channel</th>
-                    <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "right" }}>Count</th>
-                    <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "left", width: "34%" }}>Share</th>
+                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Channel</th>
+                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "right" }}>Count</th>
+                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left", width: "34%" }}>Share</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sourceRows.map((row) => (
                     <tr key={row.channel}>
-                      <th scope="row" style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", fontWeight: 500, textAlign: "left" }}>{row.channel}</th>
-                      <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", textAlign: "right" }}>{row.total}</td>
-                      <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3" }}>
+                      <th scope="row" style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", fontWeight: 500, textAlign: "left" }}>{row.channel}</th>
+                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", textAlign: "right" }}>{row.total}</td>
+                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <span style={{ flex: 1, height: 6, background: "#e3eee6", borderRadius: 3, overflow: "hidden", display: "inline-block" }}>
-                            <i style={{ display: "block", borderRadius: 3, width: `${row.pct}%`, height: "100%", background: "#25b25f" }} />
+                          <span style={{ flex: 1, height: 6, background: "var(--accent)", borderRadius: 3, overflow: "hidden", display: "inline-block" }}>
+                            <i style={{ display: "block", borderRadius: 3, width: `${row.pct}%`, height: "100%", background: "var(--primary)" }} />
                           </span>
                           <b style={{ fontWeight: 600, minWidth: 44, textAlign: "right" }}>{row.pct}%</b>
                         </div>
@@ -214,40 +243,40 @@ export default function Dashboard() {
           </section>
         </div>
 
-        <section style={{ background: "#fff", border: "1px solid #e1e8e3", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
-          <div style={{ padding: "18px 20px 14px" }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Operations snapshot</h2>
-            <p style={{ margin: "4px 0 0", color: "#586a5f", fontSize: 13 }}>Current activity across lead sources and follow-up operations.</p>
+        <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ padding: "16px 18px 12px" }}>
+            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1f2d2b" }}>Operations snapshot</h2>
+            <p style={{ margin: "2px 0 0", color: "#6d787a", fontSize: 11 }}>Current activity across lead sources and follow-up operations.</p>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
               <thead>
                 <tr>
-                  <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "left" }}>Service</th>
-                  <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "left" }}>Status</th>
-                  <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "right" }}>Today</th>
-                  <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "right" }}>Week</th>
-                  <th style={{ padding: "9px 20px", borderTop: "1px solid #e1e8e3", borderBottom: "1px solid #e1e8e3", background: "#f3f6f4", color: "#586a5f", fontSize: 12.5, fontWeight: 600, textAlign: "left" }}>Last sync</th>
+                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Service</th>
+                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Status</th>
+                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "right" }}>Today</th>
+                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "right" }}>Week</th>
+                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Last sync</th>
                 </tr>
               </thead>
               <tbody>
                 {integrationRows.map((group) => (
                   <div key={group.group} style={{ display: "contents" }}>
                     <tr>
-                      <th colSpan="5" style={{ background: "#f3f6f4", color: "#586a5f", padding: "8px 20px", fontSize: 12.5, fontWeight: 700, borderBottom: "1px solid #e1e8e3", borderTop: "1px solid #e1e8e3" }}>{group.group}</th>
+                      <th colSpan="5" style={{ background: "var(--surface-2)", color: "#5d6d6d", padding: "8px 18px", fontSize: 12, fontWeight: 700, borderTop: "1px solid var(--border)" }}>{group.group}</th>
                     </tr>
                     {group.items.map((item) => (
                       <tr key={`${group.group}-${item.name}`}>
-                        <th scope="row" style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", fontWeight: 500 }}>{item.name}</th>
-                        <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 11px 3px 9px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, background: item.status === "Active" ? "#e7f4eb" : "#fdecea", color: item.status === "Active" ? "#147a3d" : "#b42318" }}>
+                        <th scope="row" style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", fontWeight: 500 }}>{item.name}</th>
+                        <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 11px 3px 9px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, background: item.status === "Active" ? "var(--success-bg)" : "var(--destructive-bg)", color: item.status === "Active" ? "var(--success)" : "var(--destructive)" }}>
                             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
                             {item.status}
                           </span>
                         </td>
-                        <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", textAlign: "right" }}>{item.today}</td>
-                        <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", textAlign: "right" }}>{item.week}</td>
-                        <td style={{ padding: "12px 20px", borderBottom: "1px solid #e1e8e3", color: "#586a5f" }}>{item.last}</td>
+                        <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", textAlign: "right" }}>{item.today}</td>
+                        <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", textAlign: "right" }}>{item.week}</td>
+                        <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", color: "#6d787a" }}>{item.last}</td>
                       </tr>
                     ))}
                   </div>

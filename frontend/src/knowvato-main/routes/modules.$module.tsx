@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "../../context/ToastContext";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, Navigate, useParams, useNavigate } from "react-router-dom";
 import { http } from "../../api";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,27 +12,29 @@ import {
   Settings as SettingsIcon,
   ShieldCheck,
   CreditCard,
+  Users,
   CalendarRange,
   Library,
   Building2,
   Bell,
 } from "lucide-react";
 import { useBookmarks } from "@/lib/bookmarks";
-import SectionStubPage from "@/components/SectionStubPage";
 
 // Import Full-Fledged Module Pages
 import WebsiteBuilderPage from "../pages/WebsiteBuilderPage";
-import UserManagementPage from "../pages/UserManagementPage";
-import FrontOfficePage from "../pages/FrontOfficePage";
+import UsersPage from "../pages/UsersPage";
+import UserTypesPage from "../pages/UserTypesPage";
+import PasswordPolicyPage from "../pages/PasswordPolicyPage";
 import EventTypesPage from "../pages/EventTypesPage";
 import RolesPage from "../pages/RolesPage";
 import DepartmentsPage from "../pages/DepartmentsPage";
 import AuditLogsPage from "../pages/AuditLogsPage";
 import MiniCrudPage from "../components/MiniCrudPage";
+import CustomFieldsPage from "../components/CustomFieldsPage";
+import type { SetupModule } from "@/lib/template-store";
 import {
   Tag,
   Circle,
-  ToggleLeft,
   Hash,
   ClipboardList,
   ListChecks,
@@ -56,6 +58,11 @@ import SmsIntegrationPage from "../pages/SmsIntegrationPage";
 import FacebookIntegrationPage from "../pages/FacebookIntegrationPage";
 import OtherIntegrationPage from "../pages/OtherIntegrationPage";
 import AIIntegrationPage from "../pages/AIIntegrationPage";
+import PaymentGatewaysPage from "../pages/PaymentGatewaysPage";
+import TaskChecklistPage from "../pages/TaskChecklistPage";
+import EventFormTemplatesPage from "../pages/EventFormTemplatesPage";
+import { useEventChoices, scopeLabel, ATTENDEE_CATEGORY_KEY, ATTENDEE_CATEGORY_SEED } from "../event-form/eventScope";
+import { TASK_STATUS_KEY, TASK_STATUS_SEED } from "@/lib/task-statuses";
 
 // Import Configuration Submodule Pages
 import TemplatesWhatsapp from "./modules.templates-whatsapp";
@@ -77,14 +84,25 @@ const CONFIGURATION_CATEGORIES = [
     ],
   },
   {
+    id: "user-management",
+    title: "User Management",
+    icon: Users,
+    accent: "var(--primary)",
+    accentTint: "color-mix(in srgb, var(--primary) 12%, transparent)",
+    items: [
+      { slug: "users", label: "Users" },
+      { slug: "roles", label: "Roles" },
+      { slug: "user-types", label: "User Types" },
+      { slug: "password-policy", label: "Password Policy" },
+    ],
+  },
+  {
     id: "security-access",
     title: "Security & Access",
     icon: ShieldCheck,
     accent: "var(--warning)",
     accentTint: "var(--warning-bg)",
     items: [
-      { slug: "users", label: "Users" },
-      { slug: "roles", label: "Roles & Permissions" },
       { slug: "departments", label: "Departments" },
       { slug: "security", label: "Security" },
       { slug: "audit-logs", label: "Audit Logs" },
@@ -102,12 +120,11 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "event-types", label: "Event Category" },
       { slug: "event-categories", label: "Attendee Category" },
       { slug: "event-statuses", label: "Event Statuses" },
-      { slug: "event-default-features", label: "Default Features" },
+      { slug: "task-statuses", label: "Task Statuses" },
+      { slug: "task-checklist", label: "Task Checklist" },
       { slug: "venues", label: "Venue" },
       { slug: "certificate-templates", label: "Certificate Design" },
       { slug: "form-templates", label: "Event Form Design" },
-      { slug: "pass-category", label: "Pass Category" },
-      { slug: "pass-badge-ribbon", label: "Pass Badge & Ribbon" },
     ],
   },
   {
@@ -131,7 +148,6 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "subscription-usage", label: "Subscription & Usage" },
       { slug: "platform-invoices", label: "Platform Invoices" },
       { slug: "billing-details", label: "Billing Details & Methods" },
-      { slug: "payment-gateways", label: "Payment Gateways" },
       { slug: "taxes-invoicing", label: "Taxes & Invoicing" },
     ],
   },
@@ -171,142 +187,61 @@ const CONFIGURATION_CATEGORIES = [
       { slug: "integrations-sms", label: "SMS Integration" },
       { slug: "integrations-push", label: "Push Notifications" },
       { slug: "integrations-facebook", label: "Facebook Integration" },
+      { slug: "integrations-payment", label: "Payment Gateway Integration" },
       { slug: "integrations-api-keys", label: "API Access & Keys" },
       { slug: "integrations-other", label: "Other API Integration" },
     ],
   },
 ];
 
-function ConfigurationOverview({ onSelect }: { onSelect: (slug: string) => void }) {
-  const cards = [
-    {
-      title: "WhatsApp Templates",
-      desc: "Manage Meta-approved WhatsApp message templates, variables, and quick replies.",
-      slug: "templates-whatsapp",
-      badge: "Meta Approved",
-      color: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
-      icon: MessageSquare,
-    },
-    {
-      title: "SMS Templates",
-      desc: "Configure DLT-registered SMS templates for transactional and marketing alerts.",
-      slug: "templates-sms",
-      badge: "DLT Ready",
-      color: "bg-blue-500/10 text-blue-600 border-blue-200",
-      icon: MessageSquare,
-    },
-    {
-      title: "Email Templates",
-      desc: "Design responsive HTML & rich-text email templates for automated workflows.",
-      slug: "templates-email",
-      badge: "HTML & Text",
-      color: "bg-purple-500/10 text-purple-600 border-purple-200",
-      icon: MessageSquare,
-    },
-    {
-      title: "AI Integration & Copilot",
-      desc: "Connect Google Gemini or Anthropic Claude to automate operational CRM workflows and database tasks.",
-      slug: "integrations-ai",
-      badge: "Gemini & Claude",
-      color: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
-      icon: Sparkles,
-    },
-    {
-      title: "WhatsApp API Integration",
-      desc: "Connect your WhatsApp Business API account, webhook tokens, and phone numbers.",
-      slug: "integrations-whatsapp",
-      badge: "Connected",
-      color: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
-      icon: Puzzle,
-    },
-    {
-      title: "Email Gateway Integration",
-      desc: "Configure SMTP, SendGrid, Amazon SES, or Mailgun for outbound emails.",
-      slug: "integrations-email",
-      badge: "SMTP / SES",
-      color: "bg-blue-500/10 text-blue-600 border-blue-200",
-      icon: Puzzle,
-    },
-    {
-      title: "SMS Gateway Integration",
-      desc: "Link SMS gateways like Twilio, Fast2SMS, MSG91, or custom API endpoints.",
-      slug: "integrations-sms",
-      badge: "Active Gateway",
-      color: "bg-indigo-500/10 text-indigo-600 border-indigo-200",
-      icon: Puzzle,
-    },
-    {
-      title: "Facebook Lead Ads Integration",
-      desc: "Automatically sync leads from Facebook & Instagram ad campaigns into CRM.",
-      slug: "integrations-facebook",
-      badge: "Auto Sync",
-      color: "bg-sky-500/10 text-sky-600 border-sky-200",
-      icon: Puzzle,
-    },
-    {
-      title: "Other API & Webhooks",
-      desc: "Set up inbound & outbound REST webhooks and external API integrations.",
-      slug: "integrations-other",
-      badge: "REST Webhooks",
-      color: "bg-amber-500/10 text-amber-600 border-amber-200",
-      icon: Puzzle,
-    },
-  ];
+// Categories rendered under Event Manager → Setup (/modules/events/setup/:slug)
+// instead of Configuration. Everything else stays in Configuration.
+const EVENT_SETUP_CATEGORY_IDS = new Set(["events-settings", "library", "templates"]);
+const EVENT_SETUP_CATEGORIES = CONFIGURATION_CATEGORIES.filter((c) => EVENT_SETUP_CATEGORY_IDS.has(c.id));
+const CONFIG_ONLY_CATEGORIES = CONFIGURATION_CATEGORIES.filter((c) => !EVENT_SETUP_CATEGORY_IDS.has(c.id));
+const EVENT_SETUP_SLUGS = new Set(EVENT_SETUP_CATEGORIES.flatMap((c) => c.items.map((it) => it.slug)));
 
-  return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight text-foreground">Configuration Dashboard</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure your communication templates, API gateways, and external integrations in one place.
-        </p>
-      </div>
+// Other modules' Setup gets the Custom (fields only — pass templates are
+// event-specific) and Communication Templates groups. Data is scoped per module.
+const MODULE_SETUP_CATEGORIES = EVENT_SETUP_CATEGORIES.filter((c) => c.id !== "events-settings").map((c) =>
+  c.id === "library" ? { ...c, items: c.items.filter((it) => it.slug === "field-library") } : c
+);
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((c) => {
-          const Icon = c.icon;
-          return (
-            <div
-              key={c.slug}
-              onClick={() => onSelect(c.slug)}
-              className="group rounded-xl border bg-card p-5 shadow-xs hover:shadow-md transition-all cursor-pointer hover:border-primary/50 flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className={`p-2.5 rounded-lg border ${c.color}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                    {c.badge}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
-                  {c.title}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
-                  {c.desc}
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t flex items-center justify-between text-xs font-medium text-primary">
-                <span>Configure Settings</span>
-                <span className="group-hover:translate-x-1 transition-transform">→</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+const SETUP_META: Record<Exclude<SetupModule, "crm">, { base: string; back: string; backLabel: string }> = {
+  events: {
+    base: "/modules/events/setup",
+    back: "/modules/events",
+    backLabel: "Back to Event Manager",
+  },
+  website: {
+    base: "/modules/website/setup",
+    back: "/modules/website",
+    backLabel: "Back to Website Builder",
+  },
+  "front-office": {
+    base: "/modules/front-office/setup",
+    back: "/modules/front-office",
+    backLabel: "Back to Front Office",
+  },
+};
 
-export default function ModulePage() {
-  const { module } = useParams();
+export default function ModulePage({ setupModule }: { setupModule?: Exclude<SetupModule, "crm"> }) {
+  const { module, slug: setupSlug } = useParams();
   const navigate = useNavigate();
-  const activeModule = module || "configuration";
+  const eventChoices = useEventChoices(setupModule === "events");
+  const setup = setupModule ? SETUP_META[setupModule] : null;
+  const categories = !setupModule
+    ? CONFIG_ONLY_CATEGORIES
+    : setupModule === "events"
+    ? EVENT_SETUP_CATEGORIES
+    : MODULE_SETUP_CATEGORIES;
+  const setupSlugs = categories.flatMap((c) => c.items.map((it) => it.slug));
+  const activeModule = setup
+    ? (setupSlug && setupSlugs.includes(setupSlug) ? setupSlug : setupSlugs[0])
+    : module || "configuration";
 
   // Standalone Main Suite Direct Modules
   if (activeModule === "website") return <WebsiteBuilderPage />;
-  if (activeModule === "front-office") return <FrontOfficePage />;
 
   // Configuration / Templates / Integrations PERSISTENT 2-Column Shell
   const activeSlug = activeModule === "settings" ? "configuration" : activeModule;
@@ -314,7 +249,7 @@ export default function ModulePage() {
   // Accordion behaviour: only one Configuration group is expanded at a time.
   // On first render the group containing the active submenu item auto-opens;
   // otherwise everything is collapsed.
-  const activeCategoryId = CONFIGURATION_CATEGORIES.find((c) =>
+  const activeCategoryId = categories.find((c) =>
     c.items.some((it) => it.slug === activeSlug)
   )?.id ?? null;
 
@@ -330,8 +265,13 @@ export default function ModulePage() {
   }, [activeCategoryId]);
 
   const handleSelectSlug = (slug: string) => {
-    navigate(`/modules/${slug}`);
+    navigate(setup ? `${setup.base}/${slug}` : `/modules/${slug}`);
   };
+
+  // Old Configuration URLs for sections that moved to Event Manager → Setup.
+  if (!setup && EVENT_SETUP_SLUGS.has(activeSlug)) {
+    return <Navigate to={`/modules/events/setup/${activeSlug}`} replace />;
+  }
 
   const renderActiveConfigComponent = (slug: string) => {
     switch (slug) {
@@ -341,7 +281,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Branding & White-label"
-            description="Brand-your-workspace assets, colors, and custom domains."
             icon={Palette}
             storageKey="em_branding"
             createLabel="Add asset"
@@ -360,14 +299,12 @@ export default function ModulePage() {
               { id: "2", type: "Custom domain", value: "events.mycompany.com", active: "no" },
               { id: "3", type: "Email header", value: "https://cdn.example.com/logo-email.png", active: "yes" },
             ]}
-            footer="For logo, name, tagline, and login page, see Organization Details above."
           />
         );
       case "backup-export":
         return (
           <MiniCrudPage
             title="Backup & Export"
-            description="Full-organization backup jobs (encrypted ZIP)."
             icon={Download}
             storageKey="em_backup_jobs"
             createLabel="New backup"
@@ -388,14 +325,12 @@ export default function ModulePage() {
               { id: "1", name: "Weekly full backup", cadence: "weekly", delivery: "Email link", includes: "all", status: "completed" },
               { id: "2", name: "Monthly to S3", cadence: "monthly", delivery: "S3 bucket", includes: "all", status: "scheduled" },
             ]}
-            footer="Distinct from Reports → Exports (report-shaped data). This is a full-fidelity encrypted org backup."
           />
         );
       case "privacy-requests":
         return (
           <MiniCrudPage
             title="Privacy Requests"
-            description="Participant data-privacy queue — export, delete, rectify."
             icon={ShieldAlert}
             storageKey="em_privacy_requests"
             createLabel="Log request"
@@ -419,7 +354,11 @@ export default function ModulePage() {
           />
         );
       case "users":
-        return <UserManagementPage />;
+        return <UsersPage />;
+      case "user-types":
+        return <UserTypesPage />;
+      case "password-policy":
+        return <PasswordPolicyPage />;
       case "roles":
         return <RolesPage />;
       case "departments":
@@ -428,7 +367,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Security Policies"
-            description="Password rules, 2FA enforcement, session limits."
             icon={Lock}
             storageKey="em_security_policies"
             createLabel="Add policy"
@@ -460,7 +398,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="File Manager"
-            description="Files uploaded across the workspace."
             icon={Folder}
             storageKey="em_files"
             createLabel="Upload"
@@ -487,13 +424,12 @@ export default function ModulePage() {
         );
       case "subscription-usage":
         return (
-          <div className="p-6 md:p-8 space-y-4">
+          <div className="p-4 space-y-3">
             <div className="pb-4 border-b">
               <div className="flex items-center gap-2">
                 <CreditIcon className="h-5 w-5 text-primary" />
                 <h2 className="text-lg font-semibold text-foreground">Subscription & Usage</h2>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">Your current plan and usage against limits.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="rounded-xl border bg-card p-4">
@@ -539,7 +475,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Platform Invoices"
-            description="Invoices you receive from Knowvato for your subscription."
             icon={FileCheck}
             storageKey="em_platform_invoices"
             createLabel="Add invoice"
@@ -566,7 +501,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Billing Details & Payment Methods"
-            description="Your platform-billing profile and saved payment methods for renewals."
             icon={CreditIcon}
             storageKey="em_billing_methods"
             createLabel="Add method"
@@ -588,44 +522,14 @@ export default function ModulePage() {
             ]}
           />
         );
+      // old Billing → Payment Gateways link now opens the real integration page
       case "payment-gateways":
-        return (
-          <MiniCrudPage
-            title="Payment Gateways"
-            description="Providers your customers use to buy tickets (money in)."
-            icon={CreditIcon}
-            storageKey="em_payment_gateways"
-            createLabel="Add gateway"
-            fields={[
-              { key: "provider", label: "Provider", type: "select", options: ["Razorpay", "Stripe", "PayPal", "Cashfree", "PayU", "Offline"] },
-              { key: "name", label: "Display name", required: true, placeholder: "e.g. Razorpay India" },
-              { key: "environment", label: "Environment", type: "select", options: ["test", "live"] },
-              { key: "currency", label: "Currency", placeholder: "INR" },
-              { key: "isDefault", label: "Default", type: "select", options: ["no", "yes"] },
-              { key: "priority", label: "Priority", type: "number" },
-              { key: "active", label: "Active", type: "select", options: ["yes", "no"] },
-            ]}
-            columns={[
-              { key: "provider", label: "Provider" },
-              { key: "name", label: "Name" },
-              { key: "environment", label: "Env" },
-              { key: "currency", label: "Currency" },
-              { key: "isDefault", label: "Default" },
-              { key: "active", label: "Active" },
-            ]}
-            seed={[
-              { id: "1", provider: "Razorpay", name: "Razorpay India", environment: "live", currency: "INR", isDefault: "yes", priority: 1, active: "yes" },
-              { id: "2", provider: "Stripe", name: "Stripe International", environment: "live", currency: "USD", isDefault: "no", priority: 2, active: "yes" },
-              { id: "3", provider: "Offline", name: "Cash / Cheque / Bank transfer", environment: "live", currency: "INR", isDefault: "no", priority: 10, active: "yes" },
-            ]}
-            footer="Credentials are entered here in production — masked, encrypted, never returned by API."
-          />
-        );
+      case "integrations-payment":
+        return <PaymentGatewaysPage />;
       case "taxes-invoicing":
         return (
           <MiniCrudPage
             title="Taxes & Invoicing"
-            description="Tax registrations per state, invoice series, and invoice template."
             icon={FileCheck}
             storageKey="em_taxes_invoicing"
             createLabel="Add rule"
@@ -657,88 +561,74 @@ export default function ModulePage() {
       case "event-categories":
         return (
           <MiniCrudPage
-            title="Event Categories"
-            description="Categories for grouping and filtering events."
+            title="Attendee Categories"
             icon={Tag}
-            storageKey="em_event_categories_config"
+            storageKey={ATTENDEE_CATEGORY_KEY}
             createLabel="Add category"
             fields={[
-              { key: "name", label: "Name", required: true },
-              { key: "color", label: "Color", type: "color" },
+              { key: "name", label: "Category name", required: true },
+              { key: "ribbonColor", label: "Ribbon color", type: "color" },
+              { key: "badgeColor", label: "Badge color", type: "color" },
+              { key: "events", label: "Applies to events", type: "multiselect", choices: eventChoices, emptyLabel: "All events" },
               { key: "description", label: "Description", type: "textarea" },
             ]}
             columns={[
-              { key: "name", label: "Category", render: (r) => <div className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ background: r.color }} />{r.name}</div> },
+              { key: "name", label: "Category" },
+              { key: "ribbonColor", label: "Ribbon", render: (r) => <span className="inline-block h-4 w-10 rounded-sm border" style={{ background: r.ribbonColor }} /> },
+              { key: "badgeColor", label: "Badge", render: (r) => <span className="inline-block h-5 w-5 rounded-full border" style={{ background: r.badgeColor }} /> },
+              { key: "events", label: "Events", render: (r) => scopeLabel(r.events, eventChoices) },
               { key: "description", label: "Description" },
             ]}
-            seed={[
-              { id: "1", name: "Business", color: "#2249b7", description: "Corporate and B2B events" },
-              { id: "2", name: "Education", color: "#059669", description: "Schools, colleges, workshops" },
-              { id: "3", name: "Entertainment", color: "#dc2626", description: "Concerts, festivals, shows" },
-              { id: "4", name: "Sports", color: "#f97316", description: "Athletic and fitness events" },
-              { id: "5", name: "Cultural", color: "#a855f7", description: "Arts, music, dance" },
+            seed={ATTENDEE_CATEGORY_SEED}
+          />
+        );
+      case "task-checklist":
+        return <TaskChecklistPage />;
+      case "task-statuses":
+        return (
+          <MiniCrudPage
+            title="Task Statuses"
+            icon={ListChecks}
+            storageKey={TASK_STATUS_KEY}
+            sortKey="order"
+            createLabel="Add status"
+            fields={[
+              { key: "label", label: "Status name", required: true },
+              { key: "color", label: "Color", type: "color" },
+              { key: "order", label: "Sr No", type: "number" },
             ]}
+            columns={[
+              { key: "order", label: "Sr No" },
+              { key: "label", label: "Status", render: (r) => <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: r.color }} />{r.label}</span> },
+            ]}
+            seed={TASK_STATUS_SEED}
+            hint="Tasks in a status you delete move to the first status on the board."
           />
         );
       case "event-statuses":
         return (
           <MiniCrudPage
             title="Event Statuses"
-            description="Custom statuses for the event lifecycle with allowed transitions."
             icon={Circle}
             storageKey="em_event_statuses"
+            sortKey="order"
             createLabel="Add status"
             fields={[
               { key: "label", label: "Label", required: true },
               { key: "color", label: "Color", type: "color" },
-              { key: "order", label: "Order", type: "number" },
-              { key: "sideEffects", label: "Side effects (comma-separated)", placeholder: "openRegistration,publicVisible" },
+              { key: "order", label: "Sr No", type: "number" },
             ]}
             columns={[
+              { key: "order", label: "Sr No" },
               { key: "label", label: "Status", render: (r) => <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: r.color }} />{r.label}</span> },
-              { key: "order", label: "Order" },
-              { key: "sideEffects", label: "Side effects" },
             ]}
             seed={[
-              { id: "1", label: "Draft", color: "#94a3b8", order: 1, sideEffects: "" },
-              { id: "2", label: "Published", color: "#2249b7", order: 2, sideEffects: "publicVisible" },
-              { id: "3", label: "Registration Open", color: "#059669", order: 3, sideEffects: "openRegistration,publicVisible" },
-              { id: "4", label: "Live", color: "#dc2626", order: 4, sideEffects: "lockEditing" },
-              { id: "5", label: "Completed", color: "#0891b2", order: 5, sideEffects: "" },
-              { id: "6", label: "Archived", color: "#64748b", order: 6, sideEffects: "" },
-            ]}
-          />
-        );
-      case "event-default-features":
-        return (
-          <MiniCrudPage
-            title="Default Event Features"
-            description="Feature toggles that new events inherit unless overridden by their Event Type."
-            icon={ToggleLeft}
-            storageKey="em_default_features"
-            createLabel="Add feature"
-            fields={[
-              { key: "name", label: "Feature", required: true },
-              { key: "enabled", label: "Default", type: "select", options: ["enabled", "disabled"] },
-              { key: "planGate", label: "Plan-gated?", type: "select", options: ["no", "starter", "pro", "enterprise"] },
-              { key: "description", label: "What it does", type: "textarea" },
-            ]}
-            columns={[
-              { key: "name", label: "Feature" },
-              { key: "enabled", label: "Default" },
-              { key: "planGate", label: "Plan gate" },
-              { key: "description", label: "Description" },
-            ]}
-            seed={[
-              { id: "1", name: "Registration required", enabled: "enabled", planGate: "no", description: "Attendees must register to attend" },
-              { id: "2", name: "Approval workflow", enabled: "disabled", planGate: "no", description: "Manually approve each registration" },
-              { id: "3", name: "Paid tickets", enabled: "disabled", planGate: "starter", description: "Collect payment for tickets" },
-              { id: "4", name: "QR pass generation", enabled: "enabled", planGate: "no", description: "Generate QR-coded event passes" },
-              { id: "5", name: "Attendance tracking", enabled: "enabled", planGate: "no", description: "Log check-ins" },
-              { id: "6", name: "Certificates", enabled: "disabled", planGate: "pro", description: "Auto-generate participation certificates" },
-              { id: "7", name: "Multi-gate check-in", enabled: "disabled", planGate: "pro", description: "Support multiple entry gates" },
-              { id: "8", name: "Sponsor pages", enabled: "disabled", planGate: "starter", description: "Public sponsor listings" },
-              { id: "9", name: "White-label branding", enabled: "disabled", planGate: "enterprise", description: "Remove Knowvato branding" },
+              { id: "1", label: "Draft", color: "#94a3b8", order: 1 },
+              { id: "2", label: "Published", color: "#2249b7", order: 2 },
+              { id: "3", label: "Registration Open", color: "#059669", order: 3 },
+              { id: "4", label: "Live", color: "#dc2626", order: 4 },
+              { id: "5", label: "Completed", color: "#0891b2", order: 5 },
+              { id: "6", label: "Archived", color: "#64748b", order: 6 },
             ]}
           />
         );
@@ -746,7 +636,7 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Event ID Formats"
-            description="Patterns for generating human-readable IDs. Tokens: {YYYY} {YY} {MM} {FY} {SEQ:n} {EVENTCODE} {ORGCODE}."
+            hint="Tokens: {YYYY} {YY} {MM} {FY} {SEQ:n} {EVENTCODE} {ORGCODE}."
             icon={Hash}
             storageKey="em_id_formats"
             createLabel="Add format"
@@ -771,106 +661,14 @@ export default function ModulePage() {
             ]}
           />
         );
-      case "checklist-templates":
-        return (
-          <MiniCrudPage
-            title="Checklist Templates"
-            description="Reusable pre-event checklists. Applied to an event copies items into its checklist."
-            icon={ClipboardList}
-            storageKey="em_checklist_templates"
-            createLabel="Add template"
-            fields={[
-              { key: "name", label: "Template name", required: true },
-              { key: "category", label: "Category", type: "select", options: ["Venue", "Speakers", "Sponsors", "Registration", "Passes", "Volunteers", "Communication", "Completion"] },
-              { key: "itemCount", label: "Number of items", type: "number" },
-              { key: "description", label: "Description", type: "textarea" },
-            ]}
-            columns={[
-              { key: "name", label: "Template" },
-              { key: "category", label: "Category" },
-              { key: "itemCount", label: "Items" },
-              { key: "description", label: "Description" },
-            ]}
-            seed={[
-              { id: "1", name: "Standard conference checklist", category: "Registration", itemCount: 24, description: "Venue, speakers, sponsors, pass design" },
-              { id: "2", name: "Webinar prep", category: "Communication", itemCount: 8, description: "Reminders, tech check, recording" },
-              { id: "3", name: "Sports event kit", category: "Registration", itemCount: 32, description: "Categories, BIB numbers, medical, timing" },
-              { id: "4", name: "Volunteer coordination", category: "Volunteers", itemCount: 12, description: "Recruit, brief, assign, feedback" },
-            ]}
-          />
-        );
       case "field-library":
-        return (
-          <MiniCrudPage
-            title="Field Library"
-            description="Reusable dynamic fields for every form across your workspace."
-            icon={Database}
-            storageKey="em_field_library"
-            createLabel="Add field"
-            fields={[
-              { key: "key", label: "Machine name", required: true, placeholder: "meal_preference" },
-              { key: "label", label: "Display label", required: true, placeholder: "Meal Preference" },
-              { key: "type", label: "Type", type: "select", options: ["text", "number", "email", "phone", "dropdown", "multiselect", "rating", "date", "file", "signature", "address", "consent"] },
-              { key: "category", label: "Category", type: "select", options: ["Personal", "Professional", "Logistics", "Preferences", "Consent"] },
-              { key: "options", label: "Options (comma-separated for dropdown)", type: "textarea" },
-              { key: "required", label: "Required by default?", type: "select", options: ["no", "yes"] },
-              { key: "isSystem", label: "System field?", type: "select", options: ["no", "yes"] },
-            ]}
-            columns={[
-              { key: "label", label: "Field" },
-              { key: "key", label: "Key", render: (r) => <code className="text-xs font-mono text-muted-foreground">{r.key}</code> },
-              { key: "type", label: "Type" },
-              { key: "category", label: "Category" },
-              { key: "required", label: "Required" },
-            ]}
-            seed={[
-              { id: "1", key: "meal_preference", label: "Meal Preference", type: "dropdown", category: "Preferences", options: "Veg, Non-Veg, Jain, Vegan", required: "no", isSystem: "no" },
-              { id: "2", key: "tshirt_size", label: "T-Shirt Size", type: "dropdown", category: "Logistics", options: "XS, S, M, L, XL, XXL", required: "no", isSystem: "no" },
-              { id: "3", key: "dietary_restrictions", label: "Dietary Restrictions", type: "text", category: "Preferences", options: "", required: "no", isSystem: "no" },
-              { id: "4", key: "emergency_contact", label: "Emergency Contact", type: "phone", category: "Personal", options: "", required: "no", isSystem: "no" },
-              { id: "5", key: "company", label: "Company", type: "text", category: "Professional", options: "", required: "no", isSystem: "yes" },
-              { id: "6", key: "designation", label: "Designation", type: "text", category: "Professional", options: "", required: "no", isSystem: "yes" },
-              { id: "7", key: "accessibility_needs", label: "Accessibility Needs", type: "text", category: "Preferences", options: "", required: "no", isSystem: "no" },
-              { id: "8", key: "terms_consent", label: "I accept the terms", type: "consent", category: "Consent", options: "", required: "yes", isSystem: "yes" },
-            ]}
-          />
-        );
+        return <CustomFieldsPage module={setupModule ?? "events"} />;
       case "form-templates":
-        return (
-          <MiniCrudPage
-            title="Form Templates"
-            description="Blueprints for registration, speaker, sponsor, feedback, and survey forms."
-            icon={FileText}
-            storageKey="em_form_templates"
-            createLabel="Add template"
-            fields={[
-              { key: "name", label: "Template name", required: true },
-              { key: "purpose", label: "Purpose", type: "select", options: ["Registration", "Speaker", "Sponsor", "Exhibitor", "Volunteer", "Feedback", "Survey", "Profile"] },
-              { key: "category", label: "Event category", type: "select", options: ["Conference", "Workshop", "Webinar", "School", "Sports", "Cultural"] },
-              { key: "fieldCount", label: "Number of fields", type: "number" },
-              { key: "description", label: "Description", type: "textarea" },
-            ]}
-            columns={[
-              { key: "name", label: "Template" },
-              { key: "purpose", label: "Purpose" },
-              { key: "category", label: "Category" },
-              { key: "fieldCount", label: "Fields" },
-            ]}
-            seed={[
-              { id: "1", name: "Corporate Conference Registration", purpose: "Registration", category: "Conference", fieldCount: 18, description: "Standard conference reg with meal + t-shirt" },
-              { id: "2", name: "Speaker Application", purpose: "Speaker", category: "Conference", fieldCount: 12, description: "Bio, session pitch, travel needs" },
-              { id: "3", name: "Sponsor Onboarding", purpose: "Sponsor", category: "Conference", fieldCount: 8, description: "Package, contacts, brand assets" },
-              { id: "4", name: "Post-event Feedback", purpose: "Feedback", category: "Conference", fieldCount: 6, description: "NPS + rating + open text" },
-              { id: "5", name: "School Event Parent Consent", purpose: "Registration", category: "School", fieldCount: 10, description: "Student + parent details + consent" },
-            ]}
-            footer="Distinct from Communication Templates (WhatsApp / SMS / Email)."
-          />
-        );
+        return <EventFormTemplatesPage />;
       case "master-lists":
         return (
           <MiniCrudPage
             title="Master Lists"
-            description="Big option sets that dropdown fields can source from."
             icon={ListChecks}
             storageKey="em_master_lists"
             createLabel="Add list"
@@ -898,7 +696,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Venues"
-            description="Reusable physical spaces — hotels, convention centers, campuses, stadiums."
             icon={Building2}
             storageKey="em_venues"
             createLabel="Add venue"
@@ -909,6 +706,9 @@ export default function ModulePage() {
               { key: "capacity", label: "Total capacity", type: "number" },
               { key: "address", label: "Address", type: "textarea" },
               { key: "amenities", label: "Amenities (comma-separated)", placeholder: "AV, WiFi, Parking, Catering" },
+              { key: "managerName", label: "Manager name" },
+              { key: "managerNumber", label: "Manager number", placeholder: "+91 98XXXXXXXX" },
+              { key: "managerEmail", label: "Manager email", placeholder: "manager@example.com" },
             ]}
             columns={[
               { key: "name", label: "Venue" },
@@ -916,6 +716,7 @@ export default function ModulePage() {
               { key: "city", label: "City" },
               { key: "capacity", label: "Capacity" },
               { key: "amenities", label: "Amenities" },
+              { key: "managerName", label: "Manager", render: (r) => r.managerName || r.managerNumber || r.managerEmail ? <div className="leading-tight"><div>{r.managerName || "—"}</div><div className="text-xs text-muted-foreground">{[r.managerNumber, r.managerEmail].filter(Boolean).join(" · ")}</div></div> : <span className="text-muted-foreground italic">—</span> },
             ]}
             seed={[
               { id: "1", name: "Grand Hyatt Gurugram", type: "Hotel", city: "Gurugram", capacity: 800, address: "MG Road, Gurugram", amenities: "AV, WiFi, Parking, Catering, Valet" },
@@ -930,7 +731,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Seating Maps"
-            description="Reusable seat layouts — theatre, classroom, round tables, U-shape, boardroom."
             icon={Map}
             storageKey="em_seating_maps"
             createLabel="Add layout"
@@ -961,7 +761,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Certificate Templates"
-            description="Certificate designs — Participation, Speaker, Volunteer, Achievement, Workshop."
             icon={Award}
             storageKey="em_certificate_templates"
             createLabel="Add design"
@@ -991,7 +790,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Landing Page Templates"
-            description="Pre-built website blueprints per event type."
             icon={Grid3x3}
             storageKey="em_page_templates"
             createLabel="Add template"
@@ -1019,7 +817,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Pass Templates"
-            description="Reusable badge and pass designs — General, VIP, Speaker, Staff, Exhibitor, Visitor, Student."
             icon={Grid3x3}
             storageKey="em_pass_templates"
             createLabel="Add design"
@@ -1044,20 +841,18 @@ export default function ModulePage() {
               { id: "5", name: "Exhibitor booth pass", kind: "Exhibitor", size: "A6", sides: "Front + Back", color: "#dc2626" },
               { id: "6", name: "Student pass", kind: "Student", size: "Badge 4×3", sides: "Front only", color: "#f59e0b" },
             ]}
-            footer="Passes are what participants show at the gate. Distinct from Certificate Templates (earned after)."
           />
         );
       case "templates-whatsapp":
-        return <TemplatesWhatsapp />;
+        return <TemplatesWhatsapp module={setupModule ?? "events"} />;
       case "templates-email":
-        return <TemplatesEmail />;
+        return <TemplatesEmail module={setupModule ?? "events"} />;
       case "templates-sms":
-        return <TemplatesSms />;
+        return <TemplatesSms module={setupModule ?? "events"} />;
       case "message-delivery":
         return (
           <MiniCrudPage
             title="Message Delivery"
-            description="Default provider per channel + fallback order + quiet hours + daily caps."
             icon={BellRing}
             storageKey="em_message_delivery"
             createLabel="Add rule"
@@ -1089,7 +884,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="Staff Notification Matrix"
-            description="Who on your team gets notified about which system events."
             icon={BellRing}
             storageKey="em_staff_notifications"
             createLabel="Add rule"
@@ -1120,7 +914,6 @@ export default function ModulePage() {
         return (
           <MiniCrudPage
             title="API Access & Keys"
-            description="Bearer-token API keys for third-party integrations."
             icon={Key}
             storageKey="em_api_keys"
             createLabel="Generate key"
@@ -1143,14 +936,13 @@ export default function ModulePage() {
               { id: "2", name: "Analytics pipeline", scope: "read-only", expiresOn: "never", ipAllowList: "", active: "yes" },
               { id: "3", name: "Zapier integration", scope: "read + write", expiresOn: "never", ipAllowList: "", active: "yes" },
             ]}
-            footer="Secrets are shown once at creation. Distinct from internal user tokens."
+            hint="Secrets are shown once at creation."
           />
         );
       case "integrations-push":
         return (
           <MiniCrudPage
             title="Push Notification Providers"
-            description="Web Push (VAPID) and FCM for mobile app."
             icon={BellRing}
             storageKey="em_push_providers"
             createLabel="Add provider"
@@ -1187,34 +979,34 @@ export default function ModulePage() {
       case "configuration":
       case "settings":
       default:
-        return <ConfigurationOverview onSelect={(slug) => navigate(`/modules/${slug}`)} />;
+        // Configuration has no landing page of its own: it opens on Organization Details.
+        return <Navigate to="/modules/organization-details" replace />;
     }
   };
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Top Header Bar */}
       <div className="flex items-center justify-between gap-4 pb-3 border-b">
         <div>
           <Link
-            to="/"
+            to={setup ? setup.back : "/"}
             className="text-[11px] text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
             style={{ textDecoration: "none" }}
           >
-            <ArrowLeft className="h-3 w-3" /> Back to dashboard
+            <ArrowLeft className="h-3 w-3" /> {setup ? setup.backLabel : "Back to dashboard"}
           </Link>
-          <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight">Configuration</h1>
-          <p className="text-[11px] text-muted-foreground leading-tight">
-            Manage your workspace preferences, templates, and third-party integrations.
-          </p>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight">
+            {setup ? "Setup" : "Configuration"}
+          </h1>
         </div>
       </div>
 
       {/* 2-Column Setup Layout: Left Submenu Sidebar (PERSISTENT) + Right Active Submodule Component */}
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4">
         {/* Left Submenu Navigation */}
-        <nav aria-label="Configuration sections" className="space-y-3 sticky top-[70px] self-start">
-          {CONFIGURATION_CATEGORIES.map((cat) => {
+        <nav aria-label={setup ? "Setup sections" : "Configuration sections"} className="space-y-3 sticky top-[70px] self-start">
+          {categories.map((cat) => {
             const isOpen = openCategoryId === cat.id;
             const hasActive = cat.items.some((item) => activeSlug === item.slug);
             return (
@@ -1274,22 +1066,10 @@ export default function ModulePage() {
                             key={item.slug}
                             type="button"
                             onClick={() => handleSelectSlug(item.slug)}
-                            className={`w-full text-left pl-3 pr-2.5 py-2 rounded-md text-[13px] font-medium transition-all flex items-center justify-between cursor-pointer relative ${
-                              isSelected
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                            }`}
+                            className={`subnav-item ${isSelected ? "is-active" : ""}`}
+                            aria-current={isSelected ? "page" : undefined}
                           >
-                            {!isSelected && (
-                              <span
-                                className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                style={{ background: cat.accent }}
-                              />
-                            )}
                             <span className="truncate">{item.label}</span>
-                            {isSelected && (
-                              <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground shrink-0" />
-                            )}
                           </button>
                         );
                       })}
@@ -2132,7 +1912,6 @@ function OrganizationDetailsPage() {
       <div className="flex items-center justify-between gap-4 pb-4 border-b">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold">Organization Details</h2>
-          <p className="text-sm text-muted-foreground">Configure your organization information and login page branding</p>
         </div>
         <Button onClick={save} disabled={loading || videoUploading} className="shrink-0 px-6">
           {loading ? "Saving..." : "Save Changes"}

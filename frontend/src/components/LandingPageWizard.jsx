@@ -563,7 +563,6 @@ export default function LandingPageWizard({ onSelect, onCancel }) {
             <div>
               <span className="fw-bold text-uppercase small text-secondary" style={{ fontSize: "8.5px" }}>Selected Form Template</span>
               <h6 className="fw-bold mb-0 text-dark">{selectedForm.name}</h6>
-              <p className="text-muted small mb-0" style={{ fontSize: "11px" }}>{selectedForm.desc} Select a layout format style below to launch your canvas.</p>
             </div>
           </div>
 

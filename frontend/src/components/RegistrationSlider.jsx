@@ -1,3 +1,4 @@
+import DateInput from "./DateInput";
 import { useState, useEffect } from "react";
 import { leadsApi } from "../api";
 import { useToast } from "../context/ToastContext";
@@ -94,7 +95,6 @@ export default function RegistrationSlider({ lead, onClose, onSaved }) {
             <h5 className="offcanvas-title fw-bold text-primary mb-0 d-flex align-items-center gap-2">
               <i className="bi bi-clipboard-check text-primary"></i> Student Registration Form
             </h5>
-            <small className="text-muted">Designed in Setup — Pre-filled from Lead details</small>
           </div>
           <button className="btn-close" onClick={handleClose}></button>
         </div>
@@ -138,8 +138,7 @@ export default function RegistrationSlider({ lead, onClose, onSaved }) {
                 </div>
                 <div className="col-md-6">
                   <label className="form-label small fw-semibold">Date of Birth</label>
-                  <input
-                    type="date"
+                  <DateInput
                     className="form-control form-control-sm"
                     value={form.dob}
                     onChange={(e) => set("dob", e.target.value)}

@@ -690,9 +690,6 @@ export default function WhatsAppPreview({ bot }) {
         </div>
       </div>
 
-      <div className="text-muted text-center mt-3" style={{ fontSize: 11, maxWidth: 280 }}>
-        Multi-branch conditions, real API fetching & interactive WhatsApp Forms are fully active.
-      </div>
     </div>
   );
 }

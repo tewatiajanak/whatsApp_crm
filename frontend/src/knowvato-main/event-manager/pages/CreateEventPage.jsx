@@ -1,3 +1,4 @@
+import DateInput from "../../../components/DateInput";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FiPlus, FiSearch, FiFilter } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -396,8 +397,7 @@ const CreateEventPage = () => {
                         <label className="form-label small fw-semibold mb-1">
                           From Date
                         </label>
-                        <input
-                          type="date"
+                        <DateInput
                           className="form-control form-control-sm"
                           value={filter.fromDate}
                           onChange={(e) =>
@@ -412,8 +412,7 @@ const CreateEventPage = () => {
                         <label className="form-label small fw-semibold mb-1">
                           To Date
                         </label>
-                        <input
-                          type="date"
+                        <DateInput
                           className="form-control form-control-sm"
                           value={filter.toDate}
                           onChange={(e) =>
@@ -737,8 +736,7 @@ const EventForm = ({
               <label className="form-label small fw-semibold mb-1">
                 From Date *
               </label>
-              <input
-                type="date"
+              <DateInput
                 className="form-control form-control-sm"
                 name="startDate"
                 value={data.startDate}
@@ -749,8 +747,7 @@ const EventForm = ({
               <label className="form-label small fw-semibold mb-1">
                 To Date *
               </label>
-              <input
-                type="date"
+              <DateInput
                 className="form-control form-control-sm"
                 name="endDate"
                 value={data.endDate}

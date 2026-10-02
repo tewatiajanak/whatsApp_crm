@@ -29,7 +29,6 @@ export default function MetaSettingsModal({ bot, onClose }) {
               <h5 className="modal-title fw-bold mb-0">
                 <i className="bi bi-whatsapp text-success me-2"></i>WhatsApp Cloud API (Meta)
               </h5>
-              <p className="text-muted small mb-0">Connect this chatbot flow to a live WhatsApp Business number via Meta Cloud API.</p>
             </div>
             <button className="btn-close" onClick={onClose}></button>
           </div>

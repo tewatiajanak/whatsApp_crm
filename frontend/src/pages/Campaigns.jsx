@@ -47,7 +47,7 @@ export default function Campaigns() {
 
   return (
     <div>
-      <PageHeader title="Bulk Campaigns" subtitle="Sends route through your active WhatsApp vendor"
+      <PageHeader title="Bulk Campaigns"
         actions={can("blast", "create") && <button className="btn btn-wa btn-sm" onClick={() => setCreating(true)}><i className="bi bi-plus-lg me-1"></i>New Campaign</button>} />
       <ErrorBox error={list.error} />
       <DataTable columns={columns} rows={list.data} loading={list.loading} empty={{ icon: "send", text: "No campaigns yet." }} />

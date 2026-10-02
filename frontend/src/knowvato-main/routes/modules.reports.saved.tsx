@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FolderOpen, ArrowLeft, Play, Trash2, Star, Search } from "lucide-react";
 import { fmtDate } from "@/utils/date";
+import { appStore } from "../../api/appStore";
 
 type SavedReport = {
   id: string;
@@ -16,14 +17,14 @@ type SavedReport = {
 const STORAGE = "em_saved_reports";
 const load = (): SavedReport[] => {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE) || "[]");
+    return JSON.parse(appStore.getItem(STORAGE) || "[]");
   } catch {
     return [];
   }
 };
 const save = (r: SavedReport[]) => {
   try {
-    localStorage.setItem(STORAGE, JSON.stringify(r));
+    appStore.setItem(STORAGE, JSON.stringify(r));
   } catch {}
 };
 
@@ -99,7 +100,7 @@ export default function ReportsSavedPage() {
   );
 
   return (
-    <div className="p-4 max-w-[1400px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link to="/modules/reports" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1" style={{ textDecoration: "none" }}>
@@ -111,9 +112,6 @@ export default function ReportsSavedPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Saved Reports</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Your library of report definitions. Star favorites for quick access.
-          </p>
         </div>
         <Link to="/modules/reports/builder" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm" style={{ background: "var(--primary)", textDecoration: "none" }}>
           New Report

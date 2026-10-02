@@ -1,3 +1,4 @@
+import DateInput from "../../../components/DateInput";
 import React, { useEffect, useState } from "react";
 import { useParams } from "../lib/router-shim";
 import { fetchForm, fetchFormBySlug, fetchPublicEvent, publicRegister } from "../services/api";
@@ -352,8 +353,7 @@ const PublicRegistrationForm = () => {
 
     if (field.type === "date") {
       return (
-        <input
-          type="date"
+        <DateInput
           className="form-control"
           style={{
             borderRadius: 10,

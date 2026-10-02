@@ -1,387 +1,214 @@
 import React, { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useEventData } from "../context/EventDataContext";
+import { fmtDate } from "../../utils/date";
+
+// Event Manager → Overview. Every number here is counted from the real events
+// and attendees; nothing is a sample figure.
+
+const dayStart = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T00:00:00`).getTime() : NaN);
+const dayEnd = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T23:59:59`).getTime() : NaN);
+
+/** draft · scheduled · live · completed — from the event's own dates. */
+const statusOf = (e, now) => {
+  const start = dayStart(e.startDate);
+  if (!Number.isFinite(start)) return "draft";
+  const end = dayEnd(e.endDate || e.startDate);
+  if (now > end) return "completed";
+  if (now >= start) return "live";
+  return "scheduled";
+};
+
+const STATUS = {
+  live: { label: "Live now", bg: "var(--success-bg)", fg: "var(--success)" },
+  scheduled: { label: "Scheduled", bg: "var(--info-bg)", fg: "var(--info)" },
+  draft: { label: "Draft", bg: "var(--muted-background)", fg: "var(--muted-foreground)" },
+  completed: { label: "Completed", bg: "var(--muted-background)", fg: "var(--muted-foreground)" },
+};
+
+const TH = "px-4 py-3 text-left font-medium";
 
 const DashboardPage = () => {
-  const { events, attendees } = useEventData();
+  const { events = [], attendees = [], eventsLoading } = useEventData();
 
-  const totalEvents = Math.max(events.length || 4, 4);
-  const registeredGuests = Math.max(attendees.length || 12, 12);
-  const confirmed = Math.max(
-    attendees.filter((a) => a.status && a.status !== "registered").length || 7,
-    7,
-  );
-  const liveNow = Math.max(events.filter((event) => event.status === "live").length || 1, 1);
-  const readiness = Math.min(Math.max(Math.round((confirmed / registeredGuests) * 100), 58), 100) || 58;
+  const data = useMemo(() => {
+    const now = Date.now();
+    const withStatus = events.map((e) => ({ ...e, _status: statusOf(e, now) }));
+    const perEvent = new Map();
+    attendees.forEach((a) => perEvent.set(a.eventId, (perEvent.get(a.eventId) || 0) + 1));
 
-  const stats = [
-    { label: "Total events", value: totalEvents, meta: "2 active", icon: "bi-calendar3", color: "#dfeef0", iconColor: "#0d6b68" },
-    { label: "Registered guests", value: registeredGuests, meta: "Across all events", icon: "bi-people", color: "#dfeaf6", iconColor: "#1d5fa3" },
-    { label: "Confirmed", value: confirmed, meta: "58% RSVP rate", icon: "bi-check2-circle", color: "#dff3eb", iconColor: "#1f8d6d" },
-    { label: "Live now", value: liveNow, meta: "Needs attention", icon: "bi-broadcast", color: "#f5ead9", iconColor: "#9b7445" },
-  ];
+    const live = withStatus.filter((e) => e._status === "live");
+    const scheduled = withStatus.filter((e) => e._status === "scheduled");
+    const checkedIn = attendees.filter((a) => a.status === "checked-in" || a.status === "checked-out").length;
+    const withPass = attendees.filter((a) => a.passGenerated).length;
+    const pct = (n) => (attendees.length ? Math.round((n / attendees.length) * 100) : 0);
 
-  const upcomingEvents = useMemo(() => {
-    const seeded = [
-      { name: "Product Launch — CRM 3.0", venue: "Grand Hyatt, Gurugram", date: "Thu, 8 Oct 2026", time: "18:30", status: "Scheduled", statusTone: "success", confirmed: "2/18", type: "in-person" },
-      { name: "Onboarding Webinar — New Accounts", venue: "Online - Zoom", date: "Fri, 25 Sept, 2026", time: "11:00", status: "Live now", statusTone: "active", confirmed: "3/500", type: "online" },
-      { name: "Partner Roundtable Dinner", venue: "The Leela, Mumbai", date: "Sat, 14 Nov, 2026", time: "20:00", status: "Draft", statusTone: "muted", confirmed: "0/24", type: "in-person" },
-      { name: "Customer Success Meetup", venue: "WeWork, Bengaluru", date: "Wed, 19 Aug, 2026", time: "16:00", status: "Completed", statusTone: "success", confirmed: "2/90", type: "in-person" },
-    ];
+    // what is on now, then what is coming, soonest first
+    const upcoming = [...live, ...scheduled]
+      .sort((a, b) => dayStart(a.startDate) - dayStart(b.startDate))
+      .slice(0, 6)
+      .map((e) => ({ ...e, registered: perEvent.get(e.id) || 0 }));
 
-    if (events.length === 0) return seeded;
-
-    return events.slice(0, 4).map((event, index) => {
-      const confirmedCount = Math.min(
-        Math.max(
-          attendees.filter((a) => a.eventId === event.id || a.eventId === event._id).length,
-          0,
-        ),
-        500,
-      );
-      const capacity = Math.max(event.capacity || (index === 0 ? 18 : index === 1 ? 500 : index === 2 ? 24 : 90), 18);
-
-      return {
-        name: event.eventName || seeded[index]?.name,
-        venue: event.venue || seeded[index]?.venue,
-        date: event.startDate ? new Date(event.startDate).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : seeded[index]?.date,
-        time: event.startTime || seeded[index]?.time,
-        status: index === 1 ? "Live now" : index === 2 ? "Draft" : index === 3 ? "Completed" : "Scheduled",
-        statusTone: index === 1 ? "active" : index === 2 ? "muted" : "success",
-        confirmed: `${confirmedCount}/${capacity}`,
-      };
-    });
+    return {
+      total: events.length,
+      active: live.length + scheduled.length,
+      registered: attendees.length,
+      eventsWithGuests: perEvent.size,
+      checkedIn,
+      checkedInPct: pct(checkedIn),
+      live,
+      withPass,
+      passPct: pct(withPass),
+      upcoming,
+    };
   }, [events, attendees]);
 
+  const hour = new Date().getHours();
+  const stats = [
+    { label: "Total events", value: data.total, meta: `${data.active} active`, icon: "bi-calendar3", bg: "color-mix(in srgb, var(--primary) 12%, transparent)", fg: "var(--primary)" },
+    { label: "Registered attendees", value: data.registered, meta: `Across ${data.eventsWithGuests} event${data.eventsWithGuests === 1 ? "" : "s"}`, icon: "bi-people", bg: "var(--info-bg)", fg: "var(--info)" },
+    { label: "Checked in", value: data.checkedIn, meta: `${data.checkedInPct}% of registered`, icon: "bi-check2-circle", bg: "var(--success-bg)", fg: "var(--success)" },
+    { label: "Live now", value: data.live.length, meta: data.live.length ? data.live.map((e) => e.eventName).join(", ") : "No event today", icon: "bi-broadcast", bg: "var(--warning-bg)", fg: "var(--warning)" },
+  ];
   const quickActions = [
-    "Review attendees",
-    "Open check-in",
-    "Prepare passes",
+    { label: "Review attendees", to: "/modules/events/registrants", icon: "bi-people-fill" },
+    { label: "Open check-in", to: "/modules/events/scan", icon: "bi-upc-scan" },
+    { label: "Payments", to: "/modules/events/payments", icon: "bi-currency-rupee" },
   ];
 
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        padding: "16px 20px 24px",
-        background: "var(--page-bg)",
-        color: "#1d2b2a",
-        fontFamily: 'Inter, "Segoe UI", sans-serif',
-        fontSize: 13,
-      }}
-    >
-      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <header
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 0 18px",
-            borderBottom: "1px solid rgba(20, 29, 27, 0.08)",
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#1f2a2c", letterSpacing: "-0.04em", lineHeight: 1.2 }}>
-            Good evening
-          </div>
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b">
+        <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight m-0">
+          {hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"}
+        </h1>
+        <Link to="/modules/events/new" className="ui-btn ui-btn-primary" style={{ textDecoration: "none" }}>
+          <i className="bi bi-plus-lg" /> New event
+        </Link>
+      </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                minWidth: 220,
-                height: 34,
-                padding: "0 10px",
-                borderRadius: 8,
-                border: "1px solid rgba(26, 47, 42, 0.18)",
-                background: "rgba(255,255,255,0.25)",
-                color: "#55666a",
-              }}
-            >
-              <i className="bi bi-search" style={{ fontSize: 13, lineHeight: 1 }} />
-              <span style={{ fontSize: 13, color: "#7c8b8d", lineHeight: 1 }}>Search events or guests</span>
+      {/* Numbers */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-xl border bg-card p-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-muted-foreground">{s.label}</div>
+              <div className="text-xl font-semibold text-foreground mt-1 leading-tight">{eventsLoading ? "…" : s.value}</div>
+              <div className="text-[11px] text-muted-foreground mt-1 truncate" title={s.meta}>{s.meta}</div>
             </div>
-
-            <button
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                background: "#0d7a6d",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "0 14px",
-                height: 34,
-                fontWeight: 600,
-                fontSize: 12.5,
-                lineHeight: 1,
-                boxShadow: "0 3px 10px rgba(13, 122, 109, 0.18)",
-              }}
-            >
-              <i className="bi bi-plus-lg" style={{ fontSize: 12.5, lineHeight: 1 }} />
-              New event
-            </button>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg shrink-0" style={{ background: s.bg, color: s.fg }}>
+              <i className={`bi ${s.icon}`} />
+            </span>
           </div>
-        </header>
+        ))}
+      </div>
 
-        <div style={{ marginTop: 18, marginBottom: 16, color: "#6d787a", fontSize: 12.5, lineHeight: 1.5 }}>
-          A clear view of registrations, attendance and guest communication across every event.
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.2fr)_minmax(280px,0.8fr)] gap-3 items-start">
+        {/* Upcoming events */}
+        <div className="rounded-xl border bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <div className="text-sm font-semibold text-foreground">Upcoming events</div>
+            <Link to="/modules/events/all" className="text-xs font-semibold" style={{ textDecoration: "none", color: "var(--primary)" }}>
+              View all ›
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wider text-muted-foreground" style={{ background: "var(--muted-background)" }}>
+                  <th className={TH} style={{ width: 64 }}>Sr No</th>
+                  <th className={TH}>Event</th>
+                  <th className={TH}>Date</th>
+                  <th className={TH}>Status</th>
+                  <th className="px-4 py-3 font-medium" style={{ textAlign: "right" }}>Registered</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.upcoming.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                      {eventsLoading ? "Loading…" : data.total ? "No upcoming events." : "No events yet."}
+                    </td>
+                  </tr>
+                )}
+                {data.upcoming.map((e, i) => {
+                  const st = STATUS[e._status];
+                  const capacity = Number(e.capacity) || 0;
+                  return (
+                    <tr key={e.id} className="border-t hover:bg-accent/30">
+                      <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
+                      <td className="px-4 py-2.5">
+                        <Link to={`/modules/events/${e.id}/attendees`} className="font-medium text-foreground" style={{ textDecoration: "none" }}>
+                          {e.eventName}
+                        </Link>
+                        {e.venue && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            <i className="bi bi-geo-alt" /> {e.venue}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        {fmtDate(e.startDate)}
+                        {e.endDate && e.endDate !== e.startDate ? ` to ${fmtDate(e.endDate)}` : ""}
+                        {e.startTime && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            <i className="bi bi-clock" /> {e.startTime}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium" style={{ background: st.bg, color: st.fg }}>
+                          {st.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ textAlign: "right" }}>
+                        {e.registered}
+                        {capacity > 0 && <span className="text-muted-foreground font-normal"> / {capacity}</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <section style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }}>
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                padding: "14px 14px 12px",
-                minHeight: 100,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12.5, color: "#4b5a5b", fontWeight: 500, marginBottom: 6 }}>{stat.label}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.1, color: "#1e2d2d" }}>{stat.value}</div>
-                <div style={{ fontSize: 11, color: "#5d6d6d", marginTop: 5 }}>{stat.meta}</div>
-              </div>
-
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  background: stat.color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: stat.iconColor,
-                  fontSize: 14,
-                  marginLeft: 10,
-                }}
-              >
-                <i className={`bi ${stat.icon}`} />
-              </div>
+        <div className="space-y-3">
+          {/* Passes */}
+          <div className="rounded-xl p-4" style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
+            <div className="text-sm font-semibold">Passes generated</div>
+            <div className="text-2xl font-semibold mt-2 leading-tight">{data.passPct}%</div>
+            <div className="mt-3 rounded-full overflow-hidden" style={{ height: 8, background: "rgba(255,255,255,0.22)" }}>
+              <div style={{ width: `${data.passPct}%`, height: "100%", background: "rgba(255,255,255,0.92)", borderRadius: 999 }} />
             </div>
-          ))}
-        </section>
-
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 2.2fr) minmax(280px, 0.8fr)", gap: 20, marginTop: 22 }}>
-          <section
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: 16,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "16px 18px 12px",
-                borderBottom: "1px solid rgba(20, 30, 28, 0.08)",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 14, color: "#1f2d2b", fontWeight: 700 }}>Upcoming events</div>
-                <div style={{ fontSize: 11, color: "#6d787a", marginTop: 2 }}>Dates, confirmations and capacity at a glance</div>
-              </div>
-              <div style={{ fontSize: 11.5, color: "#1e3a3b", fontWeight: 600 }}>View all &nbsp;›</div>
+            <div className="text-xs mt-3" style={{ opacity: 0.85 }}>
+              {data.withPass} of {data.registered} attendees
             </div>
+          </div>
 
-            <div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1.7fr 0.95fr 0.9fr 0.7fr",
-                  gap: 14,
-                  padding: "12px 18px",
-                  background: "var(--surface-2)",
-                  color: "#5d6d6d",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                }}
-              >
-                <div>Event</div>
-                <div>Date</div>
-                <div>Status</div>
-                <div style={{ textAlign: "right" }}>Confirmed</div>
-              </div>
-
-              {upcomingEvents.map((event, idx) => (
-                <div
-                  key={`${event.name}-${idx}`}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.7fr 0.95fr 0.9fr 0.7fr",
-                    gap: 12,
-                    padding: "12px 16px",
-                    borderTop: "1px solid rgba(20, 30, 28, 0.08)",
-                    alignItems: "center",
-                    minHeight: 76,
-                  }}
+          {/* Quick actions */}
+          <div className="rounded-xl border bg-card p-3">
+            <div className="text-sm font-semibold text-foreground mb-2">Quick actions</div>
+            <div className="space-y-2">
+              {quickActions.map((a) => (
+                <Link
+                  key={a.to}
+                  to={a.to}
+                  className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-[12.5px] font-semibold text-foreground hover:bg-accent transition-colors"
+                  style={{ textDecoration: "none", background: "var(--muted-background)" }}
                 >
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#1f2c2d", marginBottom: 4, lineHeight: 1.3 }}>{event.name}</div>
-                    <div style={{ fontSize: 11, color: "#5d6d6d", display: "flex", alignItems: "center", gap: 6 }}>
-                      <i className="bi bi-geo-alt" style={{ fontSize: 12 }} />
-                      {event.venue}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 12.5, color: "#1f2c2d", fontWeight: 600 }}>{event.date}</div>
-                    <div style={{ fontSize: 11, color: "#5d6d6d", display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                      <i className="bi bi-clock" style={{ fontSize: 12 }} />
-                      {event.time}
-                    </div>
-                  </div>
-
-                  <div>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minWidth: 82,
-                        padding: "5px 8px",
-                        borderRadius: 999,
-                        background: event.statusTone === "active" ? "#d9f2e8" : event.statusTone === "muted" ? "#ece7df" : "#dff5ed",
-                        color: event.statusTone === "active" ? "#1d7d5d" : event.statusTone === "muted" ? "#596062" : "#1d7d5d",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        border: "1px solid rgba(12, 19, 18, 0.04)",
-                      }}
-                    >
-                      {event.statusTone === "active" && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1eae79", display: "inline-block", marginRight: 6 }} />}
-                      {event.status}
+                  <span className="inline-flex items-center gap-2.5">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}>
+                      <i className={`bi ${a.icon}`} />
                     </span>
-                  </div>
-
-                  <div style={{ textAlign: "right", fontWeight: 600, color: "#1f2c2d", fontSize: 12.5 }}>
-                    {event.confirmed}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <aside style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <div
-              style={{
-                background: "#0f3d3d",
-                color: "#f5fbf8",
-                borderRadius: 12,
-                padding: "16px 16px 12px",
-                minHeight: 158,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>Guest readiness</div>
-                <div
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "rgba(255,255,255,0.08)",
-                    fontSize: 14,
-                  }}
-                >
-                  <i className="bi bi-check2" />
-                </div>
-              </div>
-
-              <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 12, lineHeight: 1.1 }}>{readiness}%</div>
-
-              <div
-                style={{
-                  width: "100%",
-                  height: 8,
-                  background: "rgba(255,255,255,0.18)",
-                  borderRadius: 999,
-                  overflow: "hidden",
-                  marginBottom: 12,
-                }}
-              >
-                <div
-                  style={{
-                    width: `${readiness}%`,
-                    height: "100%",
-                    background: "rgba(255,255,255,0.9)",
-                    borderRadius: 999,
-                  }}
-                />
-              </div>
-
-              <div style={{ fontSize: 11.5, color: "rgba(245, 251, 248, 0.82)", lineHeight: 1.5 }}>
-                Confirmed guests are ready for passes and reminders.
-              </div>
-            </div>
-
-            <div
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 12,
-                padding: "8px 10px",
-              }}
-            >
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#1f2d2b", margin: "6px 8px 8px" }}>Quick actions</div>
-
-              {quickActions.map((item, index) => (
-                <button
-                  key={item}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    background: "var(--surface-2)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    padding: "10px 10px",
-                    marginBottom: index === quickActions.length - 1 ? 0 : 8,
-                    color: "#1f2d2b",
-                    fontWeight: 600,
-                    fontSize: 12.5,
-                    lineHeight: 1,
-                  }}
-                >
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 10, lineHeight: 1 }}>
-                    <span
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 8,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "rgba(13, 122, 109, 0.08)",
-                        color: "#0d7a6d",
-                        fontSize: 13,
-                      }}
-                    >
-                      <i className={index === 0 ? "bi bi-people-fill" : index === 1 ? "bi bi-upc-scan" : "bi bi-ticket-perforated"} />
-                    </span>
-                    {item}
+                    {a.label}
                   </span>
-                  <i className="bi bi-chevron-right" style={{ fontSize: 16, color: "#4c5d5d" }} />
-                </button>
+                  <i className="bi bi-chevron-right text-muted-foreground" />
+                </Link>
               ))}
             </div>
-          </aside>
+          </div>
         </div>
       </div>
     </div>

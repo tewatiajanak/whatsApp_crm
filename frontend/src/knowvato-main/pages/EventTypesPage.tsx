@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { http } from "../../api";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
@@ -28,8 +28,7 @@ import {
   Plus,
   Pencil,
   Trash2,
-  RefreshCw,
-  Lock,
+  ListChecks,
   Loader2,
 } from "lucide-react";
 import { UIButton, SearchInput } from "../components/UIKit";
@@ -68,35 +67,6 @@ const EMPTY_FORM: FormState = {
   isActive: true,
 };
 
-const COMMON_ICONS = [
-  "bi-calendar-event",
-  "bi-mic",
-  "bi-easel",
-  "bi-tools",
-  "bi-camera-video",
-  "bi-mortarboard",
-  "bi-stars",
-  "bi-building",
-  "bi-shop-window",
-  "bi-briefcase",
-  "bi-trophy",
-  "bi-music-note-beamed",
-  "bi-award",
-  "bi-balloon",
-  "bi-rocket-takeoff",
-  "bi-people",
-  "bi-clipboard-check",
-  "bi-flag",
-  "bi-code-slash",
-  "bi-person-badge",
-  "bi-bank",
-  "bi-shield-lock",
-  "bi-heart",
-  "bi-hand-thumbs-up",
-  "bi-film",
-  "bi-music-player",
-];
-
 const slugify = (s: string) =>
   s
     .toLowerCase()
@@ -108,6 +78,7 @@ const slugify = (s: string) =>
 
 export default function EventTypesPage() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [items, setItems] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -125,7 +96,7 @@ export default function EventTypesPage() {
       const list: EventType[] = res?.data ?? res?.items ?? (Array.isArray(res) ? res : []);
       setItems(list);
     } catch (e: any) {
-      toast?.error?.(e?.message || "Failed to load event types");
+      toast?.(e?.message || "Failed to load event categories", "error");
     } finally {
       setLoading(false);
     }
@@ -176,11 +147,6 @@ export default function EventTypesPage() {
     }));
   };
 
-  const onKeyChange = (key: string) => {
-    setKeyEdited(true);
-    setForm((f) => ({ ...f, key: slugify(key) }));
-  };
-
   const canSave = form.name.trim().length > 1 && form.key.trim().length > 1;
 
   const save = async () => {
@@ -197,15 +163,15 @@ export default function EventTypesPage() {
       };
       if (editing) {
         await http.patch(`/event-types/${editing._id}`, payload);
-        toast?.success?.("Event type updated");
+        toast?.("Event category updated");
       } else {
         await http.post("/event-types", payload);
-        toast?.success?.("Event type created");
+        toast?.("Event category created");
       }
       setDrawerOpen(false);
       await load();
     } catch (e: any) {
-      toast?.error?.(e?.message || "Save failed");
+      toast?.(e?.message || "Save failed", "error");
     } finally {
       setSaving(false);
     }
@@ -215,22 +181,11 @@ export default function EventTypesPage() {
     if (!deleteTarget) return;
     try {
       await http.del(`/event-types/${deleteTarget._id}`);
-      toast?.success?.(`Removed "${deleteTarget.name}"`);
+      toast?.(`Removed "${deleteTarget.name}"`);
       setDeleteTarget(null);
       await load();
     } catch (e: any) {
-      toast?.error?.(e?.message || "Delete failed");
-    }
-  };
-
-  const resetDefaults = async () => {
-    if (!window.confirm("Restore the seeded system event types? Custom items you added will be kept.")) return;
-    try {
-      await http.post("/event-types/reset-defaults", {});
-      toast?.success?.("Defaults restored");
-      await load();
-    } catch (e: any) {
-      toast?.error?.(e?.message || "Reset failed");
+      toast?.(e?.message || "Delete failed", "error");
     }
   };
 
@@ -239,27 +194,20 @@ export default function EventTypesPage() {
       await http.patch(`/event-types/${it._id}`, { isActive: !it.isActive });
       setItems((prev) => prev.map((x) => (x._id === it._id ? { ...x, isActive: !x.isActive } : x)));
     } catch (e: any) {
-      toast?.error?.(e?.message || "Update failed");
+      toast?.(e?.message || "Update failed", "error");
     }
   };
 
   return (
-    <div className="p-4 md:p-5">
+    <div className="p-4">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-foreground leading-tight">Event Types</h2>
-          <p className="text-xs text-muted-foreground mt-1 leading-snug">
-            Templates for creating events. Each type carries defaults (icon, color, feature toggles)
-            that pre-fill new events of that kind.
-          </p>
+          <h2 className="text-base font-semibold text-foreground leading-tight">Event Categories</h2>
         </div>
         <div className="flex items-center gap-2">
-          <UIButton variant="outline" onClick={resetDefaults} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
-            Restore defaults
-          </UIButton>
           <UIButton onClick={openCreate} leftIcon={<Plus className="h-3.5 w-3.5" />}>
-            Add event type
+            Add event category
           </UIButton>
         </div>
       </div>
@@ -286,9 +234,9 @@ export default function EventTypesPage() {
                 className="text-[11px] uppercase tracking-wider text-muted-foreground"
                 style={{ background: "var(--muted-background)" }}
               >
-                <th className="px-4 py-2.5 text-left font-medium">Type</th>
-                <th className="px-4 py-2.5 text-center font-medium w-32">Status</th>
-                <th className="px-4 py-2.5 text-right font-medium w-24">Actions</th>
+                <th className="px-4 py-2.5 text-left font-medium">Category</th>
+                <th className="px-4 py-2.5 text-center font-medium w-32" style={{ textAlign: "center" }}>Status</th>
+                <th className="px-4 py-2.5 text-right font-medium w-24" style={{ textAlign: "right", width: 130 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -296,14 +244,14 @@ export default function EventTypesPage() {
                 <tr>
                   <td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin inline-block mr-2" />
-                    Loading event types…
+                    Loading event categories…
                   </td>
                 </tr>
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={3} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                    No event types match your search.
+                    No event categories match your search.
                   </td>
                 </tr>
               )}
@@ -312,30 +260,8 @@ export default function EventTypesPage() {
                   <tr key={it._id} className="border-t hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md shrink-0"
-                          style={{
-                            background: `color-mix(in srgb, ${it.color} 15%, transparent)`,
-                            color: it.color,
-                          }}
-                        >
-                          <i className={`${it.icon} text-[15px]`} />
-                        </span>
                         <div className="min-w-0 flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-foreground">{it.name}</span>
-                          {it.isSystem && (
-                            <span
-                              title="System type — restore-safe"
-                              className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded"
-                              style={{
-                                background: "color-mix(in srgb, var(--muted-foreground) 12%, transparent)",
-                                color: "var(--muted-foreground)",
-                              }}
-                            >
-                              <Lock className="h-2.5 w-2.5" />
-                              System
-                            </span>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -369,6 +295,9 @@ export default function EventTypesPage() {
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="inline-flex items-center gap-1">
+                        <UIButton size="icon-sm" variant="ghost" onClick={() => navigate(`/modules/events/setup/task-checklist?category=${it._id}`)} title="Tasks and checklist of this category">
+                          <ListChecks className="h-3.5 w-3.5" />
+                        </UIButton>
                         <UIButton size="icon-sm" variant="ghost" onClick={() => openEdit(it)} title="Edit">
                           <Pencil className="h-3.5 w-3.5" />
                         </UIButton>
@@ -386,14 +315,9 @@ export default function EventTypesPage() {
 
       {/* Add / Edit Drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent className="crm-theme w-full sm:max-w-lg overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{editing ? "Edit event type" : "Add event type"}</SheetTitle>
-            <SheetDescription>
-              {editing
-                ? "Rename, re-brand, or toggle this event type."
-                : "New event types appear in the Create Event wizard immediately."}
-            </SheetDescription>
+            <SheetTitle>{editing ? "Edit event category" : "Add event category"}</SheetTitle>
           </SheetHeader>
 
           <div className="mt-6 space-y-4 px-4">
@@ -405,87 +329,6 @@ export default function EventTypesPage() {
                 onChange={(e) => onNameChange(e.target.value)}
                 placeholder="e.g. Blood Donation Camp"
                 maxLength={80}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="et-key">Key *</Label>
-              <Input
-                id="et-key"
-                value={form.key}
-                onChange={(e) => onKeyChange(e.target.value)}
-                placeholder="auto-generated from name"
-                className="font-mono"
-                maxLength={40}
-                disabled={!!editing?.isSystem}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Machine name used in code and URLs. Cannot be changed on system types.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="et-color">Color</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    id="et-color"
-                    type="color"
-                    value={form.color}
-                    onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
-                    className="h-9 w-14 rounded-md border cursor-pointer bg-background"
-                  />
-                  <Input
-                    value={form.color}
-                    onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
-                    className="font-mono text-xs"
-                    maxLength={7}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Preview</Label>
-                <div
-                  className="h-9 rounded-md border flex items-center justify-center gap-2 text-sm font-medium"
-                  style={{
-                    background: `color-mix(in srgb, ${form.color} 12%, transparent)`,
-                    color: form.color,
-                  }}
-                >
-                  <i className={`${form.icon} text-base`} />
-                  <span>{form.name || "Preview"}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Icon</Label>
-              <div className="grid grid-cols-8 gap-1.5">
-                {COMMON_ICONS.map((ic) => {
-                  const active = form.icon === ic;
-                  return (
-                    <button
-                      key={ic}
-                      type="button"
-                      onClick={() => setForm((f) => ({ ...f, icon: ic }))}
-                      className={
-                        "h-9 rounded-md border flex items-center justify-center transition-colors " +
-                        (active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "hover:bg-accent")
-                      }
-                      title={ic}
-                    >
-                      <i className={`${ic} text-[15px]`} />
-                    </button>
-                  );
-                })}
-              </div>
-              <Input
-                value={form.icon}
-                onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-                className="font-mono text-xs mt-2"
-                placeholder="bi-… (bootstrap-icons class)"
               />
             </div>
 
@@ -505,13 +348,29 @@ export default function EventTypesPage() {
               <div>
                 <div className="text-sm font-medium">Active</div>
                 <div className="text-[11px] text-muted-foreground">
-                  Inactive types are hidden from the Create Event picker.
+                  Inactive categories are hidden from the Create Event picker.
                 </div>
               </div>
-              <Switch
-                checked={form.isActive}
-                onCheckedChange={(checked: boolean) => setForm((f) => ({ ...f, isActive: checked }))}
-              />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.isActive}
+                onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
+                className="inline-flex items-center shrink-0"
+              >
+                <span
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    form.isActive ? "" : "bg-muted"
+                  }`}
+                  style={form.isActive ? { background: "var(--primary)" } : undefined}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                      form.isActive ? "translate-x-4" : "translate-x-0.5"
+                    }`}
+                  />
+                </span>
+              </button>
             </div>
           </div>
 
@@ -520,7 +379,7 @@ export default function EventTypesPage() {
               Cancel
             </UIButton>
             <UIButton onClick={save} disabled={!canSave} loading={saving}>
-              {editing ? "Save changes" : "Create event type"}
+              {editing ? "Save changes" : "Create event category"}
             </UIButton>
           </SheetFooter>
         </SheetContent>
@@ -532,18 +391,16 @@ export default function EventTypesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the event type. Events already created with it will keep the reference but
+              This removes the event category. Events already created with it will keep the reference but
               new events won't be able to select it.
-              {deleteTarget?.isSystem && (
-                <span className="block mt-2 text-amber-600 font-medium">
-                  This is a system type. You can restore it with "Restore defaults" later.
-                </span>
-              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={doDelete}
+              style={{ background: "var(--destructive)", color: "#fff", boxShadow: "none" }}
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

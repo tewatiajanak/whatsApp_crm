@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -105,9 +106,6 @@ export default function OtherIntegrationPage() {
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">API Keys & Outbound Webhooks</h1>
-          <p className="text-sm text-muted-foreground">
-            Generate REST API access tokens and subscribe external systems to real-time events.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -127,9 +125,6 @@ export default function OtherIntegrationPage() {
       <Card>
         <CardHeader className="py-4 px-6 border-b">
           <CardTitle className="text-base font-semibold">REST API Key Credentials</CardTitle>
-          <CardDescription className="text-xs">
-            Use this bearer token to authenticate requests to the KnowVato REST API.
-          </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-2">
@@ -150,9 +145,6 @@ export default function OtherIntegrationPage() {
       <Card>
         <CardHeader className="py-4 px-6 border-b">
           <CardTitle className="text-base font-semibold">Subscribed Outbound Webhooks</CardTitle>
-          <CardDescription className="text-xs">
-            Real-time payload push on lead creation, event check-in, and status changes.
-          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -206,17 +198,13 @@ export default function OtherIntegrationPage() {
       </Card>
 
       {/* Add Webhook Modal */}
-      {isAddOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-card border rounded-xl shadow-lg w-full max-w-lg overflow-hidden animate-fade-in">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-base">Add Outbound Webhook</h3>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsAddOpen(false)}>
-                ✕
-              </Button>
-            </div>
-
-            <form onSubmit={handleAddWebhook} className="p-4 space-y-4">
+      <Sheet open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col gap-0 p-0">
+          <SheetHeader className="border-b p-4 pr-10">
+            <SheetTitle>Add Outbound Webhook</SheetTitle>
+          </SheetHeader>
+          <form onSubmit={handleAddWebhook} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1">
                   Webhook URL
@@ -243,19 +231,18 @@ export default function OtherIntegrationPage() {
                   <option value="campaign.sent">campaign.sent</option>
                 </select>
               </div>
-
-              <div className="pt-3 border-t flex items-center justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="bg-primary text-primary-foreground">
-                  Save Webhook
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+            <SheetFooter className="border-t p-4 flex-row justify-end gap-2 sm:space-x-0">
+              <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-primary text-primary-foreground">
+                Save Webhook
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

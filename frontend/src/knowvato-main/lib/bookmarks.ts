@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { appStore } from "../../api/appStore";
 
 export type Bookmark = { title: string; url: string };
 
@@ -7,7 +8,7 @@ const KEY = "orbitops.bookmarks";
 function read(): Bookmark[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = appStore.getItem(KEY);
     return raw ? (JSON.parse(raw) as Bookmark[]) : [];
   } catch {
     return [];
@@ -18,6 +19,8 @@ const listeners = new Set<() => void>();
 function emit() {
   listeners.forEach((l) => l());
 }
+
+appStore.subscribe(emit);
 
 export function useBookmarks() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -32,7 +35,7 @@ export function useBookmarks() {
   }, []);
 
   const save = (next: Bookmark[]) => {
-    localStorage.setItem(KEY, JSON.stringify(next));
+    appStore.setItem(KEY, JSON.stringify(next));
     emit();
   };
 

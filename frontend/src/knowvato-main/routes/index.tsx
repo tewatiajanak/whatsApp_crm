@@ -114,9 +114,6 @@ export default function KnowvatoDashboard() {
           <h1 className="text-2xl font-semibold tracking-tight">
             Welcome back{user ? `, ${user.name}` : ""} 👋
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Here's what's happening across your workspace today.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -274,7 +271,6 @@ export default function KnowvatoDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Jump straight into the most common tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -309,7 +305,6 @@ export default function KnowvatoDashboard() {
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-4 w-4" /> Recent Activity
               </CardTitle>
-              <CardDescription>Latest events across your workspace</CardDescription>
             </div>
             <Badge variant="secondary">Live</Badge>
           </CardHeader>
@@ -339,7 +334,6 @@ export default function KnowvatoDashboard() {
             <CardTitle className="flex items-center gap-2">
               <Bookmark className="h-4 w-4" /> Bookmarks
             </CardTitle>
-            <CardDescription>Pin pages you visit often</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {pinnableModules.map((m) => {

@@ -10,6 +10,7 @@ import {
   Mail,
   Bell,
 } from "lucide-react";
+import { appStore } from "../../api/appStore";
 
 type Rule = {
   id: string;
@@ -38,14 +39,14 @@ const TRIGGERS = [
 const STORAGE = "em_automated_rules";
 const load = (): Rule[] => {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE) || "[]");
+    return JSON.parse(appStore.getItem(STORAGE) || "[]");
   } catch {
     return [];
   }
 };
 const save = (r: Rule[]) => {
   try {
-    localStorage.setItem(STORAGE, JSON.stringify(r));
+    appStore.setItem(STORAGE, JSON.stringify(r));
   } catch {}
 };
 const uid = () =>
@@ -125,7 +126,7 @@ export default function CommunicationAutomatedPage() {
   };
 
   return (
-    <div className="p-4 max-w-[1400px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link
@@ -147,9 +148,6 @@ export default function CommunicationAutomatedPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Automated Messages</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Rules that fire on domain events — with delay, channel fallback, and per-event overrides.
-          </p>
         </div>
         <button
           onClick={() => setShowForm(true)}

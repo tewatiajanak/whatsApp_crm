@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PlayCircle, ArrowLeft, RefreshCw, Search, Loader2, X, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { appStore } from "../../api/appStore";
 
 type Run = {
   id: string;
@@ -57,9 +58,9 @@ const SEED: Run[] = [
 
 const load = (): Run[] => {
   try {
-    const raw = localStorage.getItem(STORAGE);
+    const raw = appStore.getItem(STORAGE);
     if (!raw) {
-      localStorage.setItem(STORAGE, JSON.stringify(SEED));
+      appStore.setItem(STORAGE, JSON.stringify(SEED));
       return SEED;
     }
     return JSON.parse(raw);
@@ -96,7 +97,7 @@ export default function AutomationRunsPage() {
   const filtered = statusFilter === "all" ? runs : runs.filter((r) => r.status === statusFilter);
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link to="/modules/automation" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1" style={{ textDecoration: "none" }}>
@@ -108,7 +109,6 @@ export default function AutomationRunsPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Runs</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">Every workflow execution — completed, running, waiting, failed.</p>
         </div>
       </div>
 

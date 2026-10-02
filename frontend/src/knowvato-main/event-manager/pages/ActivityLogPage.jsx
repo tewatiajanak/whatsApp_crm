@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "../lib/router-shim";
 import { useEventData } from "../context/EventDataContext";
 import { fetchEventLogs } from "../services/api";
+import { fmtDateTime } from "../../utils/date";
 
 const ACTION_META = {
   "Event Created":      { icon: "bi-plus-circle",   color: "var(--success)" },
@@ -14,16 +15,7 @@ const ACTION_META = {
   "Passes Downloaded":  { icon: "bi-download",       color: "var(--success)" },
 };
 
-const fmtDate = (d) => {
-  if (!d) return "—";
-  return new Date(d).toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+const fmtDate = (d) => fmtDateTime(d);
 
 // Smart value renderer — handles nested objects/arrays gracefully
 const renderValue = (value) => {
@@ -55,12 +47,12 @@ const renderValue = (value) => {
                   <td style={{ paddingRight: 12, paddingBottom: 2, color: "var(--muted-foreground)" }}>{f.type || "—"}</td>
                   <td style={{ paddingRight: 12, paddingBottom: 2 }}>
                     {f.enabled !== false
-                      ? <span style={{ color: "#16a34a", fontWeight: 600 }}>Yes</span>
+                      ? <span style={{ color: "var(--success)", fontWeight: 600 }}>Yes</span>
                       : <span style={{ color: "var(--muted-foreground)" }}>No</span>}
                   </td>
                   <td style={{ paddingBottom: 2 }}>
                     {f.required
-                      ? <span style={{ color: "#dc2626", fontWeight: 600 }}>Yes</span>
+                      ? <span style={{ color: "var(--destructive)", fontWeight: 600 }}>Yes</span>
                       : <span style={{ color: "var(--muted-foreground)" }}>No</span>}
                   </td>
                 </tr>
@@ -131,8 +123,8 @@ const RecordBlock = ({ data, type }) => {
   return (
     <div
       style={{
-        background: isOld ? "#fff5f5" : "#f0fdf4",
-        border: `1px solid ${isOld ? "var(--destructive)" : "#bbf7d0"}`,
+        background: isOld ? "var(--destructive-bg)" : "var(--success-bg)",
+        border: "1px solid var(--border)",
         borderRadius: 8,
         padding: "10px 14px",
         marginTop: 8,
@@ -143,7 +135,7 @@ const RecordBlock = ({ data, type }) => {
         style={{
           fontSize: 10,
           fontWeight: 700,
-          color: isOld ? "#dc2626" : "#16a34a",
+          color: isOld ? "var(--destructive)" : "var(--success)",
           textTransform: "uppercase",
           letterSpacing: 0.6,
           marginBottom: 8,
@@ -156,7 +148,7 @@ const RecordBlock = ({ data, type }) => {
           <span style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 600 }}>
             {LABEL_MAP[k] || k}:
           </span>
-          <div style={{ fontSize: 12, color: isOld ? "#dc2626" : "#16a34a", marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: isOld ? "var(--destructive)" : "var(--success)", marginTop: 2 }}>
             {renderValue(v)}
           </div>
         </div>
@@ -185,50 +177,39 @@ const ActivityLogPage = () => {
   }, [eventId]);
 
   return (
-    <div className="container-fluid p-2 fade-in">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Header */}
-      <div className="card border-0 shadow-sm mb-3">
-        <div className="card-body p-3">
-          <nav aria-label="breadcrumb" className="mb-2">
-            <ol className="breadcrumb mb-0 app-breadcrumb">
-              <li className="breadcrumb-item flex-shrink-0">
-                <button type="button" className="btn btn-link p-0" style={{ fontSize: "inherit", lineHeight: "inherit", textDecoration: "none", whiteSpace: "nowrap" }} onClick={() => navigate("/events")}>
-                  Events
-                </button>
-              </li>
-              <li className="breadcrumb-item active text-truncate" style={{ minWidth: 0 }}>
-                {selectedEvent?.eventName || "Event"} — Activity Log
-              </li>
-            </ol>
-          </nav>
-          <div className="d-flex align-items-center justify-content-between">
-            <div>
-              <h5 className="fw-bold mb-0">Activity Log</h5>
-              {selectedEvent && (
-                <small className="text-muted">{selectedEvent.eventName}</small>
-              )}
-            </div>
-            {!loading && (
-              <span
-                className="badge border"
-                style={{ background: "var(--background)", color: "var(--muted-foreground)", fontSize: 12 }}
-              >
-                {logs.length} {logs.length === 1 ? "entry" : "entries"}
-              </span>
-            )}
-          </div>
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-2 border-b">
+        <div className="min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate("/modules/events/all")}
+            className="text-[11px] text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+            style={{ background: "transparent", border: 0, padding: 0 }}
+          >
+            <i className="bi bi-arrow-left" /> Back to Events
+          </button>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight truncate">
+            Activity Log
+          </h1>
+          <p className="text-[11px] text-muted-foreground leading-tight">
+            {selectedEvent?.eventName || ""}
+          </p>
         </div>
+        {!loading && (
+          <div className="text-xs text-muted-foreground">
+            {logs.length} {logs.length === 1 ? "entry" : "entries"}
+          </div>
+        )}
       </div>
 
       {/* Timeline */}
-      <div className="card border-0 shadow-sm">
-        <div className="card-body p-3">
+      <div className="rounded-xl border bg-card">
+        <div className="p-4">
           {loading ? (
-            <div className="text-center text-muted py-5">Loading…</div>
+            <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>
           ) : logs.length === 0 ? (
-            <div className="text-center text-muted py-5">
-              No activity recorded yet.
-            </div>
+            <div className="py-12 text-center text-sm text-muted-foreground">No activity recorded yet.</div>
           ) : (
             <div style={{ position: "relative", paddingLeft: 38 }}>
               {/* Vertical line */}
@@ -251,7 +232,7 @@ const ActivityLogPage = () => {
                 const hasDiff = log.oldData || log.newData;
 
                 return (
-                  <div key={log._id} style={{ position: "relative", marginBottom: 20 }}>
+                  <div key={log.id || log._id} style={{ position: "relative", marginBottom: 14 }}>
                     {/* Dot */}
                     <div
                       style={{
@@ -285,9 +266,9 @@ const ActivityLogPage = () => {
                       }}
                     >
                       {/* Action + timestamp */}
-                      <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                      <div className="flex justify-between items-start gap-2 flex-wrap">
                         <span
-                          style={{ fontSize: 14, fontWeight: 700, color: meta.color }}
+                          style={{ fontSize: 13, fontWeight: 600, color: meta.color }}
                         >
                           {log.action}
                         </span>
@@ -299,7 +280,7 @@ const ActivityLogPage = () => {
                       {/* Entity + who */}
                       <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: 4 }}>
                         {log.entityName && (
-                          <span className="fw-semibold text-dark me-1">
+                          <span className="font-semibold text-foreground mr-1">
                             {log.entityName}
                           </span>
                         )}
@@ -314,7 +295,7 @@ const ActivityLogPage = () => {
                       {/* Old + New records */}
                       {hasDiff && (
                         <div
-                          className="d-flex gap-2 flex-wrap mt-1 record-diff-row"
+                          className="flex gap-2 flex-wrap mt-1"
                           style={{ alignItems: "flex-start" }}
                         >
                           <RecordBlock data={log.oldData} type="old" />

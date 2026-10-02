@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarClock, ArrowLeft, Plus, Pause, Play, Trash2, X, Mail } from "lucide-react";
+import { appStore } from "../../api/appStore";
 
 type Schedule = {
   id: string;
@@ -17,14 +18,14 @@ type Schedule = {
 const STORAGE = "em_report_schedules";
 const load = (): Schedule[] => {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE) || "[]");
+    return JSON.parse(appStore.getItem(STORAGE) || "[]");
   } catch {
     return [];
   }
 };
 const save = (s: Schedule[]) => {
   try {
-    localStorage.setItem(STORAGE, JSON.stringify(s));
+    appStore.setItem(STORAGE, JSON.stringify(s));
   } catch {}
 };
 const uid = () =>
@@ -82,7 +83,7 @@ export default function ReportsScheduledPage() {
   };
 
   return (
-    <div className="p-4 max-w-[1400px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link to="/modules/reports" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1" style={{ textDecoration: "none" }}>

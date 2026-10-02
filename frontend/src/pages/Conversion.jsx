@@ -10,7 +10,7 @@ export default function Conversion() {
 
   return (
     <div>
-      <PageHeader title="Conversion Dashboard" subtitle="Pipeline and win-rates from your data" />
+      <PageHeader title="Conversion Dashboard" />
       <ErrorBox error={stats.error} />
 
       <div className="row row-cols-2 row-cols-md-4 g-3 mb-4">
@@ -21,7 +21,7 @@ export default function Conversion() {
           ["Conversion", (t.convRate ?? 0) + "%", "primary"],
         ].map(([label, val, tone]) => (
           <div className="col" key={label}>
-            <div className="card kpi-card h-100"><div className="card-body"><div className="kpi-label">{label}</div><div className={`kpi-value text-${tone}`}>{val ?? 0}</div></div></div>
+            <div className="card h-100" style={{ borderRadius: 10, padding: "14px 14px 12px", minHeight: 84 }}><div style={{ fontSize: 12.5, color: "#4b5a5b", fontWeight: 500, marginBottom: 6 }}>{label}</div><div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.1, color: "#1e2d2d" }}>{val ?? 0}</div></div>
           </div>
         ))}
       </div>

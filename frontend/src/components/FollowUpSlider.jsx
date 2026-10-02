@@ -1,3 +1,4 @@
+import DateInput from "./DateInput";
 import { useState, useEffect } from "react";
 import { useToast } from "../context/ToastContext";
 import { leadsApi, followUpsApi, usersApi } from "../api";
@@ -174,8 +175,7 @@ export default function FollowUpSlider({ lead, onClose, statuses = [], services 
                 <label className="form-label small" style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
                   <i className="bi bi-calendar-event me-1"></i>Date <span style={{ color: "#dc2626" }}>*</span>
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   className="form-control form-control-sm"
                   style={{ borderColor: !current.date ? "#fca5a5" : undefined }}
                   value={current.date}
@@ -239,8 +239,7 @@ export default function FollowUpSlider({ lead, onClose, statuses = [], services 
                 <label className="form-label small" style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
                   <i className="bi bi-calendar-event me-1"></i>Date <span style={{ color: "#dc2626" }}>*</span>
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   className="form-control form-control-sm"
                   style={{ borderColor: !next.date ? "#fca5a5" : undefined }}
                   value={next.date}

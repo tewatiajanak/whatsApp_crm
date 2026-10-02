@@ -17,9 +17,128 @@ const SETUP_CATEGORIES = {
   "whatsapp-templates": { category: "Workflows", label: "WhatsApp Template" },
   "whatsapp-integration": { category: "Integrations", label: "WhatsApp Integration" },
   facebook: { category: "Integrations", label: "Facebook" },
-  "google-form": { category: "Integrations", label: "Google Form" },
-  "api-integration": { category: "Integrations", label: "API Integration" },
+  "organization-details": { category: "General", label: "Organization Details" },
+  "ai-integration": { category: "Integrations", label: "AI Integration" },
+  "facebook-integration": { category: "Integrations", label: "Facebook Integration" },
+  "custom-fields": { category: "Custom", label: "Custom Fields" },
+  "module-whatsapp-templates": { category: "Communication Templates", label: "WhatsApp Template" },
+  "module-sms-templates": { category: "Communication Templates", label: "SMS Template" },
+  "module-email-templates": { category: "Communication Templates", label: "Email Template" },
 };
+
+// Labels for Setup / Configuration sub-pages, keyed by slug (kept in sync with
+// CONFIGURATION_CATEGORIES in knowvato-main/routes/modules.$module.tsx).
+const SLUG_LABELS = {
+  "organization-details": "Organization Details",
+  branding: "Branding & White-label",
+  users: "Users",
+  roles: "Roles",
+  "user-types": "User Types",
+  "password-policy": "Password Policy",
+  departments: "Departments",
+  security: "Security",
+  "audit-logs": "Audit Logs",
+  files: "Files",
+  "backup-export": "Backup & Export",
+  "event-types": "Event Category",
+  "event-categories": "Attendee Category",
+  "event-statuses": "Event Statuses",
+  "task-statuses": "Task Statuses",
+  venues: "Venue",
+  "certificate-templates": "Certificate Design",
+  "form-templates": "Event Form Design",
+  "field-library": "Custom Fields",
+  "pass-templates": "Pass Templates",
+  "subscription-usage": "Subscription & Usage",
+  "platform-invoices": "Platform Invoices",
+  "billing-details": "Billing Details & Methods",
+  "payment-gateways": "Payment Gateways",
+  "taxes-invoicing": "Taxes & Invoicing",
+  "templates-whatsapp": "WhatsApp Template",
+  "templates-sms": "SMS Template",
+  "templates-email": "Email Template",
+  "message-delivery": "Message Delivery",
+  "staff-notifications": "Staff Notifications",
+  "integrations-ai": "AI Integration",
+  "integrations-whatsapp": "WhatsApp Integration",
+  "integrations-email": "Email Integration",
+  "integrations-sms": "SMS Integration",
+  "integrations-push": "Push Notifications",
+  "integrations-facebook": "Facebook Integration",
+  "integrations-payment": "Payment Gateway Integration",
+  "integrations-api-keys": "API Access & Keys",
+  "integrations-other": "Other API Integration",
+  "event-id-formats": "Event ID Formats",
+  "task-checklist": "Task Checklist",
+  "master-lists": "Master Lists",
+  "seating-maps": "Seating Maps",
+  "privacy-requests": "Privacy Requests",
+  "page-templates": "Landing Page Templates",
+};
+
+// Modules with their own sidebar submenu: sub-path -> page label ("" = index).
+const MODULE_PAGES = {
+  events: {
+    label: "Event Manager",
+    pages: {
+      "": "Overview",
+      all: "Events",
+      create: "Create Event",
+      new: "Create Event",
+      calendar: "Calendar",
+      communication: "Communication",
+      tasks: "Tasks",
+      registrants: "Registrants",
+      payments: "Payments",
+      scan: "Scan Pass",
+      attendance: "Attendance",
+      qr: "Generate QR",
+      "bulk-qr": "Bulk QR",
+      activity: "Activity Log",
+    },
+  },
+  "front-office": {
+    label: "Front Office",
+    pages: {
+      "": "Today Visitors",
+      "visitors/today": "Today Visitors",
+      "visitors/upcoming": "Upcoming Visitors",
+    },
+  },
+  website: { label: "Website Builder", pages: { "": "Overview" } },
+  communication: {
+    label: "Communication",
+    pages: {
+      "": "Overview",
+      campaigns: "Campaigns",
+      "automated-messages": "Automated Messages",
+      logs: "Message Logs",
+      "notification-center": "Notification Center",
+    },
+  },
+  automation: {
+    label: "Automation",
+    pages: { "": "Workflows", templates: "Workflow Templates", runs: "Runs", webhooks: "Webhooks" },
+  },
+  reports: {
+    label: "Reports & Analytics",
+    pages: {
+      "": "Overview",
+      builder: "Report Builder",
+      saved: "Saved Reports",
+      scheduled: "Scheduled Reports",
+      exports: "Exports & Downloads",
+      analytics: "Org Analytics",
+    },
+  },
+  utilities: {
+    label: "Utilities",
+    pages: { "": "Overview", qr: "QR Code Studio", "video-edit": "Video Editor", "photo-edit": "Photo Studio" },
+  },
+};
+
+const SEGMENT_LABELS = { sa: "Super Admin", crm: "CRM", me: "Participant Portal", explore: "Event Discovery" };
+const titleCase = (seg) => SEGMENT_LABELS[seg] || seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
 
 export default function BreadcrumbNav() {
   const location = useLocation();
@@ -116,18 +235,26 @@ export default function BreadcrumbNav() {
       ];
     }
 
+    if (pathname === "/crm/media") {
+      return [
+        { label: "Home", to: "/" },
+        { label: "WhatsApp Manager", to: "/crm/chat" },
+        { label: "Manage Media" }
+      ];
+    }
+
     if (pathname.startsWith("/crm/chatbot")) {
       return [
         { label: "Home", to: "/" },
         { label: "WhatsApp Manager", to: "/crm/chat" },
-        { label: "Chatbot & Bot Flows", to: "/crm/chatbot" }
+        { label: "Chatbot & Bot Flows" }
       ];
     }
 
     if (pathname === "/crm/audit") {
       return [
         { label: "Home", to: "/" },
-        { label: "Administration", to: "/crm/setup" },
+        { label: "CRM", to: "/crm" },
         { label: "Audit Logs" }
       ];
     }
@@ -135,7 +262,7 @@ export default function BreadcrumbNav() {
     if (pathname.startsWith("/crm/setup/enquiry-forms")) {
       return [
         { label: "Home", to: "/" },
-        { label: "Administration", to: "/crm/setup" },
+        { label: "CRM", to: "/crm" },
         { label: "Setup", to: "/crm/setup" },
         { label: "Forms", to: "/crm/setup?active=enquiry-form" },
         { label: "Enquiry Form Builder" }
@@ -146,6 +273,7 @@ export default function BreadcrumbNav() {
       const secInfo = SETUP_CATEGORIES[activeSection] || { category: "Setup", label: "Setup" };
       const crumbs = [
         { label: "Home", to: "/" },
+        { label: "CRM", to: "/crm" },
         { label: "Setup", to: "/crm/setup" },
         { label: secInfo.category, to: `/crm/setup?active=${activeSection}` },
         { label: secInfo.label, to: mode === "editor" ? `/crm/setup?active=${activeSection}&mode=list` : null }
@@ -162,51 +290,38 @@ export default function BreadcrumbNav() {
     }
 
     // 3. KnowVato Main Modules (/modules/...)
-    if (pathname.startsWith("/modules/events")) {
-      const crumbs = [
-        { label: "Home", to: "/" },
-        { label: "Event Manager", to: "/modules/events" }
-      ];
-      if (pathname === "/modules/events/create") crumbs.push({ label: "Create Event" });
-      else if (pathname === "/modules/events/registrants") crumbs.push({ label: "Registrants" });
-      else if (pathname === "/modules/events/scan") crumbs.push({ label: "Scan Pass" });
-      else if (pathname === "/modules/events/qr") crumbs.push({ label: "Generate QR" });
-      else if (pathname === "/modules/events/bulk-qr") crumbs.push({ label: "Bulk QR" });
-      else crumbs.push({ label: "Dashboard" });
-      return crumbs;
-    }
+    if (pathname.startsWith("/modules/")) {
+      const [slug, ...restSegs] = pathname.slice("/modules/".length).split("/").filter(Boolean);
+      const rest = restSegs.join("/");
+      const home = { label: "Home", to: "/" };
 
-    if (pathname.startsWith("/modules/utilities")) {
-      const crumbs = [
-        { label: "Home", to: "/" },
-        { label: "Utilities", to: "/modules/utilities" }
-      ];
-      if (pathname === "/modules/utilities/qr") crumbs.push({ label: "QR Code Studio" });
-      else if (pathname === "/modules/utilities/video-edit") crumbs.push({ label: "Video Editor" });
-      else if (pathname === "/modules/utilities/photo-edit") crumbs.push({ label: "Photo Studio" });
-      return crumbs;
-    }
+      if (slug === "configuration") return [home, { label: "Configuration" }];
 
-    if (pathname.startsWith("/modules/integrations")) {
-      const slug = pathname.replace("/modules/", "");
-      const labelMap = {
-        "integrations-whatsapp": "WhatsApp Integration",
-        "integrations-email": "Email Integration",
-        "integrations-sms": "SMS Integration",
-        "integrations-facebook": "Facebook Integration",
-        "integrations-other": "API Integration"
-      };
+      const mod = MODULE_PAGES[slug];
+      if (mod) {
+        const base = `/modules/${slug}`;
+        const crumbs = [home, { label: mod.label, to: base }];
+        if (restSegs[0] === "setup") {
+          const sub = restSegs[1];
+          if (!sub) crumbs.push({ label: "Setup" });
+          else crumbs.push({ label: "Setup", to: `${base}/setup` }, { label: SLUG_LABELS[sub] || titleCase(sub) });
+        } else if (mod.pages[rest] !== undefined) {
+          crumbs.push({ label: mod.pages[rest] });
+        } else if (slug === "events") {
+          // /modules/events/:eventId/... — a single event's pages
+          const sub = { attendees: "Attendees", upload: "Upload Data", logs: "Activity Log", passes: "Generate Pass", edit: "Edit Event" }[restSegs[1]];
+          crumbs.push({ label: "Events", to: `${base}/all` }, { label: sub || "Event Details" });
+        } else {
+          crumbs.push({ label: titleCase(restSegs[restSegs.length - 1]) });
+        }
+        return crumbs;
+      }
+
+      // Everything else under /modules/<slug> is a Configuration sub-page.
       return [
-        { label: "Home", to: "/" },
+        home,
         { label: "Configuration", to: "/modules/configuration" },
-        { label: labelMap[slug] || "Integration" }
-      ];
-    }
-
-    if (pathname.startsWith("/modules/configuration")) {
-      return [
-        { label: "Home", to: "/" },
-        { label: "Configuration" }
+        { label: SLUG_LABELS[slug] || titleCase(slug || "Configuration") }
       ];
     }
 
@@ -216,7 +331,7 @@ export default function BreadcrumbNav() {
     let accPath = "";
     pathSegments.forEach((seg, i) => {
       accPath += `/${seg}`;
-      const title = seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
+      const title = titleCase(seg);
       if (i === pathSegments.length - 1) {
         crumbs.push({ label: title });
       } else {

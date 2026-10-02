@@ -89,6 +89,14 @@ export interface IMessage extends Document {
   sentAt?: Date;
   deliveredAt?: Date;
   readAt?: Date;
+  /** "whatsapp" | "email" */
+  channel?: string;
+  subject?: string;
+  /** Where it was sent from, e.g. "events" (Event Manager → Communication). */
+  source?: string;
+  eventId?: string;
+  eventName?: string;
+  simulated?: boolean;
 }
 const messageSchema = new Schema<IMessage>(
   {
@@ -111,10 +119,17 @@ const messageSchema = new Schema<IMessage>(
     sentAt: Date,
     deliveredAt: Date,
     readAt: Date,
+    channel: String,
+    subject: String,
+    source: String,
+    eventId: String,
+    eventName: String,
+    simulated: Boolean,
   },
   { timestamps: true }
 );
 messageSchema.index({ tenant: 1, createdAt: -1 });
+messageSchema.index({ tenant: 1, source: 1, createdAt: -1 });
 messageSchema.index({ tenant: 1, status: 1 });
 export const Message = model<IMessage>("Message", messageSchema);
 

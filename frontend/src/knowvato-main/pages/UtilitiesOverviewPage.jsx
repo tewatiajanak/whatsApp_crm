@@ -54,7 +54,7 @@ export default function UtilitiesOverviewPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Header */}
       <div className="bg-white border rounded-2xl p-6 shadow-2xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -69,9 +69,6 @@ export default function UtilitiesOverviewPage() {
                   Creative Tools
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1 m-0">
-                Powerful in-browser creative utilities for QR codes, video processing, and media enhancements.
-              </p>
             </div>
           </div>
         </div>

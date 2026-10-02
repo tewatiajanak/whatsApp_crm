@@ -86,7 +86,6 @@ export default function AuditLogsPage() {
             <ScrollText className="h-4 w-4 text-primary" />
             <h2 className="text-base font-semibold text-foreground leading-tight">Audit Logs</h2>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 leading-snug">Every create, update, and delete across the workspace.</p>
         </div>
         <UIButton variant="outline" onClick={load} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
           Refresh

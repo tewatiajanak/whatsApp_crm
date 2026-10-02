@@ -93,7 +93,7 @@ export default function EventsCalendarPage() {
   const selectedDate = selectedDay ? new Date(selectedDay) : null;
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
@@ -116,9 +116,6 @@ export default function EventsCalendarPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Calendar</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Month view of every event — click a day to see what's happening.
-          </p>
         </div>
         <Link
           to="/modules/events/create?mode=new"
@@ -256,7 +253,7 @@ export default function EventsCalendarPage() {
                 return (
                   <Link
                     key={e.id}
-                    to={`/modules/events/${e.id}`}
+                    to={`/modules/events/${e.id}/attendees`}
                     className="block rounded-lg border p-3 hover:shadow-sm transition-shadow"
                     style={{ textDecoration: "none" }}
                   >

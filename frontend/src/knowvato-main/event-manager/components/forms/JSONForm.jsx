@@ -1,3 +1,4 @@
+import DateInput from "../../../../components/DateInput";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FiPlus, FiSearch, FiRefreshCcw, FiMoreVertical } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -582,8 +583,7 @@ const EventForm = ({
                 <label className="form-label small fw-semibold mb-1">
                   From Date *
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   className="form-control form-control-sm"
                   name="startDate"
                   value={data.startDate}
@@ -594,8 +594,7 @@ const EventForm = ({
                 <label className="form-label small fw-semibold mb-1">
                   To Date *
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   className="form-control form-control-sm"
                   name="endDate"
                   value={data.endDate}

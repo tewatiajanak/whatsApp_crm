@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as msgC from "../controllers/messagingController";
 import * as fbC from "../controllers/facebookController";
+import paymentWebhookRoutes from "./paymentWebhooks";
 
 const r = Router();
 
@@ -20,5 +21,12 @@ r.post("/whatsapp/:tenantId", msgC.webhookReceive);
  */
 r.get("/facebook/:tenantId", fbC.fbWebhookVerify);
 r.post("/facebook/:tenantId", fbC.fbWebhookReceive);
+
+/**
+ * Payment gateways: customer return + server notifications
+ *   ALL  /webhooks/payments/return/:txnId
+ *   POST /webhooks/payments/:provider/:gatewayId
+ */
+r.use("/payments", paymentWebhookRoutes);
 
 export default r;

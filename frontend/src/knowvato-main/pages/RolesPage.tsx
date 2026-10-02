@@ -55,7 +55,7 @@ export default function RolesPage() {
       const res: any = await http.get("/usertypes?perPage=100&sort=name");
       setRoles(res?.data ?? res?.items ?? []);
     } catch (e: any) {
-      toast?.error?.(e?.message);
+      toast?.(e?.message, "error");
     } finally {
       setLoading(false);
     }
@@ -125,15 +125,15 @@ export default function RolesPage() {
       const payload = { name: form.name.trim(), desc: form.desc.trim(), perms };
       if (editing) {
         await http.patch(`/usertypes/${editing._id}`, payload);
-        toast?.success?.("Role updated");
+        toast?.("Role updated");
       } else {
         await http.post("/usertypes", payload);
-        toast?.success?.("Role created");
+        toast?.("Role created");
       }
       closeDrawer();
       await load();
     } catch (e: any) {
-      toast?.error?.(e?.message);
+      toast?.(e?.message, "error");
     } finally {
       setSaving(false);
     }
@@ -145,7 +145,7 @@ export default function RolesPage() {
       await http.del(`/usertypes/${r._id}`);
       await load();
     } catch (e: any) {
-      toast?.error?.(e?.message);
+      toast?.(e?.message, "error");
     }
   };
 
@@ -166,9 +166,6 @@ export default function RolesPage() {
             <ShieldCheck className="h-4 w-4 text-primary" />
             <h2 className="text-base font-semibold text-foreground leading-tight">Roles & Permissions</h2>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 leading-snug">
-            Control what each role can view, create, edit, or delete across all modules.
-          </p>
         </div>
         <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           New role

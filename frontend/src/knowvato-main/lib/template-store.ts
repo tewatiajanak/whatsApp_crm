@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
+import { http } from "../../api";
 
 export type Channel = "whatsapp" | "sms" | "email";
+
+// Module whose Setup owns a template. Templates are only listed inside the
+// module that created them.
+export type SetupModule = "events" | "crm" | "website" | "front-office";
 
 export type TemplateButton =
   | { type: "quick_reply"; text: string }
@@ -10,6 +15,7 @@ export type TemplateButton =
 export type Template = {
   id: string;
   channel: Channel;
+  module?: SetupModule;
   name: string;
   category: "MARKETING" | "UTILITY" | "AUTHENTICATION";
   language: string;
@@ -24,73 +30,45 @@ export type Template = {
   createdAt: string;
 };
 
-const KEY = "kv_templates_v1";
-
-function seed(): Template[] {
-  return [
-    {
-      id: crypto.randomUUID(),
-      channel: "whatsapp",
-      name: "welcome_offer",
-      category: "MARKETING",
-      language: "en_US",
-      header: { type: "text", text: "Welcome to {{1}}!" },
-      body: "Hi {{1}}, thanks for joining. Use code SAVE10 for 10% off your first order.",
-      footer: "Reply STOP to opt out",
-      buttons: [
-        { type: "url", text: "Shop Now", url: "https://example.com" },
-        { type: "quick_reply", text: "Talk to agent" },
-      ],
-      sample: "Acme",
-      status: "APPROVED",
-      active: true,
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    },
-    {
-      id: crypto.randomUUID(),
-      channel: "whatsapp",
-      name: "order_update",
-      category: "UTILITY",
-      language: "en_US",
-      header: { type: "text", text: "Order Update" },
-      body: "Your order #{{1}} has been shipped and will arrive on {{2}}.",
-      buttons: [{ type: "url", text: "Track", url: "https://track.example.com" }],
-      sample: "1234",
-      status: "PENDING",
-      active: true,
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ];
-}
-
-function load(): Template[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return seed();
-}
-
-let data: Template[] = load();
+// Templates live in MongoDB (/api/module-templates), loaded per module on
+// first use and cached here so every page for that module shares one list.
+let data: Template[] = [];
+const loaded = new Set<SetupModule>();
 const listeners = new Set<() => void>();
-function persist() {
-  if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(data));
-  listeners.forEach((l) => l());
+const notify = () => listeners.forEach((l) => l());
+
+const fromApi = (d: any): Template => ({
+  ...d,
+  id: d._id,
+  header: d.header ?? { type: "none" },
+  buttons: d.buttons ?? [],
+});
+
+const toApi = (t: Template) => {
+  const { id: _id, createdAt: _createdAt, ...rest } = t;
+  return rest;
+};
+
+async function refresh(m: SetupModule) {
+  const res: any = await http.get(`/module-templates?module=${m}&perPage=200`);
+  data = [...data.filter((t) => t.module !== m), ...(res?.data ?? []).map(fromApi)];
+  loaded.add(m);
+  notify();
 }
 
 export const templateStore = {
-  getAll: () => data,
-  getByChannel: (c: Channel) => data.filter((t) => t.channel === c),
-  upsert(t: Template) {
-    const i = data.findIndex((x) => x.id === t.id);
-    if (i >= 0) data[i] = t;
-    else data.push(t);
-    persist();
+  getByChannel: (c: Channel, m: SetupModule = "events") =>
+    data.filter((t) => t.channel === c && t.module === m),
+  async upsert(t: Template) {
+    const m = t.module ?? "events";
+    if (data.some((x) => x.id === t.id)) await http.patch(`/module-templates/${t.id}`, toApi(t));
+    else await http.post("/module-templates", { ...toApi(t), module: m });
+    await refresh(m);
   },
-  remove(id: string) {
-    data = data.filter((x) => x.id !== id);
-    persist();
+  async remove(id: string) {
+    const m = data.find((x) => x.id === id)?.module ?? "events";
+    await http.del(`/module-templates/${id}`);
+    await refresh(m);
   },
   subscribe(fn: () => void) {
     listeners.add(fn);
@@ -98,13 +76,14 @@ export const templateStore = {
   },
 };
 
-export function useTemplates(channel: Channel) {
+export function useTemplates(channel: Channel, module: SetupModule = "events") {
   const [, tick] = useState(0);
   useEffect(() => {
     const unsub = templateStore.subscribe(() => tick((n) => n + 1));
+    if (!loaded.has(module)) refresh(module).catch((e) => console.error("Failed to load templates", e));
     return () => {
       unsub();
     };
-  }, []);
-  return templateStore.getByChannel(channel);
+  }, [module]);
+  return templateStore.getByChannel(channel, module);
 }

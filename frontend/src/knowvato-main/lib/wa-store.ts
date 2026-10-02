@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { appStore } from "../../api/appStore";
 
 export type Integration = {
   id: string;
@@ -19,7 +20,7 @@ const KEY = "wa_integrations_v1";
 function load(): Integration[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = appStore.getItem(KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
   return [];
@@ -28,9 +29,15 @@ function load(): Integration[] {
 let data: Integration[] = load();
 const listeners = new Set<() => void>();
 function persist() {
-  if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(data));
+  if (typeof window !== "undefined") appStore.setItem(KEY, JSON.stringify(data));
   listeners.forEach((l) => l());
 }
+
+// Re-read once the server store has loaded (or been cleared on sign-out).
+appStore.subscribe(() => {
+  data = load();
+  listeners.forEach((l) => l());
+});
 
 export const waStore = {
   getAll: () => data,

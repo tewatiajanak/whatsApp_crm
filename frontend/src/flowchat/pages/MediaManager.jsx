@@ -119,7 +119,6 @@ export default function MediaManager() {
             <i className="bi bi-collection-play text-primary"></i>
             Manage Media
           </h5>
-          <div className="text-muted small">Upload once, reuse media URLs in templates and chatbot media nodes.</div>
         </div>
         <button
           className="btn btn-primary btn-sm"

@@ -83,9 +83,6 @@ export default function ReportsPage() {
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">Reports & Executive Analytics</h1>
-          <p className="text-sm text-muted-foreground">
-            Cross-module insights on lead conversion, team performance, event ROI and revenue growth.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -256,9 +253,6 @@ export default function ReportsPage() {
       <Card>
         <CardHeader className="py-4 px-6 border-b">
           <CardTitle className="text-base font-semibold">Counsellor Performance Leaderboard</CardTitle>
-          <CardDescription className="text-xs">
-            Individual team member metrics, conversion percentages, and closed revenue.
-          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

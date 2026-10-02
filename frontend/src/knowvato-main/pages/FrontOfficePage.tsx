@@ -79,8 +79,33 @@ const INITIAL_VISITORS: VisitorEntry[] = [
   },
 ];
 
-export default function FrontOfficePage() {
-  const [visitors, setVisitors] = useState<VisitorEntry[]>(INITIAL_VISITORS);
+// Shared between the Today / Upcoming views so switching menus keeps the
+// session's check-ins (data is local sample data — no backend yet).
+let visitorStore: VisitorEntry[] = INITIAL_VISITORS;
+
+type View = "today" | "upcoming";
+
+const VIEW_META: Record<View, { title: string; description: string; cta: string }> = {
+  today: {
+    title: "Today Visitors",
+    description: "Visitors on campus today — check-in/out and guest badge issuance.",
+    cta: "Check In Visitor",
+  },
+  upcoming: {
+    title: "Upcoming Visitors",
+    description: "Scheduled appointments and expected visitors.",
+    cta: "Schedule Visit",
+  },
+};
+
+export default function FrontOfficePage({ view = "today" }: { view?: View }) {
+  const meta = VIEW_META[view];
+  const [visitors, setVisitorsState] = useState<VisitorEntry[]>(visitorStore);
+  const setVisitors = (update: (prev: VisitorEntry[]) => VisitorEntry[]) =>
+    setVisitorsState((prev) => {
+      visitorStore = update(prev);
+      return visitorStore;
+    });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
@@ -92,11 +117,12 @@ export default function FrontOfficePage() {
     host: "Priya Kothari (Admissions)",
   });
 
-  const url = "/modules/front-office";
+  const url = `/modules/front-office/visitors/${view}`;
   const { add, remove, has } = useBookmarks();
   const pinned = has(url);
 
-  const filteredVisitors = visitors.filter((v) => {
+  const viewVisitors = visitors.filter((v) => (view === "upcoming" ? v.status === "Scheduled" : v.status !== "Scheduled"));
+  const filteredVisitors = viewVisitors.filter((v) => {
     const matchesSearch =
       v.name.toLowerCase().includes(search.toLowerCase()) ||
       v.phone.toLowerCase().includes(search.toLowerCase()) ||
@@ -130,13 +156,18 @@ export default function FrontOfficePage() {
       phone: formState.phone,
       type: formState.type,
       host: formState.host,
-      checkIn: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      checkIn:
+        new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (view === "upcoming" ? " (Scheduled)" : ""),
       badgeId: `PASS-${Math.floor(1000 + Math.random() * 9000)}`,
-      status: "Checked In",
+      status: view === "upcoming" ? "Scheduled" : "Checked In",
     };
 
     setVisitors((prev) => [newVisitor, ...prev]);
-    toast.success(`Visitor ${formState.name} checked in! Pass ${newVisitor.badgeId} generated.`);
+    toast.success(
+      view === "upcoming"
+        ? `Visit scheduled for ${formState.name}.`
+        : `Visitor ${formState.name} checked in! Pass ${newVisitor.badgeId} generated.`
+    );
     setIsCheckInOpen(false);
     setFormState({ name: "", phone: "+91 ", type: "Parent", host: "Priya Kothari (Admissions)" });
   };
@@ -152,10 +183,8 @@ export default function FrontOfficePage() {
           >
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight">Front Office & Visitor Terminal</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage visitor check-in/out, appointment scheduling, and guest badge issuance.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
+          <p className="text-sm text-muted-foreground">{meta.description}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -166,7 +195,7 @@ export default function FrontOfficePage() {
             {pinned ? "Bookmarked" : "Bookmark"}
           </Button>
           <Button onClick={() => setIsCheckInOpen(true)} className="bg-primary text-primary-foreground">
-            <Plus className="h-4 w-4" /> Check In Visitor
+            <Plus className="h-4 w-4" /> {meta.cta}
           </Button>
         </div>
       </div>
@@ -237,6 +266,7 @@ export default function FrontOfficePage() {
             </div>
           </div>
 
+          {view === "today" && (
           <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
             <Button
               variant={statusFilter === "all" ? "default" : "outline"}
@@ -259,14 +289,8 @@ export default function FrontOfficePage() {
             >
               Checked Out
             </Button>
-            <Button
-              variant={statusFilter === "Scheduled" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("Scheduled")}
-            >
-              Scheduled
-            </Button>
           </div>
+          )}
         </div>
       </Card>
 
@@ -274,9 +298,6 @@ export default function FrontOfficePage() {
       <Card>
         <CardHeader className="py-4 px-6 border-b">
           <CardTitle className="text-base font-semibold">Visitor Terminal Log</CardTitle>
-          <CardDescription className="text-xs">
-            Real-time tracking of visitors, host staff members, and check-out timestamps.
-          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -366,7 +387,7 @@ export default function FrontOfficePage() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-card border rounded-xl shadow-lg w-full max-w-lg overflow-hidden animate-fade-in">
             <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-base">New Visitor Check-In</h3>
+              <h3 className="font-semibold text-base">{view === "upcoming" ? "Schedule Visit" : "New Visitor Check-In"}</h3>
               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsCheckInOpen(false)}>
                 ✕
               </Button>
@@ -431,7 +452,7 @@ export default function FrontOfficePage() {
                   Cancel
                 </Button>
                 <Button type="submit" className="bg-primary text-primary-foreground">
-                  Check In & Issue Badge
+                  {view === "upcoming" ? "Schedule Visit" : "Check In & Issue Badge"}
                 </Button>
               </div>
             </form>

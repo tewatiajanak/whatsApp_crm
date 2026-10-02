@@ -11,10 +11,11 @@ import {
   DollarSign,
   Award,
 } from "lucide-react";
+import { appStore } from "../../api/appStore";
 
 const load = (key: string): any[] => {
   try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
+    return JSON.parse(appStore.getItem(key) || "[]");
   } catch {
     return [];
   }
@@ -92,7 +93,7 @@ export default function ReportsAnalyticsPage() {
   const totalByType = byType.reduce((a, b) => a + b.count, 0);
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link to="/modules/reports" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1" style={{ textDecoration: "none" }}>
@@ -104,7 +105,6 @@ export default function ReportsAnalyticsPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Org Analytics</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">Cross-event dashboard — trends, breakdowns, and health signals.</p>
         </div>
       </div>
 

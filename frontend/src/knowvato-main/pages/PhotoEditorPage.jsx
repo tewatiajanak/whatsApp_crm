@@ -359,9 +359,6 @@ export default function PhotoEditorPage() {
                     <Crop className="h-4 w-4 text-emerald-400" />
                     <span>Crop & Aspect Ratio</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">
-                    Freeform, 1:1 Square, 16:9 Landscape, and 9:16 Story cropping.
-                  </p>
                 </div>
 
                 <div className="p-3 bg-slate-950 rounded-lg border border-slate-800/80 space-y-2">
@@ -369,9 +366,6 @@ export default function PhotoEditorPage() {
                     <Type className="h-4 w-4 text-indigo-400" />
                     <span>Text & Watermarks</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">
-                    Add branded typography, school badges, and watermarks.
-                  </p>
                 </div>
               </div>
             )}

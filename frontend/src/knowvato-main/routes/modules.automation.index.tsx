@@ -95,7 +95,7 @@ export default function AutomationWorkflowsPage() {
   };
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <div className="flex items-center gap-2">
@@ -188,7 +188,6 @@ export default function AutomationWorkflowsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-lg font-semibold">New workflow</div>
-                <div className="text-xs text-muted-foreground mt-1">Full visual builder in Phase 12.</div>
               </div>
               <button onClick={() => setShowForm(false)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent"><X className="h-4 w-4" /></button>
             </div>

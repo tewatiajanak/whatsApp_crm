@@ -82,9 +82,6 @@ export default function FlowChatDashboard() {
               {statusText}
             </span>
           </h4>
-          <p className="text-muted small mb-0">
-            Build, test in real-time phone simulator, and deploy drag-and-drop WhatsApp automation flows.
-          </p>
         </div>
         <div className="d-flex align-items-center gap-2">
           <button className="btn btn-brand btn-sm rounded-pill px-3" onClick={() => setShowBotModal(true)}>

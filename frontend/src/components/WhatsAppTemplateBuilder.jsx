@@ -369,7 +369,6 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
           <h5 className="fw-bold mb-1" style={{ color: "#0f172a" }}>
             {initialTemplate ? "Edit WhatsApp Template" : "Create WhatsApp Template"}
           </h5>
-          <p className="text-muted small mb-0">Templates created here are submitted to Meta and status is tracked in CRM.</p>
         </div>
         <div className="d-flex gap-2">
           {onCancel && (

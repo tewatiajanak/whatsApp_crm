@@ -443,7 +443,6 @@ export default function EnquiryForms() {
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <div>
                       <h6 className="fw-bold mb-1 text-dark" style={{ fontSize: "1.05rem" }}>Form Fields</h6>
-                      <div className="text-muted small">Select the fields to include in the form, validate requirements, and configure labels.</div>
                     </div>
                     <div className="d-flex gap-2">
                       <button className="btn btn-sm btn-wa d-flex align-items-center gap-1" onClick={() => openFieldEditor()}>
@@ -1191,7 +1190,6 @@ export default function EnquiryForms() {
         <div>
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
-              <p className="mb-1 text-muted">Saved enquiry forms are available for campaigns.</p>
             </div>
             <button className="btn btn-wa" onClick={createNewForm}><i className="bi bi-plus-lg me-1"></i>Create Enquiry Form</button>
           </div>
@@ -1254,7 +1252,6 @@ export default function EnquiryForms() {
       {previewForm && (
         <Modal size="lg" title={`Preview: ${previewForm.name || "Enquiry Form"}`} onClose={closePreview} footer={<button className="btn btn-outline-secondary" onClick={closePreview}>Close</button>}>
           <div className="mb-2">
-            <div className="small text-muted">This preview uses the same public form URL that can be shared.</div>
           </div>
           <iframe
             src={getShareUrl(previewForm._id)}
@@ -1355,9 +1352,6 @@ export default function EnquiryForms() {
             <label className="form-check-label" htmlFor="fieldRequired">
               Required
             </label>
-            <div className="form-text text-muted">
-              Make this field mandatory for the user when filling the enquiry form.
-            </div>
           </div>
 
           {fieldEditor.error && (

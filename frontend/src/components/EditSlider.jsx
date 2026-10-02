@@ -69,9 +69,7 @@ export default function EditSlider({ lead, onClose, onSaved }) {
           ) : (
             <>
               <div className="mb-3">
-                <label className="form-label">
-                  <i className="bi bi-person me-2" style={{ color: "#0085a8" }}></i>Name
-                </label>
+                <label className="form-label">Name</label>
                 <input
                   type="text"
                   className="form-control"
@@ -81,9 +79,7 @@ export default function EditSlider({ lead, onClose, onSaved }) {
               </div>
 
               <div className="mb-3">
-                <label className="form-label">
-                  <i className="bi bi-telephone me-2" style={{ color: "#25d366" }}></i>Phone
-                </label>
+                <label className="form-label">Phone</label>
                 <input
                   type="tel"
                   className="form-control"
@@ -93,9 +89,7 @@ export default function EditSlider({ lead, onClose, onSaved }) {
               </div>
 
               <div className="mb-3">
-                <label className="form-label">
-                  <i className="bi bi-envelope me-2" style={{ color: "#ea4335" }}></i>Email
-                </label>
+                <label className="form-label">Email</label>
                 <input
                   type="email"
                   className="form-control"
@@ -105,9 +99,7 @@ export default function EditSlider({ lead, onClose, onSaved }) {
               </div>
 
               <div className="mb-3">
-                <label className="form-label">
-                  <i className="bi bi-geo-alt me-2" style={{ color: "#fbbc04" }}></i>City
-                </label>
+                <label className="form-label">City</label>
                 <input
                   type="text"
                   className="form-control"
@@ -118,9 +110,7 @@ export default function EditSlider({ lead, onClose, onSaved }) {
               </div>
 
               <div className="mb-3">
-                <label className="form-label">
-                  <i className="bi bi-map me-2" style={{ color: "#34a853" }}></i>State
-                </label>
+                <label className="form-label">State</label>
                 <input
                   type="text"
                   className="form-control"
@@ -131,9 +121,7 @@ export default function EditSlider({ lead, onClose, onSaved }) {
               </div>
 
               <div className="mb-4">
-                <label className="form-label">
-                  <i className="bi bi-globe me-2" style={{ color: "#4285f4" }}></i>Country
-                </label>
+                <label className="form-label">Country</label>
                 <input
                   type="text"
                   className="form-control"
@@ -146,7 +134,7 @@ export default function EditSlider({ lead, onClose, onSaved }) {
               <div className="d-grid gap-2">
                 <button className="btn btn-primary" disabled={saving} onClick={save}>
                   {saving && <span className="spinner-border spinner-border-sm me-2" />}
-                  <i className="bi bi-check-lg me-1"></i>Save Changes
+                  Save Changes
                 </button>
                 <button className="btn btn-outline-secondary" onClick={onClose} disabled={saving}>
                   Cancel

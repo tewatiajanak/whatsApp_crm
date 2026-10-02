@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import { appStore } from "../api/appStore";
 
 export const PRESETS = {
   original: {
@@ -284,17 +285,33 @@ const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
   const [themeId, setThemeId] = useState(() => {
-    return localStorage.getItem("knowvato_theme_id") || "original";
+    return appStore.getItem("knowvato_theme_id") || "original";
   });
 
   const [customThemes, setCustomThemes] = useState(() => {
     try {
-      const saved = localStorage.getItem("knowvato_custom_themes");
+      const saved = appStore.getItem("knowvato_custom_themes");
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
     }
   });
+
+  // The provider mounts before sign-in; pick up the saved theme once the
+  // server store has loaded (and fall back to defaults on sign-out).
+  useEffect(
+    () =>
+      appStore.subscribe(() => {
+        setThemeId(appStore.getItem("knowvato_theme_id") || "original");
+        try {
+          const saved = appStore.getItem("knowvato_custom_themes");
+          setCustomThemes(saved ? JSON.parse(saved) : []);
+        } catch {
+          setCustomThemes([]);
+        }
+      }),
+    []
+  );
 
   const currentConfig = useMemo(() => {
     if (PRESETS[themeId]) return PRESETS[themeId];
@@ -303,11 +320,11 @@ export function ThemeProvider({ children }) {
   }, [themeId, customThemes]);
 
   useEffect(() => {
-    localStorage.setItem("knowvato_theme_id", themeId);
+    appStore.setItem("knowvato_theme_id", themeId);
   }, [themeId]);
 
   useEffect(() => {
-    localStorage.setItem("knowvato_custom_themes", JSON.stringify(customThemes));
+    appStore.setItem("knowvato_custom_themes", JSON.stringify(customThemes));
   }, [customThemes]);
 
   useEffect(() => {

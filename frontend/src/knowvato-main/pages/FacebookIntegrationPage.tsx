@@ -53,9 +53,6 @@ export default function FacebookIntegrationPage() {
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">Facebook & Meta Lead Ads Integration</h1>
-          <p className="text-sm text-muted-foreground">
-            Connect Facebook Pages & Lead Generation Ads directly to your WhatsApp CRM pipeline.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -77,9 +74,6 @@ export default function FacebookIntegrationPage() {
         <CardHeader className="py-4 px-6 border-b flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base font-semibold">Meta Page & App Settings</CardTitle>
-            <CardDescription className="text-xs">
-              Subscribe to instant lead form webhooks from Facebook & Instagram.
-            </CardDescription>
           </div>
           <Badge variant={connected ? "default" : "secondary"} className={connected ? "bg-emerald-600" : ""}>
             {connected ? "Connected ✓" : "Disconnected"}

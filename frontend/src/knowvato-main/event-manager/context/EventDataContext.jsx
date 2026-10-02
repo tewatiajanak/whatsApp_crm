@@ -26,6 +26,7 @@ import {
   fetchAttendees,
   createAttendee,
   bulkCreateAttendees,
+  markAttendeesPassGenerated,
   patchAttendee,
   removeAttendee,
   fetchEventLogs,
@@ -141,6 +142,12 @@ export const EventDataProvider = ({ children }) => {
       venue: formData.venue || "",
       organizer: formData.organizer || "",
       eventType: formData.eventType || "",
+      city: formData.city || "",
+      capacity: formData.capacity || 0,
+      startTime: formData.startTime || "",
+      endTime: formData.endTime || "",
+      description: formData.description || "",
+      ...(formData.extra || {}),
       attendeeFields: formData.attendeeFieldSettings || [],
       categories: formData.categories || [],
     });
@@ -175,8 +182,10 @@ export const EventDataProvider = ({ children }) => {
     const oldFields = {};
     Object.keys(data).forEach((k) => {
       if (JSON.stringify(oldEvent?.[k]) !== JSON.stringify(data[k])) {
-        oldFields[k] = oldEvent?.[k];
-        changedFields[k] = data[k];
+        // the registration form is large — record that it changed, not its contents
+        const big = k === "form" || k === "passLayout";
+        oldFields[k] = big ? "Previous design" : oldEvent?.[k];
+        changedFields[k] = big ? "Design updated" : data[k];
       }
     });
     if (Object.keys(changedFields).length) {
@@ -190,6 +199,7 @@ export const EventDataProvider = ({ children }) => {
         newData: changedFields,
       });
     }
+    return saved;
   }, []);
 
   const deleteEvent = useCallback(async (id, eventName) => {
@@ -353,10 +363,7 @@ export const EventDataProvider = ({ children }) => {
   }, []);
 
   const markPassesGenerated = useCallback(async (eventId) => {
-    const eventAttendeeList = await fetchAttendees(eventId);
-    const updated = await Promise.all(
-      eventAttendeeList.map((a) => patchAttendee(a.id, { passGenerated: true })),
-    );
+    const updated = await markAttendeesPassGenerated(eventId);
     setAttendees((prev) =>
       prev.map((a) => {
         const u = updated.find((item) => item.id === a.id);

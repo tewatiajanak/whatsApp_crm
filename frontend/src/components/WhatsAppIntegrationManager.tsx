@@ -260,9 +260,6 @@ export default function WhatsAppIntegrationManager({ showHeader = true, backLink
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
                 <Plug className="h-6 w-6 text-emerald-600" /> WhatsApp Integration
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Connect and manage your Meta WhatsApp Cloud API or BSP Vendor account credentials.
-              </p>
             </div>
             <Button onClick={startCreate} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs">
               <Plus className="h-4 w-4" /> Integrate
@@ -461,9 +458,6 @@ export default function WhatsAppIntegrationManager({ showHeader = true, backLink
             <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3 bg-slate-50/80">
               <div>
                 <div className="text-xs font-semibold text-slate-800">Active Gateway</div>
-                <div className="text-[11px] text-muted-foreground">
-                  Use this gateway for sending active WhatsApp campaigns and messages.
-                </div>
               </div>
               <Switch
                 checked={form.active}

@@ -63,9 +63,6 @@ export default function EmailIntegrationPage() {
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">Email Integration Settings</h1>
-          <p className="text-sm text-muted-foreground">
-            Configure SMTP servers, SendGrid, AWS SES, or custom providers for transactional & campaign emails.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -95,7 +92,6 @@ export default function EmailIntegrationPage() {
               <span>Custom SMTP Server</span>
               <Mail className="h-4 w-4 text-primary" />
             </CardTitle>
-            <CardDescription className="text-xs">Connect institutional or private mail server.</CardDescription>
           </CardHeader>
         </Card>
 
@@ -110,7 +106,6 @@ export default function EmailIntegrationPage() {
               <span>Twilio SendGrid API</span>
               <Globe className="h-4 w-4 text-primary" />
             </CardTitle>
-            <CardDescription className="text-xs">High-deliverability cloud API key.</CardDescription>
           </CardHeader>
         </Card>
 
@@ -125,7 +120,6 @@ export default function EmailIntegrationPage() {
               <span>Amazon SES (AWS)</span>
               <ShieldCheck className="h-4 w-4 text-primary" />
             </CardTitle>
-            <CardDescription className="text-xs">Low cost bulk transactional email service.</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -141,9 +135,6 @@ export default function EmailIntegrationPage() {
                 ? "SendGrid API Configuration"
                 : "Amazon SES Credentials"}
             </CardTitle>
-            <CardDescription className="text-xs">
-              Configure parameters for outbound transactional messages & newsletters.
-            </CardDescription>
           </div>
           <Badge variant="default" className="bg-emerald-600">
             Connected ✓

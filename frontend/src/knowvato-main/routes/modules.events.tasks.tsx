@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useEventData } from "@/event-manager/context/EventDataContext";
+import { loadTaskStatuses } from "@/lib/task-statuses";
+import { loadTaskTemplates, newId, templatesForCategory } from "@/lib/task-checklists";
+import { fmtDate } from "@/utils/date";
 import {
   ArrowLeft,
   ListTodo,
@@ -11,9 +14,11 @@ import {
   ArrowRight,
   ArrowLeft as MoveLeft,
 } from "lucide-react";
+import { appStore } from "../../api/appStore";
 
 type Priority = "low" | "medium" | "high" | "urgent";
-type Status = "todo" | "in_progress" | "blocked" | "done";
+// the id of a status from Setup → Task Statuses
+type Status = string;
 
 type Task = {
   id: string;
@@ -25,15 +30,16 @@ type Task = {
   assignee?: string;
   dueDate?: string;
   createdAt: string;
+  /** Checklist points of this task; ticked here on the board. */
+  checklist?: { id: string; text: string; done: boolean }[];
+  /** Set when the task came from Setup → Task Checklist. */
+  templateId?: string;
 };
 
+// which checklist tasks each event has already received
+const GIVEN_KEY = "em_task_given";
+
 const STORAGE_KEY = "em_tasks";
-const COLUMNS: { status: Status; label: string; color: string }[] = [
-  { status: "todo", label: "To do", color: "var(--muted-foreground)" },
-  { status: "in_progress", label: "In progress", color: "var(--info)" },
-  { status: "blocked", label: "Blocked", color: "var(--warning)" },
-  { status: "done", label: "Done", color: "var(--success)" },
-];
 
 const PRIORITY_STYLE: Record<Priority, { bg: string; fg: string; label: string }> = {
   low: { bg: "color-mix(in srgb, var(--muted-foreground) 15%, transparent)", fg: "var(--muted-foreground)", label: "Low" },
@@ -44,7 +50,7 @@ const PRIORITY_STYLE: Record<Priority, { bg: string; fg: string; label: string }
 
 const load = (): Task[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = appStore.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -52,7 +58,7 @@ const load = (): Task[] => {
 };
 const save = (tasks: Task[]) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    appStore.setItem(STORAGE_KEY, JSON.stringify(tasks));
   } catch {}
 };
 
@@ -61,16 +67,6 @@ const uid = () =>
     ? (crypto as any).randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-const SEED: Omit<Task, "id" | "createdAt">[] = [
-  { title: "Finalize speaker list for keynote day", status: "in_progress", priority: "high" },
-  { title: "Book AV vendor and confirm quote", status: "todo", priority: "urgent" },
-  { title: "Design registration form with logic", status: "in_progress", priority: "medium" },
-  { title: "Get sponsor logos in high resolution", status: "blocked", priority: "medium", description: "Waiting on TCS and Infosys design teams" },
-  { title: "Publish 'Save the date' broadcast", status: "todo", priority: "high" },
-  { title: "Approve pass design v3", status: "done", priority: "medium" },
-  { title: "Confirm venue walkthrough date", status: "done", priority: "low" },
-];
-
 export default function EventsTasksPage() {
   const { events = [] } = useEventData() as any;
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -78,17 +74,26 @@ export default function EventsTasksPage() {
   const [addingIn, setAddingIn] = useState<Status | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("medium");
-  const [openTask, setOpenTask] = useState<Task | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [pointText, setPointText] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<Status | null>(null);
 
+  // Board columns come from Setup → Task Statuses, in Sr No order
+  const COLUMNS = useMemo(() => loadTaskStatuses().map((st) => ({ status: st.id, label: st.label, color: st.color })), []);
+  const firstStatus = COLUMNS[0]?.status;
+  const lastStatus = COLUMNS[COLUMNS.length - 1]?.status;
+  const statusLabel = (id: Status) => COLUMNS.find((c) => c.status === id)?.label || id;
+  const openTask = openId ? tasks.find((t) => t.id === openId) || null : null;
+  const setOpenTask = (t: Task | null) => {
+    setOpenId(t ? t.id : null);
+    setPointText("");
+  };
+
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    const existing = load();
-    if (existing.length === 0) {
-      const seeded = SEED.map((s) => ({ ...s, id: uid(), createdAt: new Date().toISOString() }));
-      save(seeded);
-      setTasks(seeded);
-    } else {
-      setTasks(existing);
-    }
+    setTasks(load());
+    setLoaded(true);
   }, []);
 
   const persist = (next: Task[]) => {
@@ -96,16 +101,97 @@ export default function EventsTasksPage() {
     save(next);
   };
 
+  // Tasks an event should have, from Setup → Task Checklist, for its category.
+  const tasksFromTemplates = (ev: any, existing: Task[]): Task[] =>
+    templatesForCategory(loadTaskTemplates(), ev.eventType)
+      .filter((tpl) => !existing.some((t) => t.eventId === ev.id && t.templateId === tpl.id))
+      .map((tpl) => ({
+        id: uid(),
+        title: tpl.task,
+        status: firstStatus,
+        priority: "medium" as Priority,
+        eventId: ev.id,
+        templateId: tpl.id,
+        createdAt: new Date().toISOString(),
+        checklist: tpl.points.map((p) => ({ id: newId(), text: p.text, done: false })),
+      }));
+
+  // Which checklist tasks each event has already been given: { eventId: [templateId…] }.
+  // A task is handed to an event once — deleting it from the board keeps it deleted,
+  // while tasks added to the checklist later still reach every event.
+  const readGiven = (): Record<string, string[]> => {
+    try {
+      const v = JSON.parse(appStore.getItem(GIVEN_KEY) || "{}");
+      return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+    } catch {
+      return {};
+    }
+  };
+
+  useEffect(() => {
+    if (!loaded || !events.length || !firstStatus) return;
+    const templates = loadTaskTemplates();
+    const given = readGiven();
+    let next = tasks;
+    let changed = false;
+    (events as any[]).forEach((ev) => {
+      const had = new Set([...(given[ev.id] || []), ...next.filter((t) => t.eventId === ev.id && t.templateId).map((t) => t.templateId as string)]);
+      const fresh = templatesForCategory(templates, ev.eventType).filter((tpl) => !had.has(tpl.id));
+      if (fresh.length) {
+        next = [...tasksFromTemplates(ev, next).filter((t) => fresh.some((tpl) => tpl.id === t.templateId)), ...next];
+        fresh.forEach((tpl) => had.add(tpl.id));
+      }
+      const list = [...had];
+      if (list.length !== (given[ev.id] || []).length) {
+        given[ev.id] = list;
+        changed = true;
+      }
+    });
+    if (changed) appStore.setItem(GIVEN_KEY, JSON.stringify(given));
+    if (next.length !== tasks.length) persist(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, events.length, firstStatus]);
+
+  const eventName = (id?: string | null) => (id ? (events as any[]).find((e) => e.id === id)?.eventName || "" : "");
+
+  // Ticking a point: all ticked → the task moves to the last status; the first tick moves it out of the first one.
+  const togglePoint = (taskId: string, pointId: string) =>
+    persist(
+      tasks.map((t) => {
+        if (t.id !== taskId || !t.checklist) return t;
+        const checklist = t.checklist.map((p) => (p.id === pointId ? { ...p, done: !p.done } : p));
+        const done = checklist.filter((p) => p.done).length;
+        let status = t.status;
+        if (done === checklist.length && lastStatus) status = lastStatus;
+        else if (done > 0 && (t.status === firstStatus || t.status === lastStatus) && COLUMNS[1]) status = COLUMNS[1].status;
+        else if (done === 0 && t.status === lastStatus) status = firstStatus;
+        return { ...t, checklist, status };
+      })
+    );
+  const addPoint = (taskId: string, text: string) =>
+    persist(tasks.map((t) => (t.id === taskId ? { ...t, checklist: [...(t.checklist || []), { id: newId(), text, done: false }] } : t)));
+  const removePoint = (taskId: string, pointId: string) =>
+    persist(tasks.map((t) => (t.id === taskId ? { ...t, checklist: (t.checklist || []).filter((p) => p.id !== pointId) } : t)));
+
   const filtered = useMemo(() => {
     if (filterEvent === "all") return tasks;
     return tasks.filter((t) => t.eventId === filterEvent);
   }, [tasks, filterEvent]);
 
   const byColumn = useMemo(() => {
-    const out: Record<Status, Task[]> = { todo: [], in_progress: [], blocked: [], done: [] };
-    filtered.forEach((t) => out[t.status].push(t));
+    const out: Record<Status, Task[]> = Object.fromEntries(COLUMNS.map((c) => [c.status, [] as Task[]]));
+    // a task whose status was deleted in Setup shows in the first column
+    filtered.forEach((t) => (out[t.status] || out[firstStatus] || []).push(t));
+    // checklist tasks follow the Sr No set in Task Checklist; tasks added by hand keep their place
+    const order = new Map(loadTaskTemplates().map((tpl, i) => [tpl.id, i]));
+    const rank = (t: Task) => order.get(t.templateId as string) ?? Number.MAX_SAFE_INTEGER;
+    Object.values(out).forEach((col) => {
+      const slots = col.map((t, i) => (t.templateId ? i : -1)).filter((i) => i >= 0);
+      const sorted = slots.map((i) => col[i]).sort((a, b) => String(a.eventId).localeCompare(String(b.eventId)) || rank(a) - rank(b));
+      slots.forEach((slot, n) => (col[slot] = sorted[n]));
+    });
     return out;
-  }, [filtered]);
+  }, [filtered, COLUMNS, firstStatus]);
 
   const addTask = (status: Status) => {
     if (!newTitle.trim()) return;
@@ -123,19 +209,22 @@ export default function EventsTasksPage() {
   };
 
   const moveTask = (id: string, direction: -1 | 1) => {
-    const order: Status[] = ["todo", "in_progress", "blocked", "done"];
+    const order: Status[] = COLUMNS.map((c) => c.status);
     persist(
       tasks.map((t) => {
         if (t.id !== id) return t;
-        const idx = order.indexOf(t.status);
+        const idx = Math.max(0, order.indexOf(t.status));
         const nxt = Math.max(0, Math.min(order.length - 1, idx + direction));
         return { ...t, status: order[nxt] };
       })
     );
-    if (openTask?.id === id) {
-      const updated = tasks.find((t) => t.id === id);
-      if (updated) setOpenTask({ ...updated });
-    }
+  };
+
+  // Drag & drop: dropping a card on a column moves the task to that status.
+  const dropTask = (status: Status) => {
+    if (dragId) persist(tasks.map((t) => (t.id === dragId && t.status !== status ? { ...t, status } : t)));
+    setDragId(null);
+    setDragOver(null);
   };
 
   const removeTask = (id: string) => {
@@ -144,7 +233,7 @@ export default function EventsTasksPage() {
   };
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
@@ -167,20 +256,15 @@ export default function EventsTasksPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Tasks</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Kanban board for event execution — org-wide or scoped to a specific event.
-          </p>
         </div>
-        <select
-          value={filterEvent}
-          onChange={(e) => setFilterEvent(e.target.value)}
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
-        >
-          <option value="all">All events</option>
-          {(events as any[]).map((e) => (
-            <option key={e.id} value={e.id}>{e.eventName || "Untitled"}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <select value={filterEvent} onChange={(e) => setFilterEvent(e.target.value)} className="ui-input" style={{ minWidth: 200 }}>
+            <option value="all">All events</option>
+            {(events as any[]).map((e) => (
+              <option key={e.id} value={e.id}>{e.eventName || "Untitled"}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Kanban */}
@@ -188,7 +272,20 @@ export default function EventsTasksPage() {
         {COLUMNS.map((col) => {
           const colTasks = byColumn[col.status];
           return (
-            <div key={col.status} className="rounded-xl border bg-card overflow-hidden flex flex-col">
+            <div
+              key={col.status}
+              onDragOver={(e) => {
+                if (!dragId) return;
+                e.preventDefault();
+                if (dragOver !== col.status) setDragOver(col.status);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                dropTask(col.status);
+              }}
+              className="rounded-xl border bg-card overflow-hidden flex flex-col transition-shadow"
+              style={dragId && dragOver === col.status ? { boxShadow: "0 0 0 2px var(--primary)" } : undefined}
+            >
               <div
                 className="p-3 border-b flex items-center justify-between"
                 style={{ background: "var(--muted-background)" }}
@@ -215,7 +312,7 @@ export default function EventsTasksPage() {
               </div>
               <div className="p-2 space-y-1.5 min-h-[200px] flex-1">
                 {addingIn === col.status && (
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-2 space-y-2">
+                  <div className="rounded-lg border bg-card p-2.5 space-y-2 shadow-sm">
                     <input
                       autoFocus
                       value={newTitle}
@@ -228,36 +325,41 @@ export default function EventsTasksPage() {
                         }
                       }}
                       placeholder="What's the task?"
-                      className="w-full h-8 px-2 rounded-md border border-input bg-background text-sm"
+                      className="w-full h-8 px-2.5 rounded-md border border-input bg-background text-sm"
                     />
-                    <div className="flex items-center gap-1.5">
+                    <div>
+                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                        Priority
+                      </label>
                       <select
                         value={newPriority}
                         onChange={(e) => setNewPriority(e.target.value as Priority)}
-                        className="h-7 px-2 rounded-md border border-input bg-background text-xs flex-1"
+                        className="w-full h-8 px-2 rounded-md border border-input bg-background text-xs"
                       >
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                         <option value="urgent">Urgent</option>
                       </select>
-                      <button
-                        type="button"
-                        onClick={() => addTask(col.status)}
-                        className="h-7 px-2 rounded-md text-xs font-medium text-primary-foreground"
-                        style={{ background: "var(--primary)" }}
-                      >
-                        Add
-                      </button>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-0.5">
                       <button
                         type="button"
                         onClick={() => {
                           setAddingIn(null);
                           setNewTitle("");
                         }}
-                        className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-accent"
+                        className="ui-btn ui-btn-outline ui-btn-sm"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addTask(col.status)}
+                        disabled={!newTitle.trim()}
+                        className="ui-btn ui-btn-primary ui-btn-sm"
+                      >
+                        Add task
                       </button>
                     </div>
                   </div>
@@ -272,15 +374,40 @@ export default function EventsTasksPage() {
                   return (
                     <div
                       key={t.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", t.id);
+                        setDragId(t.id);
+                      }}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setDragOver(null);
+                      }}
                       onClick={() => setOpenTask(t)}
-                      className="rounded-lg border bg-card p-2.5 cursor-pointer hover:shadow-sm transition-shadow group"
+                      className="rounded-lg border bg-card p-2.5 cursor-grab active:cursor-grabbing hover:shadow-sm transition-shadow group"
+                      style={dragId === t.id ? { opacity: 0.45 } : undefined}
                     >
                       <div className="text-sm font-medium text-foreground leading-snug">
                         {t.title}
                       </div>
+                      {filterEvent === "all" && eventName(t.eventId) && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{eventName(t.eventId)}</div>
+                      )}
                       {t.description && (
                         <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
                           {t.description}
+                        </div>
+                      )}
+                      {!!t.checklist?.length && (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between text-[10.5px] text-muted-foreground mb-1">
+                            <span>Checklist</span>
+                            <span>{t.checklist.filter((p) => p.done).length}/{t.checklist.length}</span>
+                          </div>
+                          <div className="rounded-full overflow-hidden" style={{ height: 4, background: "var(--muted-background)" }}>
+                            <div style={{ height: "100%", width: `${(t.checklist.filter((p) => p.done).length / t.checklist.length) * 100}%`, background: "var(--primary)" }} />
+                          </div>
                         </div>
                       )}
                       <div className="mt-2 flex items-center justify-between gap-2">
@@ -292,7 +419,7 @@ export default function EventsTasksPage() {
                           {ps.label}
                         </span>
                         <div className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-0.5 transition-opacity">
-                          {col.status !== "todo" && (
+                          {col.status !== firstStatus && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -305,7 +432,7 @@ export default function EventsTasksPage() {
                               <MoveLeft className="h-3 w-3" />
                             </button>
                           )}
-                          {col.status !== "done" && (
+                          {col.status !== lastStatus && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -333,12 +460,13 @@ export default function EventsTasksPage() {
       {openTask && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setOpenTask(null)}>
           <div
-            className="bg-card rounded-xl border shadow-2xl w-full max-w-md p-5 space-y-4"
+            className="bg-card rounded-xl border shadow-2xl w-full max-w-lg p-5 space-y-4 overflow-y-auto"
+            style={{ maxHeight: "92vh" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Task</div>
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{eventName(openTask.eventId) || "Task"}</div>
                 <div className="text-lg font-semibold text-foreground mt-0.5">{openTask.title}</div>
               </div>
               <button
@@ -356,7 +484,7 @@ export default function EventsTasksPage() {
               <div>
                 <div className="text-muted-foreground uppercase tracking-wider mb-1">Status</div>
                 <div className="font-medium text-foreground capitalize">
-                  {openTask.status.replace("_", " ")}
+                  {statusLabel(openTask.status)}
                 </div>
               </div>
               <div>
@@ -381,7 +509,51 @@ export default function EventsTasksPage() {
               <div>
                 <div className="text-muted-foreground uppercase tracking-wider mb-1">Created</div>
                 <div className="font-medium text-foreground">
-                  {new Date(openTask.createdAt).toLocaleDateString()}
+                  {fmtDate(openTask.createdAt)}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5">
+                Checklist{openTask.checklist?.length ? ` · ${openTask.checklist.filter((p) => p.done).length}/${openTask.checklist.length}` : ""}
+              </div>
+              <div className="space-y-1">
+                {(openTask.checklist || []).map((p) => (
+                  <div key={p.id} className="flex items-center gap-2 rounded-md border px-2.5 py-1.5">
+                    <input type="checkbox" checked={p.done} onChange={() => togglePoint(openTask.id, p.id)} id={`pt-${p.id}`} />
+                    <label htmlFor={`pt-${p.id}`} className="flex-1 text-sm m-0 cursor-pointer" style={p.done ? { textDecoration: "line-through", color: "var(--muted-foreground)" } : { color: "var(--foreground)" }}>
+                      {p.text}
+                    </label>
+                    <button type="button" className="ui-btn ui-btn-danger ui-btn-sm ui-btn-icon" title="Remove point" onClick={() => removePoint(openTask.id, p.id)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    className="ui-input flex-1"
+                    style={{ height: 30 }}
+                    value={pointText}
+                    placeholder="Add a checklist point"
+                    onChange={(e) => setPointText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && pointText.trim()) {
+                        addPoint(openTask.id, pointText.trim());
+                        setPointText("");
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="ui-btn ui-btn-outline ui-btn-sm"
+                    disabled={!pointText.trim()}
+                    onClick={() => {
+                      addPoint(openTask.id, pointText.trim());
+                      setPointText("");
+                    }}
+                  >
+                    Add
+                  </button>
                 </div>
               </div>
             </div>
@@ -389,7 +561,7 @@ export default function EventsTasksPage() {
               <button
                 type="button"
                 onClick={() => moveTask(openTask.id, -1)}
-                disabled={openTask.status === "todo"}
+                disabled={openTask.status === firstStatus}
                 className="flex-1 h-9 rounded-md text-sm font-medium border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ← Back
@@ -397,7 +569,7 @@ export default function EventsTasksPage() {
               <button
                 type="button"
                 onClick={() => moveTask(openTask.id, 1)}
-                disabled={openTask.status === "done"}
+                disabled={openTask.status === lastStatus}
                 className="flex-1 h-9 rounded-md text-sm font-medium text-primary-foreground shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "var(--primary)" }}
               >

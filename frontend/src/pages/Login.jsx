@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, verifyOtp } = useAuth();
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,12 +43,36 @@ export default function Login() {
     }
   }, [orgDetails?.loginImages]);
 
+  // set while the one-time code is awaited: { challenge, sentTo }
+  const [otp, setOtp] = useState(null);
+  const [code, setCode] = useState("");
+
+  async function submitCode(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await verifyOtp(otp.challenge, code);
+      nav("/");
+    } catch (err) {
+      setError(err.message || "Could not verify the code");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
+      const result = await login(email, password);
+      // this user type signs in with a one-time code as well
+      if (result?.otpRequired) {
+        setOtp({ challenge: result.challenge, sentTo: result.sentTo });
+        setCode("");
+        return;
+      }
       nav("/");
     } catch (err) {
       setError(err.message || "Login failed");
@@ -58,7 +82,7 @@ export default function Login() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#fff", alignItems: "center", justifyContent: "flex-start", padding: "20px", gap: "30px", overflow: "hidden" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#fff", alignItems: "center", justifyContent: "flex-start", padding: "20px", gap: "12px", overflow: "hidden" }}>
       {/* Left Side - Brand/Journey with Images/Video */}
       <div
         style={{
@@ -202,6 +226,35 @@ export default function Login() {
             </div>
           )}
 
+          {otp ? (
+            <form onSubmit={submitCode}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#1f2937", marginBottom: 6 }}>Enter the sign-in code</div>
+              <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>Sent to {otp.sentTo}</div>
+              <input
+                autoFocus
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 20, letterSpacing: 8, textAlign: "center", marginBottom: 16, boxSizing: "border-box" }}
+              />
+              <button
+                type="submit"
+                disabled={busy || code.length < 6}
+                className="login-submit"
+                style={{ width: "100%", padding: "12px 16px", background: busy || code.length < 6 ? "#999" : "#217E79", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: busy || code.length < 6 ? "not-allowed" : "pointer", marginBottom: 12 }}
+              >
+                {busy ? "Checking..." : "Verify and sign in"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOtp(null); setError(null); }}
+                style={{ width: "100%", padding: "10px 16px", background: "transparent", color: "#217E79", border: "none", fontSize: 13, cursor: "pointer" }}
+              >
+                Back to sign in
+              </button>
+            </form>
+          ) : (
           <form onSubmit={submit}>
             {/* Email Field */}
             <div style={{ marginBottom: 20 }}>
@@ -224,7 +277,7 @@ export default function Login() {
                   boxSizing: "border-box",
                   transition: "border-color 0.2s",
                 }}
-                onFocus={(e) => (e.target.style.borderColor = "#1e3c72")}
+                onFocus={(e) => (e.target.style.borderColor = "#217E79")}
                 onBlur={(e) => (e.target.style.borderColor = "#ddd")}
               />
             </div>
@@ -251,7 +304,7 @@ export default function Login() {
                     boxSizing: "border-box",
                     transition: "border-color 0.2s",
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = "#1e3c72")}
+                  onFocus={(e) => (e.target.style.borderColor = "#217E79")}
                   onBlur={(e) => (e.target.style.borderColor = "#ddd")}
                 />
                 <button
@@ -284,7 +337,7 @@ export default function Login() {
                 }}
                 style={{
                   fontSize: 13,
-                  color: "#1e3c72",
+                  color: "#217E79",
                   textDecoration: "none",
                   fontWeight: 500,
                 }}
@@ -297,10 +350,11 @@ export default function Login() {
             <button
               type="submit"
               disabled={busy}
+              className="login-submit"
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                background: busy ? "#999" : "#1e3c72",
+                background: busy ? "#999" : "#217E79",
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,
@@ -310,8 +364,6 @@ export default function Login() {
                 transition: "background 0.2s",
                 marginBottom: 16,
               }}
-              onMouseEnter={(e) => !busy && (e.target.style.background = "#152a52")}
-              onMouseLeave={(e) => !busy && (e.target.style.background = "#1e3c72")}
             >
               {busy ? (
                 <>
@@ -325,6 +377,7 @@ export default function Login() {
               )}
             </button>
           </form>
+          )}
 
           {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>

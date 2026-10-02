@@ -90,7 +90,7 @@ export default function CommunicationLogsPage() {
   }, [items, search, status]);
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link to="/modules/communication" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1" style={{ textDecoration: "none" }}>
@@ -105,9 +105,6 @@ export default function CommunicationLogsPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Message Logs</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Every message sent — email, WhatsApp, SMS, push — with delivery status from provider webhooks.
-          </p>
         </div>
         <button onClick={load} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-xs font-medium hover:bg-accent">
           <RefreshCw className="h-3.5 w-3.5" />

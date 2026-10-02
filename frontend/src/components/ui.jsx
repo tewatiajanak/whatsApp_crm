@@ -1,27 +1,48 @@
 // Shared presentational components — used everywhere so the UI is identical
 // across the whole application (header, tabs, filter bar, table, pills, buttons).
+// Markup and classes mirror the Event Manager pages (MiniCrudPage /
+// modules.events.all) so CRM renders with the exact same look.
 
 export function PageHeader({ title, subtitle, actions }) {
   return (
-    <div className="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div className="flex flex-wrap items-start justify-between gap-3 pb-2 mb-3 border-b">
       <div>
-        <h1 className="page-title">{title}</h1>
-        {subtitle && <p className="page-sub">{subtitle}</p>}
+        <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight">{title}</h1>
+        {subtitle && <p className="text-[11px] text-muted-foreground leading-tight">{subtitle}</p>}
       </div>
-      {actions && <div className="d-flex gap-2">{actions}</div>}
+      {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
-// Pill-style tab track matching the theme
+// Segmented tab track (same as Event Manager status tabs)
 export function Tabs({ tabs, value, onChange }) {
   return (
-    <div className="tab-track">
+    <div
+      className="inline-flex items-center gap-0.5 border bg-card overflow-x-auto max-w-full shadow-sm mb-3"
+      role="tablist"
+      style={{ borderRadius: "16px", padding: "4px" }}
+    >
       {tabs.map((t) => {
         const v = typeof t === "string" ? t : t.value;
         const label = typeof t === "string" ? t : t.label;
+        const active = value === v;
         return (
-          <button key={v} className={"tab" + (value === v ? " active" : "")} onClick={() => onChange(v)}>
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(v)}
+            className={`relative inline-flex items-center gap-2 h-9 px-4 text-sm font-medium transition-colors whitespace-nowrap border-0 ${
+              active ? "shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={
+              active
+                ? { background: "var(--accent)", color: "var(--accent-foreground)", borderRadius: "12px" }
+                : { background: "transparent", borderRadius: "12px" }
+            }
+          >
             {label}
           </button>
         );
@@ -30,14 +51,15 @@ export function Tabs({ tabs, value, onChange }) {
   );
 }
 
-// Filter bar shell — children are <Field> blocks + action buttons
+// Filter bar — inline row of controls (no card), like Event Manager filters.
+// Field labels stay for screen readers; the controls carry placeholders.
 export function FilterBar({ children }) {
-  return <div className="filter-bar d-flex flex-wrap align-items-end gap-3">{children}</div>;
+  return <div className="filter-bar flex flex-wrap items-center gap-3 mb-3">{children}</div>;
 }
 export function Field({ label, children, style }) {
   return (
     <div style={style}>
-      {label && <label className="field-label">{label}</label>}
+      {label && <label className="field-label sr-only">{label}</label>}
       {children}
     </div>
   );
@@ -45,8 +67,8 @@ export function Field({ label, children, style }) {
 
 export function Spinner({ label = "Loading…" }) {
   return (
-    <div className="text-center text-muted py-5">
-      <div className="spinner-border spinner-border-sm me-2" role="status" style={{ color: "var(--accent)" }} />
+    <div className="px-4 py-10 text-center text-muted-foreground">
+      <span className="spinner-border spinner-border-sm me-2 align-middle" role="status" style={{ color: "var(--primary)" }} />
       {label}
     </div>
   );
@@ -54,9 +76,16 @@ export function Spinner({ label = "Loading…" }) {
 
 export function EmptyState({ icon = "inbox", text = "Nothing here yet." }) {
   return (
-    <div className="text-center py-5" style={{ color: "var(--muted)" }}>
-      <i className={`bi bi-${icon} fs-3 d-block mb-2`}></i>
-      {text}
+    <div className="px-4 py-16 text-center">
+      <div className="inline-flex flex-col items-center gap-2">
+        <div
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full"
+          style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}
+        >
+          <i className={`bi bi-${icon}`} style={{ fontSize: 18 }}></i>
+        </div>
+        <div className="text-sm font-medium text-foreground">{text}</div>
+      </div>
     </div>
   );
 }
@@ -72,16 +101,18 @@ export function ErrorBox({ error }) {
 }
 
 // Standard data table: pass columns [{key,label,align,render}] and rows.
-// Keeps every table in the app visually identical.
+// Same markup as Event Manager tables so every table in the app is identical.
 export function DataTable({ columns, rows, rowKey = "_id", onRowClick, loading, empty }) {
   return (
-    <div className="card">
-      <div className="table-responsive">
-        <table className={"table" + (onRowClick ? " table-hover" : "")}>
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
           <thead>
-            <tr>
+            <tr className="text-[11px] uppercase tracking-wider text-muted-foreground" style={{ background: "var(--muted-background)" }}>
               {columns.map((c) => (
-                <th key={c.key} style={{ textAlign: c.align || "left", width: c.width }}>{c.label}</th>
+                <th key={c.key} className="px-4 py-3 font-medium" style={{ textAlign: c.align || "left", width: c.width, whiteSpace: "nowrap" }}>
+                  {c.label}
+                </th>
               ))}
             </tr>
           </thead>
@@ -92,9 +123,13 @@ export function DataTable({ columns, rows, rowKey = "_id", onRowClick, loading, 
               <tr><td colSpan={columns.length}><EmptyState {...(empty || {})} /></td></tr>
             ) : (
               rows.map((r) => (
-                <tr key={r[rowKey]} className={onRowClick ? "cursor-pointer" : ""} onClick={onRowClick ? () => onRowClick(r) : undefined}>
+                <tr
+                  key={r[rowKey]}
+                  className={"border-t hover:bg-accent/30" + (onRowClick ? " cursor-pointer" : "")}
+                  onClick={onRowClick ? () => onRowClick(r) : undefined}
+                >
                   {columns.map((c) => (
-                    <td key={c.key} style={{ textAlign: c.align || "left" }}>
+                    <td key={c.key} className="px-4 py-2.5 text-sm" style={{ textAlign: c.align || "left" }}>
                       {c.render ? c.render(r) : r[c.key]}
                     </td>
                   ))}
@@ -121,11 +156,16 @@ export function StatusPill({ color, name, sub }) {
   );
 }
 
-// Row action icon button
+// Row action icon button (same as Event Manager row actions)
 export function IconBtn({ icon, title, danger, onClick }) {
   return (
-    <button className={"btn-icon" + (danger ? " danger" : "")} title={title} onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }}>
-      <i className={`bi bi-${icon}`}></i>
+    <button
+      type="button"
+      className={"ui-btn ui-btn-sm ui-btn-icon " + (danger ? "ui-btn-danger" : "ui-btn-ghost")}
+      title={title}
+      onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }}
+    >
+      <i className={`bi bi-${icon}`} style={{ fontSize: 13 }}></i>
     </button>
   );
 }
@@ -143,23 +183,28 @@ export function Avatar({ name = "?", size = 32 }) {
   );
 }
 
-// Standard modal shell
+// Standard form shell — a right-side slider (same as Event Manager drawers).
+// `size` widens it: "lg" / "xl" for bigger forms.
+const DRAWER_WIDTH = { sm: "max-w-md", lg: "max-w-2xl", xl: "max-w-4xl" };
+
 export function Modal({ title, onClose, children, footer, size, bodyStyle }) {
   return (
-    <>
-      <div className="modal-backdrop fade show"></div>
-      <div className="modal d-block" tabIndex={-1}>
-        <div className={"modal-dialog" + (size ? " modal-" + size : "")}> 
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" style={{ fontSize: 16 }}>{title}</h5>
-              <button className="btn-close" onClick={onClose}></button>
-            </div>
-            <div className="modal-body" style={bodyStyle}>{children}</div>
-            {footer && <div className="modal-footer">{footer}</div>}
-          </div>
+    <div className="fixed inset-0 z-50 flex" onClick={onClose}>
+      <div className="flex-1 bg-black/40" />
+      <div
+        className={`w-full ${DRAWER_WIDTH[size] || "max-w-lg"} bg-card border-l shadow-2xl flex flex-col h-full`}
+        style={{ animation: "slideInRight 0.2s ease-out" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 border-b p-4">
+          <div className="text-lg font-semibold text-foreground leading-tight">{title}</div>
+          <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" onClick={onClose} title="Close">
+            <i className="bi bi-x-lg"></i>
+          </button>
         </div>
+        <div className="flex-1 overflow-y-auto p-4" style={bodyStyle}>{children}</div>
+        {footer && <div className="border-t p-4 flex items-center justify-end gap-2">{footer}</div>}
       </div>
-    </>
+    </div>
   );
 }

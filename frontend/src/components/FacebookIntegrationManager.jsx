@@ -329,9 +329,6 @@ export default function FacebookIntegrationManager({ showHeader = true, backLink
             <i className="bi bi-facebook text-primary" style={{ fontSize: "1.3rem" }}></i>
             Facebook Integration
           </h4>
-          <p className="text-secondary small mb-0" style={{ fontSize: "12px" }}>
-            Connect Facebook Pages & Lead Generation Ads to capture inbound leads directly into CRM with custom field mapping.
-          </p>
         </div>
         <div className="d-flex gap-2">
           <button
@@ -543,9 +540,6 @@ export default function FacebookIntegrationManager({ showHeader = true, backLink
                         <i className="bi bi-facebook" style={{ fontSize: "2.5rem" }}></i>
                       </div>
                       <h6 className="fw-semibold text-dark mb-2" style={{ fontSize: "15px" }}>Connect your Facebook Account</h6>
-                      <p className="text-secondary small max-w-md mx-auto mb-4" style={{ fontSize: "12px" }}>
-                        Log in with Facebook Single Sign-On to grant access to your managed Facebook Pages, Ad Accounts, and Lead Generation Forms.
-                      </p>
 
                       {!ssoConnected ? (
                         <button

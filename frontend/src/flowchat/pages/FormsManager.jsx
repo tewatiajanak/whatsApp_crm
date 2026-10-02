@@ -72,9 +72,6 @@ export default function FormsManager() {
             </span>
             WhatsApp Interactive Forms Builder
           </h4>
-          <p className="text-muted small mb-0">
-            Create reusable WhatsApp Forms (Enquiry, Registration, Feedback) with custom text, number, email, and date fields to use across any Chatbot Flow.
-          </p>
         </div>
         <button className="btn btn-brand btn-sm rounded-pill px-3" onClick={() => setShowCreateModal(true)}>
           <i className="bi bi-plus-lg me-1"></i> Create WhatsApp Form

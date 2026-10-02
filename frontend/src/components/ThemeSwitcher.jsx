@@ -146,7 +146,6 @@ export default function ThemeSwitcher() {
           </div>
           <div>
             <h5 className="mb-0 fw-bold" style={{ color: "var(--heading-text)" }}>UI Theme &amp; Appearance</h5>
-            <div className="small text-muted">Select a preset theme or build your custom color palette.</div>
           </div>
         </div>
 

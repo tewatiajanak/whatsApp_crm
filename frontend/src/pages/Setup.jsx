@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { mastersApi, servicesApi, sessionsApi, gradesApi, teamsApi, workflowsApi, workflowConfigApi, usersApi, templatesApi } from "../api";
+import { mastersApi, servicesApi, sessionsApi, gradesApi, teamsApi, workflowsApi, workflowConfigApi, usersApi, templatesApi, integrationsApi, waAccountsApi, designationsApi } from "../api";
 import { useApi } from "../hooks/useApi";
 import { useToast } from "../context/ToastContext";
 import { PageHeader, Spinner, ErrorBox, EmptyState, Tabs, Modal, IconBtn } from "../components/ui";
@@ -11,6 +11,10 @@ import ThemeSwitcher from "../components/ThemeSwitcher";
 import WhatsAppTemplateBuilder from "../components/WhatsAppTemplateBuilder";
 import WhatsAppIntegrationManager from "../components/WhatsAppIntegrationManager";
 import FacebookIntegrationManager from "../components/FacebookIntegrationManager";
+import CustomFieldsPage from "../knowvato-main/components/CustomFieldsPage";
+import ModuleWhatsAppTemplates from "../knowvato-main/routes/modules.templates-whatsapp";
+import ModuleSmsTemplates from "../knowvato-main/routes/modules.templates-sms";
+import ModuleEmailTemplates from "../knowvato-main/routes/modules.templates-email";
 
 const DEFAULT_LANDING_PAGE_CONFIG = {
   brandName: "Your Institution",
@@ -30,6 +34,7 @@ const DEFAULT_LANDING_PAGE_CONFIG = {
 const CATEGORIES = [
   {
     id: "general",
+    icon: "building",
     title: "General",
     color: "#0f172a",
     items: [
@@ -38,6 +43,7 @@ const CATEGORIES = [
   },
   {
     id: "lead-config",
+    icon: "funnel",
     title: "Lead Configuration",
     color: "#0f172a",
     items: [
@@ -48,6 +54,7 @@ const CATEGORIES = [
   },
   {
     id: "forms",
+    icon: "ui-checks",
     title: "Forms",
     color: "#0f172a",
     items: [
@@ -58,6 +65,7 @@ const CATEGORIES = [
   },
   {
     id: "ui",
+    icon: "palette",
     title: "UI",
     color: "#0f172a",
     items: [
@@ -66,6 +74,7 @@ const CATEGORIES = [
   },
   {
     id: "academic",
+    icon: "mortarboard",
     title: "Academic Setup",
     color: "#0f172a",
     items: [
@@ -75,6 +84,7 @@ const CATEGORIES = [
   },
   {
     id: "workflow",
+    icon: "diagram-3",
     title: "Workflows",
     color: "#0f172a",
     items: [
@@ -84,15 +94,34 @@ const CATEGORIES = [
     ]
   },
   {
+    id: "custom",
+    icon: "sliders",
+    title: "Custom",
+    color: "#0f172a",
+    items: [
+      { id: "custom-fields", label: "Custom Fields" }
+    ]
+  },
+  {
+    id: "module-templates",
+    icon: "chat-square-text",
+    title: "Communication Templates",
+    color: "#0f172a",
+    items: [
+      { id: "module-whatsapp-templates", label: "WhatsApp Template" },
+      { id: "module-sms-templates", label: "SMS Template" },
+      { id: "module-email-templates", label: "Email Template" }
+    ]
+  },
+  {
     id: "integrations",
+    icon: "plug",
     title: "Integrations",
     color: "#0f172a",
     items: [
       { id: "ai-integration", label: "AI Integration" },
       { id: "whatsapp-integration", label: "WhatsApp Integration" },
-      { id: "facebook-integration", label: "Facebook Integration" },
-      { id: "google-form", label: "Google Form" },
-      { id: "api-integration", label: "API Integration" }
+      { id: "facebook-integration", label: "Facebook Integration" }
     ]
   }
 ];
@@ -113,19 +142,16 @@ export default function Setup() {
   const [selected, setSelected] = useState(getActiveSection);
   const [mode, setMode] = useState(getMode);
 
-  const [openCategories, setOpenCategories] = useState({
-    general: true,
-    "lead-config": true,
-    forms: true,
-    ui: true,
-    academic: true,
-    workflow: true,
-    integrations: true,
-  });
+  // Accordion like Event Manager → Setup: one group open at a time, starting
+  // with the group that contains the selected item.
+  const categoryOf = (id) => CATEGORIES.find((c) => c.items.some((it) => it.id === id))?.id ?? null;
+  const [openCategoryId, setOpenCategoryId] = useState(() => categoryOf(getActiveSection()));
 
   useEffect(() => {
     const active = getActiveSection();
     setSelected(active);
+    const cat = categoryOf(active);
+    if (cat) setOpenCategoryId(cat);
     const currentMode = getMode();
     if (currentMode !== mode) {
       setMode(currentMode);
@@ -133,7 +159,7 @@ export default function Setup() {
   }, [location.search]);
 
   const toggleCategory = (categoryId) => {
-    setOpenCategories((prev) => ({ ...prev, [categoryId]: !prev[categoryId] }));
+    setOpenCategoryId((current) => (current === categoryId ? null : categoryId));
   };
 
   const selectSection = (item) => {
@@ -146,75 +172,82 @@ export default function Setup() {
   const hideSidebar = (selected === "registration-form" || selected === "landing-page" || selected === "whatsapp-templates") && mode === "editor";
 
   return (
-    <div style={{ padding: "4px" }}>
-      <div style={hideSidebar ? { display: "block", marginBottom: "4px" } : { display: "grid", gridTemplateColumns: "minmax(240px, 260px) minmax(0, 1fr)", gap: "4px", marginBottom: "4px" }}>
+    <div>
+      {!hideSidebar && (
+        <div className="flex items-center justify-between gap-4 pb-2 mb-3 border-b">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight">Setup</h1>
+          </div>
+        </div>
+      )}
+      <div className={hideSidebar ? "block" : "grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4"}>
         {!hideSidebar && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px", position: "sticky", top: "70px", maxHeight: "calc(100vh - 86px)", overflowY: "auto", paddingRight: "2px", zIndex: 5 }}>
-            {CATEGORIES.map((cat) => (
-              <div key={cat.id} style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--surface)", overflow: "visible", width: "100%", height: "auto", minHeight: "fit-content", maxHeight: "none" }}>
-                <button
-                  type="button"
-                  onClick={() => toggleCategory(cat.id)}
+          <nav aria-label="Setup sections" className="space-y-3 sticky top-[70px] self-start">
+            {CATEGORIES.map((cat) => {
+              const isOpen = openCategoryId === cat.id;
+              const hasActive = cat.items.some((item) => item.id === selected);
+              return (
+                <div
+                  key={cat.id}
+                  className="rounded-xl border bg-card overflow-hidden transition-all"
                   style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "10px",
-                    padding: "10px 14px",
-                    border: "none",
-                    background: "transparent",
-                    color: "var(--text)",
-                    cursor: "pointer",
-                    textAlign: "left"
+                    boxShadow: hasActive
+                      ? "0 1px 2px rgba(37,51,56,0.04), 0 10px 24px -16px rgba(37,51,56,0.14)"
+                      : "0 1px 2px rgba(37,51,56,0.03)",
+                    borderColor: hasActive ? "color-mix(in srgb, var(--primary) 30%, var(--border))" : "var(--border)",
                   }}
                 >
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cat.title}</div>
-                    <div style={{ fontSize: "11px", color: "var(--text-2)", whiteSpace: "nowrap" }}>{cat.items.length} options</div>
-                  </div>
-                  <i className={`bi bi-chevron-${openCategories[cat.id] ? "down" : "right"}`} style={{ fontSize: 13, color: "var(--text-2)", flexShrink: 0 }}></i>
-                </button>
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left cursor-pointer transition-colors hover:bg-muted/40 border-0 bg-transparent"
+                    onClick={() => toggleCategory(cat.id)}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                        style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}
+                      >
+                        <i className={`bi bi-${cat.icon}`} style={{ fontSize: 13 }}></i>
+                      </span>
+                      <span className="truncate text-[11px] font-semibold uppercase tracking-wider text-foreground">{cat.title}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] font-medium text-muted-foreground tabular-nums">{cat.items.length}</span>
+                      <i
+                        className="bi bi-chevron-down text-muted-foreground"
+                        style={{ fontSize: 11, transition: "transform 0.2s", transform: isOpen ? "none" : "rotate(-90deg)" }}
+                      ></i>
+                    </div>
+                  </button>
 
-                {openCategories[cat.id] && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "2px", padding: "2px 8px 8px", height: "auto", minHeight: "fit-content", maxHeight: "none", overflow: "visible" }}>
-                    {cat.items.map((item) => {
-                      const isSelected = selected === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => selectSection(item)}
-                          style={{
-                            width: "100%",
-                            padding: "6px 10px",
-                            border: "none",
-                            borderLeft: isSelected ? "3px solid var(--text)" : "3px solid transparent",
-                            background: isSelected ? "var(--surface-2)" : "transparent",
-                            color: isSelected ? "var(--text)" : "var(--text-2)",
-                            fontWeight: isSelected ? 500 : 400,
-                            textAlign: "left",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "8px",
-                            transition: "all 0.15s ease"
-                          }}
-                        >
-                          <span style={{ fontSize: "12.5px", whiteSpace: "nowrap" }}>{item.label}</span>
-                        </button>
-                      );
-                    })}
+                  <div className="grid transition-all duration-200 ease-out" style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}>
+                    <div className="overflow-hidden">
+                      <div className="p-1.5 pt-1 border-t border-border/70 space-y-0.5">
+                        {cat.items.map((item) => {
+                          const isSelected = selected === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => selectSection(item)}
+                              className={`subnav-item ${isSelected ? "is-active" : ""}`}
+                              aria-current={isSelected ? "page" : undefined}
+                            >
+                              <span className="truncate">{item.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                </div>
+              );
+            })}
+          </nav>
         )}
 
-        <div style={{ padding: "0 0 0 0" }}>
+        <div className={hideSidebar ? "" : "min-w-0 rounded-xl border bg-card shadow-sm overflow-hidden"}>
           {selected === "organization-details" && <OrganizationDetails />}
           {selected === "offerings" && <ServicesMaster />}
           {selected === "status" && <CombinedStatusMaster />}
@@ -229,11 +262,13 @@ export default function Setup() {
           {selected === "workflows" && <WorkflowsTab />}
           {selected === "comm-templates" && <CommunicationTemplatesConfig />}
           {selected === "whatsapp-templates" && <WhatsAppTemplatesSetup />}
+          {selected === "custom-fields" && <CustomFieldsPage module="crm" />}
+          {selected === "module-whatsapp-templates" && <ModuleWhatsAppTemplates module="crm" />}
+          {selected === "module-sms-templates" && <ModuleSmsTemplates module="crm" />}
+          {selected === "module-email-templates" && <ModuleEmailTemplates module="crm" />}
           {selected === "ai-integration" && <AIIntegrationSetupCard />}
           {selected === "whatsapp-integration" && <WhatsAppIntegrationManager />}
           {(selected === "facebook" || selected === "facebook-integration") && <FacebookIntegrationManager />}
-          {selected === "google-form" && <IntegrationPlaceholder title="Google Form" />}
-          {selected === "api-integration" && <IntegrationPlaceholder title="API Integration" />}
         </div>
       </div>
     </div>
@@ -256,7 +291,7 @@ function ServicesMaster() {
   return (
     <div className="card" style={{ borderRadius: "var(--radius)" }}>
       <div className="card-header d-flex justify-content-between align-items-center">
-        <div><span className="fw-semibold">Offerings</span><div className="text-muted small">Pipelines a lead can be in. Each can have its own statuses.</div></div>
+        <div><span className="fw-semibold">Offerings</span></div>
         <button className="btn btn-sm btn-wa" onClick={() => setEdit({ name: "", color: COLORS[0], icon: "grid", isRecurring: false })}>Add offering</button>
       </div>
       <ErrorBox error={list.error} />
@@ -319,7 +354,7 @@ function CombinedStatusMaster() {
   return (
     <div className="card" style={{ borderRadius: "var(--radius)" }}>
       <div className="card-header d-flex justify-content-between align-items-center">
-        <div><span className="fw-semibold" style={{ fontSize: "14px" }}>Lead Statuses</span><div className="text-muted small">Create statuses with sub-statuses and map to offerings.</div></div>
+        <div><span className="fw-semibold" style={{ fontSize: "14px" }}>Lead Statuses</span></div>
         <button className="btn btn-sm btn-wa" onClick={() => setEdit({ name: "", color: COLORS[0], subStatuses: [""], offerings: [], followUpRequired: false, isWon: false, isLost: false })}>Add Status</button>
       </div>
       <ErrorBox error={list.error} />
@@ -566,7 +601,9 @@ function Users() {
   const [edit, setEdit] = useState(null);
   const typeMap = Object.fromEntries((types.data || []).map((t) => [t._id, t]));
   async function save(f) {
-    try { if (f._id) await usersApi.updateUser(f._id, f); else await usersApi.createUser({ ...f, passwordHash: "TempPass!23" }); toast("Saved (default password: TempPass!23)"); setEdit(null); list.reload(); }
+    try {
+      if (f._id) { await usersApi.updateUser(f._id, f); toast("Saved"); }
+      else { const res = await usersApi.createUser(f); toast(`User created. Default password: ${res.data.passwordRule}`); } setEdit(null); list.reload(); }
     catch (e) { toast(e.message, "error"); }
   }
   return (
@@ -951,16 +988,7 @@ function TeamModal({ team, users, sources, onClose, onSave }) {
 }
 
 function WorkflowsTab() {
-  const [subTab, setSubTab] = useState("assignment");
-  const SUB_TABS = [{ value: "assignment", label: "Lead Assignment" }, { value: "alerts", label: "Alerts" }, { value: "conversion", label: "Lead Conversion" }];
-  return (
-    <div>
-      <div className="mb-3"><Tabs tabs={SUB_TABS} value={subTab} onChange={setSubTab} /></div>
-      {subTab === "assignment" && <LeadAssignment />}
-      {subTab === "alerts" && <AlertsWorkflow />}
-      {subTab === "conversion" && <div className="card"><div className="card-body text-center text-muted py-5">Lead Conversion Workflow coming soon...</div></div>}
-    </div>
-  );
+  return <LeadAssignment />;
 }
 
 function LeadAssignment() {
@@ -973,7 +1001,7 @@ function LeadAssignment() {
   async function save() { try { if (workflow.data?._id) await workflowsApi.update(workflow.data._id, { ...f, type: "LeadAssignment", name: "LeadAssignment", active: true }); else await workflowsApi.create({ ...f, type: "LeadAssignment", name: "LeadAssignment", active: true }); toast("Saved"); workflow.reload(); } catch (e) { toast(e.message, "error"); } }
   return (
     <div className="card" style={{ borderRadius: "var(--radius)" }}>
-      <div className="card-header bg-white"><span className="fw-semibold" style={{ fontSize: "14px" }}>Lead Assignment Configuration</span><div className="text-muted small">Configure how new leads are automatically assigned to team members</div></div>
+      <div className="card-header bg-white"><span className="fw-semibold" style={{ fontSize: "14px" }}>Lead Assignment Configuration</span></div>
       <div className="card-body" style={{ fontSize: "12px" }}>
         <label className="form-label mb-2" style={{ fontSize: "12px", color: "var(--text)" }}>Strategy</label>
         <div className="row g-2 mb-4">
@@ -997,14 +1025,6 @@ function LeadAssignment() {
         )}
         <div className="d-flex gap-2"><button className="btn btn-sm btn-wa" style={{ fontSize: "12px" }} onClick={save}>Save</button></div>
       </div>
-    </div>
-  );
-}
-function AlertsWorkflow() {
-  return (
-    <div className="card">
-      <div className="card-header"><span className="fw-semibold">Alert Workflows</span><div className="text-muted small">Define automated alerts and actions based on lead events</div></div>
-      <div className="card-body text-center text-muted py-5">Alerts configuration coming soon...</div>
     </div>
   );
 }
@@ -1161,7 +1181,6 @@ function RegistrationFormConfig() {
         <div className="card-header d-flex justify-content-between align-items-center">
           <div>
             <span className="fw-semibold">{currentForm._id ? "Edit Registration Form" : "Create Registration Form"}</span>
-            <div className="text-muted small">Design your form layout and steps.</div>
           </div>
           <button className="btn btn-sm btn-outline-secondary" onClick={closeEditor}>
             Back to List
@@ -1187,7 +1206,6 @@ function RegistrationFormConfig() {
       <div className="card-header d-flex justify-content-between align-items-center">
         <div>
           <span className="fw-semibold">Registration Forms</span>
-          <div className="text-muted small">Manage enrollment registration workflows, stepper steps and fields.</div>
         </div>
         <button className="btn btn-sm btn-wa" onClick={openNewForm}>
           <i className="bi bi-plus-lg me-1"></i>Create Registration Form
@@ -1617,7 +1635,6 @@ function LandingPageList({ onCreate, onEdit, onPreview }) {
       <div className="card-header d-flex justify-content-between align-items-center">
         <div>
           <span className="fw-semibold">Landing Pages</span>
-          <div className="text-muted small">Manage marketing campaign landing pages, headers, highlights, and enquiry triggers.</div>
         </div>
         <button className="btn btn-sm btn-wa" onClick={onCreate}>
           <i className="bi bi-plus-lg me-1"></i>Create Landing Page
@@ -1819,7 +1836,6 @@ function EnquiryFormConfig() {
       <div className="card-header d-flex justify-content-between align-items-center">
         <div>
           <span className="fw-semibold">Enquiry Forms</span>
-          <div className="text-muted small">Create named enquiry forms for campaigns and manage saved templates.</div>
         </div>
         {!activeForm && (
           <button className="btn btn-sm btn-wa" onClick={openNewForm}>
@@ -1898,7 +1914,6 @@ function EnquiryFormConfig() {
           <div className="mb-3 d-flex justify-content-between align-items-center">
             <div>
               <h5 className="mb-1">Form Fields</h5>
-              <div className="text-muted small">Select which fields to include and mark them mandatory as needed.</div>
             </div>
             <div className="d-flex" style={{ gap: "4px" }}>
               {activeForm._id && (
@@ -2102,15 +2117,6 @@ function EnquiryFormConfig() {
   );
 }
 
-function IntegrationPlaceholder({ title }) {
-  return (
-    <div className="card">
-      <div className="card-header bg-white fw-semibold">{title}</div>
-      <div className="card-body text-center text-muted py-5">{title} configuration coming soon...</div>
-    </div>
-  );
-}
-
 function AIIntegrationSetupCard() {
   const navigate = useNavigate();
   return (
@@ -2122,18 +2128,12 @@ function AIIntegrationSetupCard() {
           </div>
           <div>
             <h5 className="fw-bold mb-1">AI Assistant & Copilot Integration</h5>
-            <p className="text-muted small mb-0">
-              Configure Google Gemini, Anthropic Claude, or OpenAI for automated operational tasks across CRM & Events.
-            </p>
           </div>
         </div>
         <div className="p-3 rounded-3 bg-light border mb-4">
           <div className="d-flex align-items-center justify-content-between">
             <div>
               <div className="fw-semibold small">Full AI Integration Hub</div>
-              <div className="text-muted" style={{ fontSize: 11.5 }}>
-                Manage API keys, select LLM models (Gemini / Claude), and toggle the floating AI Copilot button.
-              </div>
             </div>
             <button
               className="btn btn-primary btn-sm rounded-pill px-3"
@@ -2257,7 +2257,6 @@ function CommunicationTemplatesConfig() {
       <div className="card-header d-flex justify-content-between align-items-center">
         <div>
           <span className="fw-semibold">Communication Templates</span>
-          <div className="text-muted small">Manage templates for automated Email, WhatsApp, and SMS messages.</div>
         </div>
         <button className="btn btn-sm btn-wa" onClick={handleCreate}>
           <i className="bi bi-plus-lg me-1"></i>Create {tTabLabel} Template
@@ -2562,7 +2561,6 @@ function WhatsAppTemplatesSetup() {
       <div className="card-header d-flex justify-content-between align-items-center">
         <div>
           <span className="fw-semibold">WhatsApp Templates</span>
-          <div className="text-muted small">Manage and create Meta WhatsApp message templates.</div>
         </div>
         <div className="d-flex gap-2">
           <button className="btn btn-sm btn-outline-secondary" disabled={syncing} onClick={handleSyncMeta}>
@@ -2724,7 +2722,7 @@ function OrganizationDetails() {
       ...prev,
       loginImages: prev.loginImages.filter((_, i) => i !== index)
     }));
-    if (currentImageIndex >= prev.loginImages.length - 1) {
+    if (currentImageIndex >= data.loginImages.length - 1) {
       setCurrentImageIndex(0);
     }
   };
@@ -2754,7 +2752,6 @@ function OrganizationDetails() {
       <div className="card-header d-flex justify-content-between align-items-center">
         <div>
           <span className="fw-semibold">Organization Details</span>
-          <div className="text-muted small">Configure your organization information and login branding</div>
         </div>
       </div>
       <div className="card-body" style={{ padding: "20px" }}>

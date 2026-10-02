@@ -225,10 +225,10 @@ const SetupPage = () => {
   const [userEditLogs, setUserEditLogs] = useLocalStorage("user_edit_logs", []);
   const [showUserLogs, setShowUserLogs] = useState(false);
 
-  // Configuration state (localStorage)
+  // Configuration state (server app store)
   const [config, setConfig] = useLocalStorage("app_config", DEFAULT_CONFIG);
 
-  // Auto Scheme state (localStorage)
+  // Auto Scheme state (server app store)
   const [autoScheme, setAutoScheme] = useLocalStorage("user_id_auto_scheme", {
     isAuto: false,
     prefix: "",

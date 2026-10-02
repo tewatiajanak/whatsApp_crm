@@ -46,8 +46,8 @@ export default function FollowUps() {
   ];
 
   return (
-    <div className="p-2 space-y-6">
-      <PageHeader title="Follow-ups" subtitle="Overdue, due today and upcoming follow-ups — from database" />
+    <div className="space-y-3">
+      <PageHeader title="Follow-ups" />
       <ErrorBox error={fu.error} />
 
       {/* KPI Cards Row with generous grid gaps */}
@@ -57,32 +57,32 @@ export default function FollowUps() {
           return (
             <div className="col" key={c.key}>
               <div
-                className={`card h-100 p-4 border shadow-xs transition-all ${
-                  isActive ? "border-" + c.tone + " shadow-md" : ""
-                }`}
-                style={{ borderRadius: "14px", backgroundColor: "var(--surface)" }}
+                className="card h-100 transition-all"
+                style={{
+                  borderRadius: "10px",
+                  padding: "14px 14px 12px",
+                  backgroundColor: "var(--surface)",
+                  borderColor: isActive ? "var(--primary)" : "var(--border)",
+                }}
               >
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <div className="kpi-label fw-semibold text-secondary text-xs uppercase tracking-wider">
+                  <div style={{ fontSize: 12.5, color: "#4b5a5b", fontWeight: 500 }}>
                     {c.label}
                   </div>
                   <div
-                    className={`p-2 rounded-circle bg-${c.tone}-subtle d-flex align-items-center justify-content-center`}
-                    style={{ width: "36px", height: "36px" }}
+                    className={`bg-${c.tone}-subtle d-flex align-items-center justify-content-center`}
+                    style={{ width: 34, height: 34, borderRadius: 8, fontSize: 14 }}
                   >
-                    <i className={`bi bi-${c.icon} text-${c.tone} fs-5`}></i>
+                    <i className={`bi bi-${c.icon} text-${c.tone}`}></i>
                   </div>
                 </div>
 
-                <div className={`kpi-value text-${c.tone} fw-bold fs-3 my-2`}>
+                <div className="mb-2" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.1, color: "#1e2d2d" }}>
                   {counts[c.key] ?? 0}
                 </div>
 
                 <button
-                  className={`btn btn-sm ${
-                    isActive ? "btn-" + c.tone : "btn-outline-secondary"
-                  } w-100 fw-medium mt-auto`}
-                  style={{ fontSize: "12px", height: "34px", borderRadius: "8px" }}
+                  className={`btn btn-sm ${isActive ? "btn-wa" : "btn-outline-secondary"} w-100 mt-auto`}
                   onClick={() => setBucket(c.key)}
                 >
                   {isActive ? "Active Filter" : "Filter List"}
@@ -95,8 +95,8 @@ export default function FollowUps() {
 
       {/* Main Table Card with ample spacing */}
       <div className="card border shadow-xs rounded-4 overflow-hidden mb-4">
-        <div className="card-header bg-white py-3 px-4 fw-semibold text-capitalize border-bottom d-flex align-items-center justify-content-between">
-          <span className="fs-6 font-semibold">
+        <div className="card-header d-flex align-items-center justify-content-between" style={{ background: "var(--surface)", padding: "16px 18px 12px" }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#1f2d2b" }}>
             {bucket === "today" ? "Due Today" : bucket.toUpperCase()} Follow-ups
           </span>
           <span className="badge bg-secondary-subtle text-secondary px-3 py-1.5 rounded-pill">

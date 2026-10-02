@@ -14,13 +14,13 @@ const TITLES: Record<string, string> = {
   "/modules/events": "Event Manager - Overview",
   "/modules/events/all": "Event Manager - Events",
   "/modules/events/create": "Event Manager - Create Event",
-  "/modules/events/templates": "Event Manager - Templates",
   "/modules/events/calendar": "Event Manager - Calendar",
   "/modules/events/checklist": "Event Manager - Checklist",
   "/modules/events/tasks": "Event Manager - Tasks",
   "/modules/events/registrants": "Event Manager - Registrants",
   "/modules/events/scan": "Event Manager - Scan Pass",
   "/modules/events/activity": "Event Manager - Activity Log",
+  "/modules/events/setup": "Event Manager - Setup",
   "/modules/whatsapp": "CRM",
   "/modules/website": "Website Builder",
   "/modules/communication": "Communication - Overview",
@@ -42,9 +42,6 @@ const TITLES: Record<string, string> = {
   "/modules/reports/exports": "Reports - Exports & Downloads",
   "/modules/reports/analytics": "Reports - Org Analytics",
   "/search": "Command Center",
-  "/modules/participants": "Participants - All Participants",
-  "/modules/participants/duplicates": "Participants - Duplicates",
-  "/modules/participants/segments": "Participants - Segments",
   "/modules/utilities": "Utilities",
   "/modules/automation": "Automation - Workflows",
   "/modules/automation/templates": "Automation - Workflow Templates",
@@ -79,7 +76,6 @@ const TITLES: Record<string, string> = {
   "/modules/event-types": "Configuration - Event Types",
   "/modules/event-categories": "Configuration - Event Categories",
   "/modules/event-statuses": "Configuration - Event Statuses",
-  "/modules/event-default-features": "Configuration - Default Event Features",
   "/modules/event-id-formats": "Configuration - Event ID Formats",
   "/modules/checklist-templates": "Configuration - Checklist Templates",
   "/modules/field-library": "Configuration - Field Library",
@@ -127,7 +123,7 @@ function MainHeader() {
   );
 }
 
-export default function MainLayout() {
+export default function MainLayout({ children }: { children?: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <SidebarProvider>
@@ -136,7 +132,7 @@ export default function MainLayout() {
           <div className="main flex-1 flex flex-col min-w-0 w-full">
             <MainHeader />
             <div className="content flex-1 min-w-0 w-full overflow-x-hidden">
-              <Outlet />
+              {children ?? <Outlet />}
             </div>
           </div>
         </div>

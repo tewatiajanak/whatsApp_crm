@@ -12,6 +12,8 @@ const qs = (params = {}) => {
 export const authApi = {
   login: (email, password) => http.post("/auth/login", { email, password }),
   me: () => http.get("/auth/me"),
+  verifyOtp: (challenge, code) => http.post("/auth/verify-otp", { challenge, code }),
+  changePassword: (currentPassword, newPassword) => http.post("/auth/change-password", { currentPassword, newPassword }),
 };
 
 export const systemApi = {
@@ -81,6 +83,16 @@ export const usersApi = {
   createUser: (b) => http.post("/users", b),
   updateUser: (id, b) => http.patch(`/users/${id}`, b),
   removeUser: (id) => http.del(`/users/${id}`),
+  setUserPermissions: (id, overrides) => http.put(`/users/${id}/permissions`, { overrides }),
+  resetPassword: (id) => http.post(`/users/${id}/reset-password`, {}),
+  meta: () => http.get("/user-admin/meta"),
+  // "User Type" = whose user this is (own team / client)
+  categories: () => http.get("/user-categories"),
+  createCategory: (b) => http.post("/user-categories", b),
+  updateCategory: (id, b) => http.patch(`/user-categories/${id}`, b),
+  removeCategory: (id) => http.del(`/user-categories/${id}`),
+  passwordPolicy: () => http.get("/password-policy"),
+  savePasswordPolicy: (kind, b) => http.put(`/password-policy/${kind}`, b),
 };
 
 export const integrationsApi = {

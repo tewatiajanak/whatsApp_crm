@@ -119,7 +119,7 @@ export default function EventsActivityPage() {
   }, [items]);
 
   return (
-    <div className="p-4 max-w-[1400px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
@@ -142,9 +142,6 @@ export default function EventsActivityPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Activity Log</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Every meaningful action across your workspace — pulled from the audit log.
-          </p>
         </div>
         <button
           type="button"

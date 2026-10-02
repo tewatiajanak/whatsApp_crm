@@ -45,6 +45,12 @@ import { WorkflowConfig } from "../models/WorkflowConfig";
 import { Tenant } from "../models/Tenant";
 import { OrganizationDetails } from "../models/OrganizationDetails";
 import { EventType } from "../models/EventType";
+import { ModuleTemplate, CustomField, SETUP_MODULES } from "../models/ModuleSetup";
+import { AppStore } from "../models/AppStore";
+import eventManagerRoutes from "./eventManager";
+import paymentRoutes from "./payments";
+import publicEventRoutes from "./publicEvents";
+import userAdminRoutes from "./userAdmin";
 import { EVENT_TYPE_DEFAULTS } from "../data/eventTypeDefaults";
 import { convertToLead } from "../services/leadService";
 
@@ -236,6 +242,7 @@ r.post(
 
 /* ---- public ---- */
 r.post("/auth/login", authC.login);
+r.post("/auth/verify-otp", authC.verifyOtp);
 
 const getEnquiryFormById = async (formId: string) => {
   const config = await WorkflowConfig.findOne({ key: "enquiryForms" }).lean();
@@ -333,10 +340,53 @@ r.get("/organization-details", asyncHandler(async (req: any, res: any) => {
   }
 }));
 
+/* ---- Public event registration forms (no sign-in) ---- */
+r.use(publicEventRoutes);
+
 /* ---- everything below requires auth ---- */
 r.use(authenticate);
 r.get("/auth/me", authC.me);
+r.post("/auth/change-password", authC.changePassword);
 r.get("/system/status", msgC.status);
+
+/* ---- Event Manager: events, attendees, activity logs ---- */
+r.use(eventManagerRoutes);
+
+/* ---- Payment gateways + payments ---- */
+r.use(paymentRoutes);
+
+/* ---- App store: server-side replacement for browser localStorage ---- */
+const appStoreScope = (req: any, scope: unknown) => ({
+  tenant: req.tenantId,
+  user: scope === "user" ? req.auth.uid : null,
+});
+r.get(
+  "/app-store",
+  asyncHandler(async (req: any, res: any) => {
+    const rows = await AppStore.find({ tenant: req.tenantId, user: { $in: [null, req.auth.uid] } }).lean();
+    const out: Record<string, string> = {};
+    // tenant-wide values first, then the user's own on top
+    rows.filter((x) => !x.user).forEach((x) => { out[x.key] = x.value; });
+    rows.filter((x) => x.user).forEach((x) => { out[x.key] = x.value; });
+    ok(res, out);
+  })
+);
+r.put(
+  "/app-store/:key",
+  asyncHandler(async (req: any, res: any) => {
+    if (typeof req.body?.value !== "string") throw new ApiError(400, "value must be a string");
+    const filter = { ...appStoreScope(req, req.body.scope), key: req.params.key };
+    await AppStore.updateOne(filter, { $set: { value: req.body.value } }, { upsert: true });
+    ok(res, { key: req.params.key });
+  })
+);
+r.delete(
+  "/app-store/:key",
+  asyncHandler(async (req: any, res: any) => {
+    await AppStore.deleteOne({ ...appStoreScope(req, req.query.scope), key: req.params.key });
+    ok(res, { key: req.params.key });
+  })
+);
 r.get("/flowchat/state", require_("workflows", "view"), flowStudioC.getFlowStudioState);
 r.put("/flowchat/state", require_("workflows", "edit"), flowStudioC.saveFlowStudioState);
 r.get("/flowchat/media", require_("workflows", "view"), flowMediaC.listFlowMedia);
@@ -422,6 +472,36 @@ r.post("/designations", require_("setup", "create"), desgCrud.create);
 r.patch("/designations/:id", require_("setup", "edit"), desgCrud.update);
 r.delete("/designations/:id", require_("setup", "del"), desgCrud.remove);
 
+/* ---- Module Setup: communication templates + custom fields ----
+ * Scoped per module (events / crm / website / front-office). List requires
+ * ?module=… so one module's Setup never sees another's records, and the
+ * owning module / tenant can't be changed after creation. */
+const requireSetupModule = (req: any, _res: any, next: any) => {
+  const m = req.method === "GET" ? req.query.module : req.body?.module;
+  if (!SETUP_MODULES.includes(m)) return next(new ApiError(400, "Valid module is required"));
+  next();
+};
+const lockOwnership = (req: any, _res: any, next: any) => {
+  if (req.body) {
+    delete req.body.tenant;
+    delete req.body.module;
+    delete req.body._id;
+  }
+  next();
+};
+
+const moduleTplCrud = crud(ModuleTemplate, { module: "setup", searchFields: ["name", "body"] });
+r.get("/module-templates", require_("setup", "view"), requireSetupModule, moduleTplCrud.list);
+r.post("/module-templates", require_("setup", "create"), requireSetupModule, moduleTplCrud.create);
+r.patch("/module-templates/:id", require_("setup", "edit"), lockOwnership, moduleTplCrud.update);
+r.delete("/module-templates/:id", require_("setup", "del"), moduleTplCrud.remove);
+
+const customFieldCrud = crud(CustomField, { module: "setup", searchFields: ["key", "label"] });
+r.get("/custom-fields", require_("setup", "view"), requireSetupModule, customFieldCrud.list);
+r.post("/custom-fields", require_("setup", "create"), requireSetupModule, customFieldCrud.create);
+r.patch("/custom-fields/:id", require_("setup", "edit"), lockOwnership, customFieldCrud.update);
+r.delete("/custom-fields/:id", require_("setup", "del"), customFieldCrud.remove);
+
 /* ---- Teams (Setup) ---- */
 const teamCrud = crud(Team, { module: "setup", searchFields: ["name"], populate: "manager members.user sources" });
 r.get("/teams", require_("setup", "view"), teamCrud.list);
@@ -488,11 +568,9 @@ r.post("/usertypes", require_("setup", "create"), userTypeCrud.create);
 r.patch("/usertypes/:id", require_("setup", "edit"), userTypeCrud.update);
 r.delete("/usertypes/:id", require_("setup", "del"), userTypeCrud.remove);
 
-const userCrud = crud(User, { module: "setup", searchFields: ["name", "email"], populate: "userType" });
-r.get("/users", require_("setup", "view"), userCrud.list);
-r.post("/users", require_("setup", "create"), userCrud.create);
-r.patch("/users/:id", require_("setup", "edit"), userCrud.update);
-r.delete("/users/:id", require_("setup", "del"), userCrud.remove);
+// Users, user types and the password policy (passwords are hashed there — the
+// generic CRUD must never write a user).
+r.use(userAdminRoutes);
 
 /* ---- Event Types (Setup) — PHASE-4 real impl ---- */
 const eventTypeCrud = crud(EventType, { module: "setup", searchFields: ["name", "key", "description"] });

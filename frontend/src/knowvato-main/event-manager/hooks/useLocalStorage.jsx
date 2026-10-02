@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { appStore } from "../../../api/appStore";
 
 export const useLocalStorage = (key, initialValue) => {
   const readValue = () => {
@@ -7,7 +8,7 @@ export const useLocalStorage = (key, initialValue) => {
     }
 
     try {
-      const item = window.localStorage.getItem(key);
+      const item = appStore.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
       console.warn(`useLocalStorage: Error reading key \"${key}\"`, error);
@@ -23,7 +24,7 @@ export const useLocalStorage = (key, initialValue) => {
     }
 
     try {
-      window.localStorage.setItem(key, JSON.stringify(storedValue));
+      appStore.setItem(key, JSON.stringify(storedValue));
     } catch (error) {
       console.warn(`useLocalStorage: Error storing key \"${key}\"`, error);
     }

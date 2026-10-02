@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import DateInput from "../../components/DateInput";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useEventData } from "@/event-manager/context/EventDataContext";
 import {
   ArrowLeft,
@@ -9,12 +10,12 @@ import {
   Users,
   Pencil,
   Trash2,
+  Menu,
   ExternalLink,
+  History,
   Loader2,
   Filter as FilterIcon,
   X,
-  Save,
-  Building2,
   Sparkles,
 } from "lucide-react";
 import { UIButton, SearchInput } from "@/components/UIKit";
@@ -63,33 +64,82 @@ const statusStyle = (s: string) => {
   }
 };
 
-type EventForm = {
-  eventName: string;
-  eventType: string;
-  organizer: string;
-  startDate: string;
-  endDate: string;
-  startTime: string;
-  endTime: string;
-  venue: string;
-  city: string;
-  capacity: number;
-  description: string;
-};
+type RowAction = { label: string; icon: any; onClick: () => void; danger?: boolean };
 
-const EMPTY_FORM: EventForm = {
-  eventName: "",
-  eventType: "",
-  organizer: "",
-  startDate: "",
-  endDate: "",
-  startTime: "09:00",
-  endTime: "18:00",
-  venue: "",
-  city: "",
-  capacity: 100,
-  description: "",
-};
+// Per-row actions menu. Rendered position:fixed so the table's overflow
+// container can't clip it.
+function RowActionsMenu({ actions }: { actions: RowAction[] }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!menuRef.current?.contains(t) && !btnRef.current?.contains(t)) setOpen(false);
+    };
+    const onScroll = () => setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("scroll", onScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("scroll", onScroll, true);
+    };
+  }, [open]);
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    }
+    setOpen((o) => !o);
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon"
+        title="Actions"
+        aria-label="Actions"
+      >
+        <Menu className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          className="rounded-lg border bg-card py-1 text-left"
+          style={{ position: "fixed", top: pos.top, right: pos.right, zIndex: 60, minWidth: 170, boxShadow: "var(--shadow-lift)" }}
+        >
+          {actions.map((a) => {
+            const Icon = a.icon;
+            return (
+              <div key={a.label}>
+                {a.danger && <div className="my-1 border-t" />}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    a.onClick();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] hover:bg-accent text-left"
+                  style={{ color: a.danger ? "var(--destructive)" : "var(--foreground)", background: "transparent", border: 0 }}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  {a.label}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
 
 export default function EventsAllPage() {
   const {
@@ -104,28 +154,18 @@ export default function EventsAllPage() {
   } = useEventData() as any;
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusTab, setStatusTab] = useState("all");
   const [typeFilter, setTypeFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<EventForm>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-
-  // Auto-open create drawer via ?create=1
+  // Old links still arrive as ?create=1 / ?edit=<id>: send them to the wizard.
   useEffect(() => {
-    if (searchParams.get("create") === "1") {
-      setEditingId(null);
-      setForm(EMPTY_FORM);
-      setDrawerOpen(true);
-    } else if (searchParams.get("edit")) {
-      const ev = events.find((e: any) => e.id === searchParams.get("edit"));
-      if (ev) openEditFor(ev);
-    }
+    if (searchParams.get("create") === "1") navigate("/modules/events/new", { replace: true });
+    else if (searchParams.get("edit")) navigate(`/modules/events/${searchParams.get("edit")}/edit`, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, events.length]);
+  }, [searchParams]);
 
   const typeMap = useMemo(() => {
     const m: Record<string, any> = {};
@@ -188,61 +228,8 @@ export default function EventsAllPage() {
 
   const hasFilter = !!(search || typeFilter || fromDate || toDate || statusTab !== "all");
 
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setDrawerOpen(true);
-    setSearchParams({ create: "1" });
-  };
-
-  const openEditFor = (e: any) => {
-    setEditingId(e.id);
-    setForm({
-      eventName: e.eventName || "",
-      eventType: e.eventType || "",
-      organizer: e.organizer || "",
-      startDate: e.startDate || "",
-      endDate: e.endDate || "",
-      startTime: e.startTime || "09:00",
-      endTime: e.endTime || "18:00",
-      venue: e.venue || "",
-      city: e.city || "",
-      capacity: e.capacity || 100,
-      description: e.description || "",
-    });
-    setDrawerOpen(true);
-    setSearchParams({ edit: e.id });
-    if (setSelectedEventId) setSelectedEventId(e.id);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setEditingId(null);
-    // Clean the URL
-    if (searchParams.get("create") || searchParams.get("edit")) {
-      setSearchParams({});
-    }
-  };
-
-  const save = async () => {
-    if (!form.eventName.trim() || !form.startDate) {
-      alert("Event name and start date are required");
-      return;
-    }
-    setSaving(true);
-    try {
-      if (editingId) {
-        await updateEvent(editingId, form);
-      } else {
-        await addEvent(form);
-      }
-      closeDrawer();
-    } catch (e: any) {
-      alert(e?.message || "Save failed");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const openCreate = () => navigate("/modules/events/new");
+  const openEditFor = (e: any) => navigate(`/modules/events/${e.id}/edit`);
 
   const handleDelete = async (e: Ev) => {
     if (!confirm(`Delete "${e.eventName}"?`)) return;
@@ -266,9 +253,6 @@ export default function EventsAllPage() {
             <ArrowLeft className="h-3 w-3" /> Back to Event Manager
           </Link>
           <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight">Events</h1>
-          <p className="text-[11px] text-muted-foreground leading-tight">
-            Browse, filter, and create — everything you need to manage your events in one place.
-          </p>
         </div>
         <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           Create Event
@@ -342,15 +326,17 @@ export default function EventsAllPage() {
               </option>
             ))}
         </select>
-        <input
-          type="date"
+        <DateInput
+          wrapperStyle={{ display: "inline-block" }}
+          placeholder="From"
           value={fromDate}
           onChange={(e) => setFromDate(e.target.value)}
           className="ui-input"
           title="From"
         />
-        <input
-          type="date"
+        <DateInput
+          wrapperStyle={{ display: "inline-block" }}
+          placeholder="To"
           value={toDate}
           onChange={(e) => setToDate(e.target.value)}
           className="ui-input"
@@ -382,7 +368,7 @@ export default function EventsAllPage() {
                 <th className="px-4 py-3 text-left font-medium">Venue</th>
                 <th className="px-4 py-3 text-left font-medium">Registrations</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 text-right font-medium" style={{ textAlign: "right", width: 90 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -512,21 +498,17 @@ export default function EventsAllPage() {
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-right" onClick={(ev) => ev.stopPropagation()}>
-                        <div className="inline-flex items-center gap-1">
-                          <UIButton size="icon-sm" variant="ghost" onClick={() => openEditFor(e)} title="Edit">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </UIButton>
-                          <Link
-                            to={`/modules/events/${e.id}`}
-                            className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon"
-                            title="Open workspace"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Link>
-                          <UIButton size="icon-sm" variant="danger" onClick={() => handleDelete(e)} title="Delete">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </UIButton>
-                        </div>
+                        <RowActionsMenu
+                          actions={[
+                            { label: "Edit Event", icon: Pencil, onClick: () => openEditFor(e) },
+                            ...(e.form?.published
+                              ? [{ label: "Registration Form Link", icon: ExternalLink, onClick: () => window.open(`/e/${e.id}`, "_blank", "noopener") }]
+                              : []),
+                            { label: "Attendees", icon: Users, onClick: () => navigate(`/modules/events/${e.id}/attendees`) },
+                            { label: "Activity Log", icon: History, onClick: () => navigate(`/modules/events/${e.id}/logs`) },
+                            { label: "Delete", icon: Trash2, onClick: () => handleDelete(e), danger: true },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );
@@ -536,267 +518,6 @@ export default function EventsAllPage() {
         </div>
       </div>
 
-      {/* Drawer */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-50 flex" onClick={closeDrawer}>
-          <div className="flex-1 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="w-full max-w-2xl bg-card border-l shadow-2xl overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drawer header */}
-            <div className="sticky top-0 z-10 bg-card border-b px-6 py-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider">
-                  {editingId ? "Edit event" : "New event"}
-                </div>
-                <div className="text-lg font-semibold text-foreground mt-0.5">
-                  {editingId ? form.eventName || "Untitled" : "Create a new event"}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={closeDrawer}
-                className="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Basics */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                      color: "var(--primary)",
-                    }}
-                  >
-                    1
-                  </span>
-                  <div className="text-sm font-semibold text-foreground">Basics</div>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Event name *
-                    </label>
-                    <input
-                      value={form.eventName}
-                      onChange={(e) => setForm({ ...form, eventName: e.target.value })}
-                      placeholder="e.g. Tech Conference 2026"
-                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Event type
-                      </label>
-                      <select
-                        value={form.eventType}
-                        onChange={(e) => setForm({ ...form, eventType: e.target.value })}
-                        className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                      >
-                        <option value="">— choose —</option>
-                        {(eventTypes as any[])
-                          .filter((t) => t.active !== false)
-                          .map((t) => (
-                            <option key={t.id || t._id} value={t.id || t._id}>
-                              {t.label || t.name}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Organizer
-                      </label>
-                      <input
-                        value={form.organizer}
-                        onChange={(e) => setForm({ ...form, organizer: e.target.value })}
-                        placeholder="Your team or company"
-                        className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Short description
-                    </label>
-                    <textarea
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      placeholder="One-liner that sums up the event"
-                      rows={2}
-                      className="mt-1 w-full px-3 py-2 rounded-md border border-input bg-background text-sm resize-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Date & Time */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold"
-                    style={{
-                      background: "color-mix(in srgb, var(--info) 15%, transparent)",
-                      color: "var(--info)",
-                    }}
-                  >
-                    2
-                  </span>
-                  <div className="text-sm font-semibold text-foreground">Date & Time</div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Start date *
-                    </label>
-                    <input
-                      type="date"
-                      value={form.startDate}
-                      onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      End date
-                    </label>
-                    <input
-                      type="date"
-                      value={form.endDate}
-                      onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Start time
-                    </label>
-                    <input
-                      type="time"
-                      value={form.startTime}
-                      onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      End time
-                    </label>
-                    <input
-                      type="time"
-                      value={form.endTime}
-                      onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Location */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold"
-                    style={{
-                      background: "color-mix(in srgb, var(--success) 15%, transparent)",
-                      color: "var(--success)",
-                    }}
-                  >
-                    3
-                  </span>
-                  <div className="text-sm font-semibold text-foreground">Location</div>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Venue
-                    </label>
-                    <div className="mt-1 relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      <input
-                        value={form.venue}
-                        onChange={(e) => setForm({ ...form, venue: e.target.value })}
-                        placeholder="e.g. Grand Hyatt, Gurugram"
-                        className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      City
-                    </label>
-                    <input
-                      value={form.city}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
-                      placeholder="e.g. Gurugram"
-                      className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Capacity */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold"
-                    style={{
-                      background: "color-mix(in srgb, var(--warning) 15%, transparent)",
-                      color: "var(--warning)",
-                    }}
-                  >
-                    4
-                  </span>
-                  <div className="text-sm font-semibold text-foreground">Capacity</div>
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Total capacity
-                  </label>
-                  <div className="mt-1 relative max-w-[200px]">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <input
-                      type="number"
-                      value={form.capacity}
-                      onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })}
-                      min={0}
-                      className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="sticky bottom-0 bg-card border-t px-6 py-4 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={closeDrawer}
-                className="flex-1 h-10 rounded-md text-sm font-medium border hover:bg-accent"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={save}
-                disabled={saving || !form.eventName.trim() || !form.startDate}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-md text-sm font-medium text-white shadow-sm disabled:opacity-40"
-                style={{ background: "var(--primary)" }}
-              >
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                {editingId ? "Save changes" : "Create event"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -251,9 +251,6 @@ export default function WhatsAppIntegrationManager({ showHeader = true, backLink
               <i className="bi bi-whatsapp text-success" style={{ fontSize: "1.4rem" }}></i>
               WhatsApp API Integration
             </h4>
-            <p className="text-secondary small mb-0">
-              Configure and test your Meta WhatsApp Cloud API or BSP Vendor account credentials for automated messaging.
-            </p>
           </div>
           <button className="btn btn-wa d-inline-flex align-items-center gap-2" onClick={startCreate}>
             <Plus size={16} /> Integrate Account
@@ -508,9 +505,6 @@ export default function WhatsAppIntegrationManager({ showHeader = true, backLink
                       <div className="p-3 rounded-3 d-flex align-items-center justify-content-between border">
                         <div>
                           <div className="text-dark" style={{ fontSize: "12px", fontWeight: 500 }}>Active Integration</div>
-                          <div className="text-secondary" style={{ fontSize: "11.5px" }}>
-                            Make this WhatsApp gateway active for outbound messages & campaigns.
-                          </div>
                         </div>
                         <div className="form-check form-switch mb-0">
                           <input

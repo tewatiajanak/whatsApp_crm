@@ -3,10 +3,10 @@ import { uid } from '../utils/id';
 import { NODE_TYPES } from '../data/nodeTypes';
 import { seedData } from '../data/seedData';
 import { flowStudioApi } from '../../api';
+import { getToken } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 
 const BotContext = createContext(null);
-const STORAGE_KEY = 'flowchat_studio_data_v4';
-const FORMS_STORAGE_KEY = 'flowchat_studio_forms_v1';
 
 const defaultSeedForms = [
   {
@@ -65,52 +65,25 @@ function normalizeNodes(nodes) {
   return clean;
 }
 
-function loadInitial() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.clients) && Array.isArray(parsed.bots) && parsed.clients.length > 0 && parsed.bots.length > 0) {
-        parsed.bots = parsed.bots.map((b) => ({
-          ...b,
-          nodes: normalizeNodes(b.nodes),
-        }));
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.warn('Could not read saved data, starting fresh.', e);
-  }
-  return seedData;
-}
-
-function loadInitialForms() {
-  try {
-    const raw = localStorage.getItem(FORMS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.warn('Could not read saved forms, starting fresh.', e);
-  }
-  return defaultSeedForms;
-}
-
 export function BotProvider({ children }) {
-  const [clients, setClients] = useState(() => (loadInitial() && loadInitial().clients) || seedData.clients);
-  const [bots, setBots] = useState(() => (loadInitial() && loadInitial().bots) || seedData.bots);
-  const [forms, setForms] = useState(() => loadInitialForms());
+  const [clients, setClients] = useState(seedData.clients);
+  const [bots, setBots] = useState(seedData.bots);
+  const [forms, setForms] = useState(defaultSeedForms);
   const [stateHydrated, setStateHydrated] = useState(false);
+  const { user } = useAuth();
+  const userId = user?._id || user?.id || null;
 
+  // Load the saved state from the server whenever someone signs in. Nothing is
+  // kept in the browser, and autosave stays off until this load has succeeded so
+  // the starter data can never overwrite what is stored on the server.
   useEffect(() => {
     let mounted = true;
-    const token = localStorage.getItem('wacrm_token');
+    setStateHydrated(false);
 
-    if (!token) {
-      setStateHydrated(true);
+    if (!userId || !getToken()) {
+      setClients(seedData.clients);
+      setBots(seedData.bots);
+      setForms(defaultSeedForms);
       return () => {
         mounted = false;
       };
@@ -129,24 +102,15 @@ export function BotProvider({ children }) {
         if (remoteClients.length) setClients(remoteClients);
         if (remoteBots.length) setBots(remoteBots);
         if (remoteForms.length) setForms(remoteForms);
+        setStateHydrated(true);
       } catch (err) {
-        console.warn('Could not load FlowChat state from backend. Using local state.', err);
-      } finally {
-        if (mounted) setStateHydrated(true);
+        console.warn('Could not load FlowChat state from backend.', err);
       }
     })();
     return () => {
       mounted = false;
     };
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ clients, bots }));
-  }, [clients, bots]);
-
-  useEffect(() => {
-    localStorage.setItem(FORMS_STORAGE_KEY, JSON.stringify(forms));
-  }, [forms]);
+  }, [userId]);
 
   const saveToBackendNow = async (latestClients, latestBots, latestForms) => {
     try {
@@ -163,7 +127,7 @@ export function BotProvider({ children }) {
 
   useEffect(() => {
     if (!stateHydrated) return;
-    if (!localStorage.getItem('wacrm_token')) return;
+    if (!getToken()) return;
 
     const timer = setTimeout(async () => {
       try {

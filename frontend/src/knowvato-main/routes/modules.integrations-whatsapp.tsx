@@ -4,7 +4,7 @@ import WhatsAppIntegrationManager from "../../components/WhatsAppIntegrationMana
 
 export default function WhatsAppIntegrationPage() {
   return (
-    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <WhatsAppIntegrationManager
         showHeader={true}
         backLink={

@@ -108,7 +108,7 @@ export default function CommunicationCampaignsPage() {
   };
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link
@@ -130,9 +130,6 @@ export default function CommunicationCampaignsPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Campaigns</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Broadcast campaigns across WhatsApp, Email, SMS, and Push.
-          </p>
         </div>
         <button
           type="button"
@@ -276,7 +273,6 @@ export default function CommunicationCampaignsPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-lg font-semibold">New campaign</div>
-                <div className="text-xs text-muted-foreground mt-1">Full audience builder + composer coming in Phase 11.</div>
               </div>
               <button onClick={() => setShowComposer(false)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent">
                 <X className="h-4 w-4" />

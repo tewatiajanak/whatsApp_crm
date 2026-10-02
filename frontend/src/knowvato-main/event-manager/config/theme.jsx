@@ -1,3 +1,4 @@
+import { appStore } from "../../../api/appStore";
 const THEMES = {
   "clean-slate": {
     primary: "#0085A8",
@@ -35,7 +36,7 @@ const STORAGE_KEY = "app_theme";
 
 export function getTheme() {
   if (typeof window === "undefined") return "clean-slate";
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = appStore.getItem(STORAGE_KEY);
   return stored || "clean-slate";
 }
 
@@ -57,7 +58,7 @@ export function applyTheme(themeName = null) {
   root.setAttribute("data-theme", theme);
 
   // Store theme preference
-  localStorage.setItem(STORAGE_KEY, theme);
+  appStore.setItem(STORAGE_KEY, theme);
 
   // Dispatch event for other components to listen
   window.dispatchEvent(new CustomEvent("theme-changed", { detail: { theme, config: themeConfig } }));

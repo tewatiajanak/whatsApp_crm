@@ -101,10 +101,6 @@ export class ErrorBoundary extends React.Component {
               </button>
               <button
                 onClick={() => {
-                  try {
-                    localStorage.removeItem("flowchat_studio_data_v1");
-                    localStorage.removeItem("flowchat_studio_data_v2");
-                  } catch (e) {}
                   window.location.reload();
                 }}
                 style={{

@@ -38,22 +38,6 @@ const URLForm = () => {
       <small className="text-muted">
         Enter any website URL. Include https:// for best results.
       </small>
-
-      {/* Short URL Generator */}
-      <div className="mt-3">
-        <button
-          className="btn btn-sm btn-outline-primary w-100"
-          onClick={() => {
-            if (url) {
-              toast.info("Short URL feature coming soon!");
-            } else {
-              toast.warning("Enter a URL first");
-            }
-          }}
-        >
-          Generate Short URL
-        </button>
-      </div>
     </div>
   );
 };

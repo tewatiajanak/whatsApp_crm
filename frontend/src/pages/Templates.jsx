@@ -278,7 +278,6 @@ export default function Templates() {
     <div>
       <PageHeader
         title="Meta WhatsApp & Email Templates"
-        subtitle="Manage and submit message templates directly to Meta Graph API"
       />
       {creatingMeta || editingTemplate ? (
         <div className="mt-4">

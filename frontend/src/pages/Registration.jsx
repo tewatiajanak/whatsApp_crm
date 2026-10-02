@@ -1,3 +1,4 @@
+import DateInput from "../components/DateInput";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { leadsApi, registrationsApi, workflowConfigApi, mastersApi } from "../api";
@@ -45,7 +46,7 @@ function renderFieldInput(field, value, onChange, labelStyle) {
         </select>
       );
     case "date":
-      return <input type="date" {...commonProps} />;
+      return <DateInput {...commonProps} />;
     case "checkbox":
       return (
         <div className="form-check">

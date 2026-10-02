@@ -19,6 +19,7 @@ import {
   LayoutTemplate,
   Sparkles,
   Layers,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -152,9 +153,6 @@ export default function WebsiteBuilderPage() {
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">Website & Visual Page Builder</h1>
-          <p className="text-sm text-muted-foreground">
-            Design drag-and-drop landing pages, enquiry forms, and registration portals.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -163,6 +161,11 @@ export default function WebsiteBuilderPage() {
           >
             {pinned ? <BookmarkCheck className="h-4 w-4 mr-1" /> : <Bookmark className="h-4 w-4 mr-1" />}
             {pinned ? "Bookmarked" : "Bookmark"}
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/modules/website/setup" className="text-decoration-none">
+              <SlidersHorizontal className="h-4 w-4 mr-1" /> Setup
+            </Link>
           </Button>
           <Button onClick={() => handleOpenVisualBuilder()} className="bg-primary text-primary-foreground">
             <Plus className="h-4 w-4" /> Visual Page Builder
@@ -315,9 +318,6 @@ export default function WebsiteBuilderPage() {
           <Card>
             <CardHeader className="py-4 px-6 border-b">
               <CardTitle className="text-base font-semibold">Active Website Pages & Portals</CardTitle>
-              <CardDescription className="text-xs">
-                Manage landing pages, enquiry forms, and event registration portals.
-              </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">

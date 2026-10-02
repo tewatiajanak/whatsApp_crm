@@ -4,7 +4,37 @@ import QRCodeStyling from "qr-code-styling";
 import { toast } from "react-toastify";
 import { useParams, useNavigate } from "../lib/router-shim";
 import { useEventData } from "../context/EventDataContext";
-import SendCommunicationModal from "../components/SendCommunicationModal";
+import PassPreviewModal from "../../event-pass/PassPreviewModal";
+
+// ── Themed building blocks (match the app-wide UI kit) ────────────────────────
+
+const LABEL_CLS = "block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1";
+const TH_CLS = "px-4 py-3 text-left font-medium";
+
+const ModalShell = ({ title, onClose, onBack, maxWidth = 560, children }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    style={{ background: "rgba(15, 23, 42, 0.45)" }}
+    onClick={(e) => e.target === e.currentTarget && onClose()}
+  >
+    <div className="w-full rounded-xl border bg-card shadow-lg flex flex-col" style={{ maxWidth, maxHeight: "90vh" }}>
+      <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+        <div className="flex items-center gap-2 min-w-0">
+          {onBack && (
+            <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" onClick={onBack} title="Back">
+              <i className="bi bi-arrow-left" />
+            </button>
+          )}
+          <div className="text-sm font-semibold text-foreground truncate">{title}</div>
+        </div>
+        <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" onClick={onClose} title="Close">
+          <i className="bi bi-x-lg" />
+        </button>
+      </div>
+      <div className="p-4 overflow-y-auto">{children}</div>
+    </div>
+  </div>
+);
 
 // ── Country codes & phone helpers ─────────────────────────────────────────────
 
@@ -75,10 +105,10 @@ const PhoneInput = ({ value, onChange, isInvalid }) => {
   };
 
   return (
-    <div className="input-group input-group-sm">
+    <div className="flex gap-2">
       <select
-        className={`form-select form-select-sm flex-shrink-0 ${isInvalid ? "is-invalid" : ""}`}
-        style={{ maxWidth: 80 }}
+        className="ui-input shrink-0"
+        style={{ width: 84, padding: "0 8px", borderColor: isInvalid ? "var(--destructive)" : undefined }}
         value={code}
         onChange={handleCode}
       >
@@ -89,7 +119,8 @@ const PhoneInput = ({ value, onChange, isInvalid }) => {
       <input
         type="tel"
         inputMode="numeric"
-        className={`form-control form-control-sm ${isInvalid ? "is-invalid" : ""}`}
+        className="ui-input flex-1 min-w-0"
+        style={{ borderColor: isInvalid ? "var(--destructive)" : undefined }}
         placeholder={`${maxDigits} digits`}
         maxLength={maxDigits}
         value={number}
@@ -147,12 +178,6 @@ const DEFAULT_CATEGORIES = [
   { name: "Speaker", color: "#8B5CF6" },
   { name: "Press", color: "#EF4444" },
 ];
-
-const STATUS_MAP = {
-  registered: { label: "Registered", cls: "bg-secondary" },
-  "checked-in": { label: "Checked In", cls: "bg-success" },
-  "checked-out": { label: "Checked Out", cls: "bg-warning text-dark" },
-};
 
 // ── Import Modal ──────────────────────────────────────────────────────────────
 
@@ -359,304 +384,160 @@ const ImportModal = ({ eventId, event, existingAttendees, onClose, onImported })
     setImporting(false);
   };
 
+  const importCount = allowDuplicates ? validRows.length + dupRows.length : validRows.length;
+
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+    <ModalShell
+      title={step === "main" ? "Import Registrants" : step === "validate" ? "Validation Results" : "Import Complete"}
+      onClose={onClose}
+      onBack={step === "validate" ? () => setStep("main") : undefined}
     >
-      <div className="modal-sheet">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div className="d-flex align-items-center gap-2">
-            {step !== "main" && (
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary p-1"
-                onClick={() => setStep("main")}
-              >
-                <i className="bi bi-arrow-left" />
-              </button>
-            )}
-            <h5 className="fw-bold mb-0">
-              {step === "main" && "Import Registrants"}
-              {step === "validate" && "Validation Results"}
-              {step === "success" && "Import Complete"}
-            </h5>
-          </div>
-          <button type="button" className="btn-close" onClick={onClose} />
+      {step === "main" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            className="rounded-xl border bg-card p-4 text-center hover:bg-accent transition-colors"
+            onClick={downloadFormat}
+          >
+            <span
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg mb-2"
+              style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}
+            >
+              <i className="bi bi-download" style={{ fontSize: 18 }} />
+            </span>
+            <div className="text-sm font-semibold text-foreground">Download Format</div>
+          </button>
+          <button
+            type="button"
+            className="rounded-xl border bg-card p-4 text-center hover:bg-accent transition-colors"
+            onClick={() => fileRef.current?.click()}
+          >
+            <span
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg mb-2"
+              style={{ background: "var(--success-bg)", color: "var(--success)" }}
+            >
+              <i className="bi bi-upload" style={{ fontSize: 18 }} />
+            </span>
+            <div className="text-sm font-semibold text-foreground">Import Data</div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              style={{ display: "none" }}
+              onChange={handleFile}
+            />
+          </button>
         </div>
+      )}
 
-        {step === "main" && (
-          <div className="row g-3">
-            <div className="col-12 col-sm-6">
-              <button
-                type="button"
-                className="import-option-card w-100 h-100"
-                onClick={downloadFormat}
-              >
-                <i className="bi bi-download mb-2 text-primary" style={{ fontSize: 32 }} />
-                <div className="fw-semibold mb-1">Download Format</div>
-                <div className="text-muted small">
-                  Get the Excel template with correct column headers.
-                </div>
-              </button>
-            </div>
-            <div className="col-12 col-sm-6">
-              <button
-                type="button"
-                className="import-option-card w-100 h-100"
-                onClick={() => fileRef.current?.click()}
-              >
-                <i className="bi bi-upload mb-2 text-success" style={{ fontSize: 32 }} />
-                <div className="fw-semibold mb-1">Import Data</div>
-                <div className="text-muted small">
-                  Upload your filled Excel / CSV file.
-                </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  style={{ display: "none" }}
-                  onChange={handleFile}
-                />
-              </button>
-            </div>
+      {step === "validate" && (
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
+            File: <span className="font-semibold text-foreground">{fileName}</span>
           </div>
-        )}
-
-        {step === "validate" && (
-          <>
-            <div className="mb-3 small text-muted">
-              File: <strong>{fileName}</strong>
-            </div>
-            <div className="d-flex flex-wrap gap-2 mb-3">
-              <span className="badge bg-success py-2 px-3">
-                <i className="bi bi-check me-1" /> {validRows.length} Valid
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium" style={{ background: "var(--success-bg)", color: "var(--success)" }}>
+              <i className="bi bi-check" /> {validRows.length} Valid
+            </span>
+            {invalidRows.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium" style={{ background: "var(--destructive-bg)", color: "var(--destructive)" }}>
+                <i className="bi bi-x" /> {invalidRows.length} Invalid
               </span>
-              {invalidRows.length > 0 && (
-                <span className="badge bg-danger py-2 px-3">
-                  <i className="bi bi-x me-1" /> {invalidRows.length} Invalid
-                </span>
-              )}
-              {dupRows.length > 0 && (
-                <span className="badge bg-warning text-dark py-2 px-3">
-                  <i className="bi bi-exclamation-triangle me-1" /> {dupRows.length}{" "}
-                  Duplicate
-                </span>
-              )}
-            </div>
-            {(invalidRows.length > 0 || dupRows.length > 0) && (
-              <div
-                className="mb-3"
-                style={{ maxHeight: 200, overflowY: "auto" }}
-              >
-                <table
-                  className="table table-sm table-bordered mb-0"
-                  style={{ fontSize: 12 }}
-                >
-                  <thead className="table-light">
-                    <tr>
-                      <th>Row</th>
-                      <th>Name</th>
-                      <th>Issue</th>
+            )}
+            {dupRows.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium" style={{ background: "var(--warning-bg)", color: "var(--warning)" }}>
+                <i className="bi bi-exclamation-triangle" /> {dupRows.length} Duplicate
+              </span>
+            )}
+          </div>
+          {(invalidRows.length > 0 || dupRows.length > 0) && (
+            <div className="rounded-lg border overflow-hidden">
+              <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-[11px] uppercase tracking-wider text-muted-foreground" style={{ background: "var(--muted-background)" }}>
+                      <th className="px-3 py-2 text-left font-medium" style={{ width: 56 }}>Row</th>
+                      <th className="px-3 py-2 text-left font-medium">Name</th>
+                      <th className="px-3 py-2 text-left font-medium">Issue</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[...invalidRows, ...dupRows].map((r) => (
-                      <tr
-                        key={r.row}
-                        className={
-                          dupRows.includes(r) ? "table-warning" : "table-danger"
-                        }
-                      >
-                        <td>{r.row}</td>
-                        <td>{r.name || "—"}</td>
-                        <td>{r.errors.join(", ")}</td>
+                      <tr key={r.row} className="border-t">
+                        <td className="px-3 py-1.5">{r.row}</td>
+                        <td className="px-3 py-1.5">{r.name || "—"}</td>
+                        <td
+                          className="px-3 py-1.5"
+                          style={{ color: dupRows.includes(r) ? "var(--warning)" : "var(--destructive)" }}
+                        >
+                          {r.errors.join(", ")}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-            {/* Duplicate handling option */}
-            {dupRows.length > 0 && (
-              <div className="border rounded px-3 py-2 mb-3 d-flex align-items-center gap-2" style={{ background: "#fffbeb" }}>
-                <input
-                  type="checkbox"
-                  id="allowDupCheck"
-                  className="form-check-input mt-0"
-                  checked={allowDuplicates}
-                  onChange={(e) => setAllowDuplicates(e.target.checked)}
-                />
-                <label htmlFor="allowDupCheck" className="small mb-0" style={{ cursor: "pointer" }}>
-                  Allow duplicate phone / email — same contact can appear for multiple attendees
-                </label>
-              </div>
-            )}
-
-            {(() => {
-              const importCount = allowDuplicates
-                ? validRows.length + dupRows.length
-                : validRows.length;
-              if (importCount === 0) {
-                return (
-                  <div className="alert alert-danger mb-3">
-                    No rows to import. Fix the issues and try again.
-                  </div>
-                );
-              }
-              return (
-                <div className="alert alert-success mb-3">
-                  {importCount} row{importCount !== 1 ? "s" : ""} ready to import.
-                  {dupRows.length > 0 && !allowDuplicates && " Duplicates will be skipped."}
-                  {dupRows.length > 0 && allowDuplicates && ` Includes ${dupRows.length} duplicate entr${dupRows.length !== 1 ? "ies" : "y"}.`}
-                </div>
-              );
-            })()}
-
-            <div className="d-flex gap-2 justify-content-end">
-              <button
-                type="button"
-                className="btn btn-outline-secondary btn-sm"
-                onClick={onClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleConfirm}
-                disabled={(allowDuplicates ? validRows.length + dupRows.length : validRows.length) === 0 || importing}
-              >
-                <i className="bi bi-check me-1" /> Import{" "}
-                {allowDuplicates ? validRows.length + dupRows.length : validRows.length}{" "}
-                Registrants
-              </button>
             </div>
-          </>
-        )}
-
-        {step === "success" && (
-          <div className="text-center py-4">
-            <div style={{ fontSize: 48 }}>✅</div>
-            <h5 className="fw-bold mt-2">
-              {importedCount} Registrants Imported
-            </h5>
-            <p className="text-muted small">
-              Data is now available in the registrant table.
-            </p>
+          )}
+          {dupRows.length > 0 && (
+            <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs cursor-pointer" style={{ background: "var(--warning-bg)" }}>
+              <input
+                type="checkbox"
+                checked={allowDuplicates}
+                onChange={(e) => setAllowDuplicates(e.target.checked)}
+              />
+              Allow duplicate phone / email — same contact can appear for multiple attendees
+            </label>
+          )}
+          <div
+            className="rounded-lg px-3 py-2 text-xs font-medium"
+            style={
+              importCount === 0
+                ? { background: "var(--destructive-bg)", color: "var(--destructive)" }
+                : { background: "var(--success-bg)", color: "var(--success)" }
+            }
+          >
+            {importCount === 0
+              ? "No rows to import. Fix the issues and try again."
+              : `${importCount} row${importCount !== 1 ? "s" : ""} ready to import.${
+                  dupRows.length > 0 && !allowDuplicates ? " Duplicates will be skipped." : ""
+                }${
+                  dupRows.length > 0 && allowDuplicates
+                    ? ` Includes ${dupRows.length} duplicate entr${dupRows.length !== 1 ? "ies" : "y"}.`
+                    : ""
+                }`}
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" className="ui-btn ui-btn-outline" onClick={onClose}>
+              Cancel
+            </button>
             <button
               type="button"
-              className="btn btn-primary btn-sm"
-              onClick={onClose}
+              className="ui-btn ui-btn-primary"
+              onClick={handleConfirm}
+              disabled={importCount === 0 || importing}
             >
-              Done
+              <i className="bi bi-check" /> Import {importCount} Registrants
             </button>
           </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ── Communication Modal ───────────────────────────────────────────────────────
-
-const CommModal = ({ attendee, onClose, eventId, allAttendees = [] }) => {
-  const [sendModalType, setSendModalType] = useState(null);
-
-  const actions = attendee
-    ? [
-        {
-          type: "whatsapp",
-          icon: "💬",
-          label: "WhatsApp",
-          desc: `Send WhatsApp message to ${attendee.name || "this attendee"}`,
-        },
-        {
-          type: "email",
-          icon: "✉️",
-          label: "Email",
-          desc: `Send email to ${attendee.name || "this attendee"}`,
-        },
-        {
-          type: "sms",
-          icon: "📱",
-          label: "SMS",
-          desc: `Send SMS to ${attendee.name || "this attendee"}`,
-        },
-      ]
-    : [
-        {
-          type: "whatsapp",
-          icon: "💬",
-          label: "WhatsApp Blast",
-          desc: "Send WhatsApp message to all registrants",
-        },
-        {
-          type: "email",
-          icon: "✉️",
-          label: "Email Blast",
-          desc: "Send email to all registrants",
-        },
-        {
-          type: "sms",
-          icon: "📱",
-          label: "SMS Blast",
-          desc: "Send SMS to all registrants",
-        },
-      ];
-
-  if (sendModalType) {
-    return (
-      <SendCommunicationModal
-        show={true}
-        initialType={sendModalType}
-        onHide={() => {
-          setSendModalType(null);
-        }}
-        eventId={eventId}
-        attendees={attendee ? [attendee] : allAttendees}
-        onSuccess={() => {
-          setSendModalType(null);
-          onClose();
-        }}
-      />
-    );
-  }
-
-  return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="modal-sheet" style={{ maxWidth: 380 }}>
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h5 className="fw-bold mb-0">
-            {attendee ? "Message attendee" : "Send"}
-          </h5>
-          <button type="button" className="btn-close" onClick={onClose} />
         </div>
-        {actions.map(({ type, icon, label, desc }) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => setSendModalType(type)}
-            className="d-flex align-items-center gap-3 p-2 rounded mb-2 bg-light w-100 border-0"
-            style={{ cursor: "pointer", transition: "all 0.2s" }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f0f0f0"}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+      )}
+
+      {step === "success" && (
+        <div className="text-center py-4">
+          <span
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full"
+            style={{ background: "var(--success-bg)", color: "var(--success)" }}
           >
-            <span style={{ fontSize: 24 }}>{icon}</span>
-            <div className="text-start flex-grow-1">
-              <div className="fw-semibold small">{label}</div>
-              <div className="text-muted" style={{ fontSize: 11 }}>
-                {desc}
-              </div>
-            </div>
-            <span className="badge bg-primary ms-auto">Ready</span>
+            <i className="bi bi-check-lg" style={{ fontSize: 22 }} />
+          </span>
+          <div className="text-base font-semibold text-foreground mt-3">{importedCount} Registrants Imported</div>
+          <button type="button" className="ui-btn ui-btn-primary" onClick={onClose}>
+            Done
           </button>
-        ))}
-      </div>
-    </div>
+        </div>
+      )}
+    </ModalShell>
   );
 };
 
@@ -685,100 +566,76 @@ const EditModal = ({ attendee, eventCats, onSave, onClose, title = "Edit Registr
     onSave(form);
   };
 
+  const errText = (msg) => msg && <div className="text-[11px] mt-1" style={{ color: "var(--destructive)" }}>{msg}</div>;
+
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="modal-sheet" style={{ maxWidth: 440 }}>
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h5 className="fw-bold mb-0">{title}</h5>
-          <button type="button" className="btn-close" onClick={onClose} />
+    <ModalShell title={title} onClose={onClose} maxWidth={460}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL_CLS}>Name *</label>
+          <input
+            type="text"
+            className="ui-input w-full"
+            style={{ borderColor: errors.name ? "var(--destructive)" : undefined }}
+            value={form.name}
+            onChange={(e) => { setForm((p) => ({ ...p, name: e.target.value })); setErrors((p) => ({ ...p, name: "" })); }}
+          />
+          {errText(errors.name)}
         </div>
-        <div className="row g-2">
-          {/* Name */}
-          <div className="col-12 col-sm-6">
-            <label className="form-label small fw-semibold mb-1">Name *</label>
-            <input
-              type="text"
-              className={`form-control form-control-sm ${errors.name ? "is-invalid" : ""}`}
-              value={form.name}
-              onChange={(e) => { setForm((p) => ({ ...p, name: e.target.value })); setErrors((p) => ({ ...p, name: "" })); }}
-            />
-            {errors.name && <div className="invalid-feedback">{errors.name}</div>}
-          </div>
-
-          {/* Phone with country code */}
-          <div className="col-12 col-sm-6">
-            <label className="form-label small fw-semibold mb-1">Phone</label>
-            <PhoneInput
-              value={form.phone}
-              isInvalid={!!errors.phone}
-              onChange={(val) => { setForm((p) => ({ ...p, phone: val })); setErrors((p) => ({ ...p, phone: "" })); }}
-            />
-            {errors.phone && <div className="text-danger" style={{ fontSize: "0.75em", marginTop: 4 }}>{errors.phone}</div>}
-          </div>
-
-          {/* Email */}
-          <div className="col-12 col-sm-6">
-            <label className="form-label small fw-semibold mb-1">Email</label>
-            <input
-              type="email"
-              className={`form-control form-control-sm ${errors.email ? "is-invalid" : ""}`}
-              value={form.email}
-              onChange={(e) => { setForm((p) => ({ ...p, email: e.target.value })); setErrors((p) => ({ ...p, email: "" })); }}
-            />
-            {errors.email && <div className="invalid-feedback">{errors.email}</div>}
-          </div>
-
-          {/* Organization */}
-          <div className="col-12 col-sm-6">
-            <label className="form-label small fw-semibold mb-1">Organization</label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              value={form.organization}
-              onChange={(e) => setForm((p) => ({ ...p, organization: e.target.value }))}
-            />
-          </div>
-          <div className="col-12">
-            <label className="form-label small fw-semibold mb-1">
-              Category
-            </label>
-            <select
-              className="form-select form-select-sm"
-              value={form.category}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, category: e.target.value }))
-              }
-            >
-              <option value="">— None —</option>
-              {(eventCats?.length > 0 ? eventCats.map((c) => ({ name: c.label, color: c.color })) : DEFAULT_CATEGORIES).map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className={LABEL_CLS}>Phone</label>
+          <PhoneInput
+            value={form.phone}
+            isInvalid={!!errors.phone}
+            onChange={(val) => { setForm((p) => ({ ...p, phone: val })); setErrors((p) => ({ ...p, phone: "" })); }}
+          />
+          {errText(errors.phone)}
         </div>
-        <div className="d-flex gap-2 justify-content-end mt-3">
-          <button
-            type="button"
-            className="btn btn-outline-secondary btn-sm"
-            onClick={onClose}
+        <div>
+          <label className={LABEL_CLS}>Email</label>
+          <input
+            type="email"
+            className="ui-input w-full"
+            style={{ borderColor: errors.email ? "var(--destructive)" : undefined }}
+            value={form.email}
+            onChange={(e) => { setForm((p) => ({ ...p, email: e.target.value })); setErrors((p) => ({ ...p, email: "" })); }}
+          />
+          {errText(errors.email)}
+        </div>
+        <div>
+          <label className={LABEL_CLS}>Organization</label>
+          <input
+            type="text"
+            className="ui-input w-full"
+            value={form.organization}
+            onChange={(e) => setForm((p) => ({ ...p, organization: e.target.value }))}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={LABEL_CLS}>Category</label>
+          <select
+            className="ui-input w-full"
+            value={form.category}
+            onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
           >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={handleSave}
-          >
-            {saveLabel}
-          </button>
+            <option value="">— None —</option>
+            {(eventCats?.length > 0 ? eventCats.map((c) => ({ name: c.label, color: c.color })) : DEFAULT_CATEGORIES).map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
-    </div>
+      <div className="flex justify-end gap-2 mt-4">
+        <button type="button" className="ui-btn ui-btn-outline" onClick={onClose}>
+          Cancel
+        </button>
+        <button type="button" className="ui-btn ui-btn-primary" onClick={handleSave}>
+          {saveLabel}
+        </button>
+      </div>
+    </ModalShell>
   );
 };
 
@@ -954,22 +811,12 @@ const PassViewModal = ({ attendee, event, onClose }) => {
   });
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="modal-sheet" style={{ maxWidth: PASS_PREVIEW_W + 60 }}>
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h6 className="fw-bold mb-0">Pass Preview</h6>
-            <small className="text-muted">
+    <ModalShell title="Pass Preview" onClose={onClose} maxWidth={PASS_PREVIEW_W + 60}>
+        <div className="text-xs text-muted-foreground mb-3">
               {attendee.name}
               {attendee.category && (
                 <span style={{ color: catColor }}> · {attendee.category}</span>
               )}
-            </small>
-          </div>
-          <button type="button" className="btn-close" onClick={onClose} />
         </div>
 
         <div
@@ -1361,14 +1208,10 @@ const PassViewModal = ({ attendee, event, onClose }) => {
           </div>
         </div>
 
-        <p
-          className="text-muted text-center mt-3 mb-0"
-          style={{ fontSize: 11 }}
-        >
+        <p className="text-[11px] text-muted-foreground text-center mt-3 mb-0">
           Pass ID: <code>{attendee.passId}</code>
         </p>
-      </div>
-    </div>
+    </ModalShell>
   );
 };
 
@@ -1392,6 +1235,11 @@ const EventAttendeesPage = () => {
   const filterRef = useRef(null);
   const [showImport, setShowImport] = useState(false);
 
+  // "Upload Data" opens this page at .../upload — start with the import dialog open.
+  useEffect(() => {
+    if (window.location.pathname.endsWith("/upload")) setShowImport(true);
+  }, [eventId]);
+
   useEffect(() => {
     if (!filterOpen) return;
     const handler = (e) => {
@@ -1400,8 +1248,6 @@ const EventAttendeesPage = () => {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [filterOpen]);
-  const [showComm, setShowComm] = useState(false);
-  const [commTarget, setCommTarget] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
   const [passPreviewTarget, setPassPreviewTarget] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1517,413 +1363,209 @@ const EventAttendeesPage = () => {
     (a) => a.passGenerated,
   ).length;
 
+  const backToEvents = () => navigate("/modules/events/all");
+  const colCount = 4 + (showPhone ? 1 : 0) + (showEmail ? 1 : 0) + (showCat ? 1 : 0) + (showOrg ? 1 : 0);
+  const activeFilters = [filterCat, filterPass].filter(Boolean).length;
+
   if (!selectedEvent) {
     return (
-      <div className="container-fluid p-2 fade-in">
-        <div className="card border-0 shadow-sm">
-          <div className="card-body text-center py-5">
-            <p className="text-muted mb-3">
-              Event not found. Go to Create Event and click "Upload Data".
-            </p>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => navigate("/events")}
-            >
-              Go to Create Event
-            </button>
-          </div>
+      <div className="px-4 py-3 max-w-[1600px] mx-auto">
+        <div className="rounded-xl border bg-card px-4 py-12 text-center">
+          <p className="text-sm text-muted-foreground mb-3">Event not found.</p>
+          <button type="button" className="ui-btn ui-btn-primary" onClick={backToEvents}>
+            Back to Events
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container-fluid p-2 fade-in">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Header */}
-      <div className="card border-0 shadow-sm mb-3">
-        <div className="card-body p-3">
-          <nav aria-label="breadcrumb" className="mb-2">
-            <ol className="breadcrumb mb-0 flex-nowrap" style={{ minWidth: 0 }}>
-              <li className="breadcrumb-item flex-shrink-0">
-                <button
-                  type="button"
-                  className="btn btn-link p-0"
-                  style={{ fontSize: "inherit", lineHeight: "inherit", textDecoration: "none", whiteSpace: "nowrap" }}
-                  onClick={() => navigate("/events")}
-                >
-                  Events
-                </button>
-              </li>
-              <li
-                className="breadcrumb-item active text-truncate"
-                style={{ minWidth: 0, maxWidth: "100%" }}
-              >
-                {selectedEvent.eventName} — Upload Data
-              </li>
-            </ol>
-          </nav>
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-2 border-b">
+        <div className="min-w-0">
+          <button
+            type="button"
+            onClick={backToEvents}
+            className="text-[11px] text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+            style={{ background: "transparent", border: 0, padding: 0 }}
+          >
+            <i className="bi bi-arrow-left" /> Back to Events
+          </button>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground leading-tight truncate">
+            {selectedEvent.eventName}
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {eventAttendees.length > 0 && (
+            <button
+              type="button"
+              className="ui-btn ui-btn-outline"
+              onClick={() => navigate(`/modules/events/${eventId}/passes`)}
+            >
+              <i className="bi bi-qr-code" /> Generate Pass
+            </button>
+          )}
+          <button type="button" className="ui-btn ui-btn-outline" onClick={() => setShowAddModal(true)} disabled={isPast}>
+            <i className="bi bi-person-plus" /> Add
+          </button>
+          <button type="button" className="ui-btn ui-btn-primary" onClick={() => setShowImport(true)} disabled={isPast}>
+            <i className="bi bi-cloud-upload" /> Import
+          </button>
+        </div>
+      </div>
 
-          {/* Row 1: Filter + Search + Count + Action buttons */}
-          <div className="d-flex flex-wrap gap-2 align-items-center mb-2">
-            <div className="position-relative" ref={filterRef}>
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <i
+            className="bi bi-search text-muted-foreground"
+            style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", fontSize: 13, pointerEvents: "none" }}
+          />
+          <input
+            type="text"
+            className="ui-input w-full"
+            style={{ paddingLeft: 32 }}
+            placeholder="Search name, phone, email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="relative" ref={filterRef}>
+          <button
+            type="button"
+            className={`ui-btn ${activeFilters ? "ui-btn-primary" : "ui-btn-outline"}`}
+            onClick={() => setFilterOpen((o) => !o)}
+          >
+            <i className="bi bi-funnel" /> Filter
+            {activeFilters > 0 && <span className="text-[10px] font-semibold">({activeFilters})</span>}
+          </button>
+          {filterOpen && (
+            <div
+              className="rounded-xl border bg-card p-3 space-y-3"
+              style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 40, minWidth: 240, boxShadow: "var(--shadow-lift)" }}
+            >
+              <div>
+                <label className={LABEL_CLS}>Category</label>
+                <select className="ui-input w-full" value={filterCat} onChange={(e) => setFilterCat(e.target.value)}>
+                  <option value="">All Categories</option>
+                  {(eventCats.length > 0 ? eventCats.map((c) => c.label) : DEFAULT_CATEGORIES.map((c) => c.name)).map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Pass Status</label>
+                <select className="ui-input w-full" value={filterPass} onChange={(e) => setFilterPass(e.target.value)}>
+                  <option value="">All</option>
+                  <option value="generated">Generated</option>
+                  <option value="not-generated">Not Generated</option>
+                </select>
+              </div>
               <button
                 type="button"
-                className={`btn btn-sm d-inline-flex align-items-center justify-content-center gap-1.5 ${
-                  filterCat || filterPass ? "btn-primary" : "btn-outline-secondary"
-                }`}
-                style={{ height: "36px", minHeight: "36px", fontSize: "13px", fontWeight: "500", borderRadius: "6px" }}
-                onClick={() => setFilterOpen((o) => !o)}
-              >
-                <i className="bi bi-funnel flex-shrink-0" style={{ fontSize: "14px" }} />
-                <span>Filter</span>
-                {(filterCat || filterPass) && (
-                  <span className="badge bg-white text-primary ms-1" style={{ fontSize: "10px" }}>
-                    {[filterCat, filterPass].filter(Boolean).length}
-                  </span>
-                )}
-              </button>
-              {filterOpen && (
-                <div
-                  className="card border-0 shadow-md"
-                  style={{
-                    position: "absolute",
-                    top: "calc(100% + 6px)",
-                    left: 0,
-                    zIndex: 999,
-                    minWidth: 240,
-                    padding: "0.85rem",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <div className="mb-2">
-                    <label className="form-label small fw-semibold mb-1">Category</label>
-                    <select
-                      className="form-select form-select-sm"
-                      value={filterCat}
-                      onChange={(e) => setFilterCat(e.target.value)}
-                    >
-                      <option value="">All Categories</option>
-                      {(eventCats.length > 0
-                        ? eventCats.map((c) => c.label)
-                        : DEFAULT_CATEGORIES.map((c) => c.name)
-                      ).map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold mb-1">Pass Status</label>
-                    <select
-                      className="form-select form-select-sm"
-                      value={filterPass}
-                      onChange={(e) => setFilterPass(e.target.value)}
-                    >
-                      <option value="">All</option>
-                      <option value="generated">Generated</option>
-                      <option value="not-generated">Not Generated</option>
-                    </select>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary w-100 d-inline-flex align-items-center justify-content-center gap-1.5"
-                    style={{ height: "32px", fontSize: "12px" }}
-                    onClick={() => {
-                      setFilterCat("");
-                      setFilterPass("");
-                      setFilterOpen(false);
-                    }}
-                  >
-                    <i className="bi bi-x-circle flex-shrink-0" />
-                    <span>Clear Filters</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="position-relative" style={{ width: "280px" }}>
-              <input
-                type="text"
-                className="form-control form-control-sm"
-                placeholder="Search name, phone, email…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ height: "36px", fontSize: "13px", borderRadius: "6px", paddingRight: "2rem" }}
-              />
-              <i
-                className="bi bi-search text-muted"
-                style={{
-                  position: "absolute",
-                  right: "0.6rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                  fontSize: "13px",
+                className="ui-btn ui-btn-outline ui-btn-sm w-full"
+                onClick={() => {
+                  setFilterCat("");
+                  setFilterPass("");
+                  setFilterOpen(false);
                 }}
-              />
+              >
+                Clear filters
+              </button>
             </div>
-
-            <span className="text-muted small text-nowrap font-medium">
-              {filtered.length}/{eventAttendees.length}
-            </span>
-
-            {/* Spacer to push buttons to the right */}
-            <div style={{ flex: 1 }}></div>
-
-            {/* Action buttons aligned right */}
-            <button
-              type="button"
-              className={`btn btn-sm d-inline-flex align-items-center justify-content-center gap-1.5 ${
-                showComm ? "btn-primary" : "btn-outline-secondary"
-              }`}
-              style={{ height: "36px", minHeight: "36px", fontSize: "13px", fontWeight: "500", borderRadius: "6px", padding: "0 12px" }}
-              onClick={() => {
-                setCommTarget(null);
-                setShowComm(true);
-              }}
-            >
-              <i className="bi bi-send flex-shrink-0" style={{ fontSize: "14px" }} />
-              <span>Send</span>
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center gap-1.5"
-              style={{ height: "36px", minHeight: "36px", fontSize: "13px", fontWeight: "500", borderRadius: "6px", padding: "0 12px" }}
-              onClick={() => navigate(`/events/${eventId}/upload/generatepass`)}
-              disabled={isPast || eventAttendees.length === 0}
-              title={isPast ? "Event has ended — pass generation is locked" : undefined}
-            >
-              <i className="bi bi-qr-code-scan flex-shrink-0" style={{ fontSize: "14px" }} />
-              <span>Generate Pass</span>
-              {selectedEvent?.passDesignSaved && (
-                <i className="bi bi-check-circle-fill ms-1" style={{ color: "var(--success)", fontSize: "12px" }} />
-              )}
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center gap-1.5"
-              style={{ height: "36px", minHeight: "36px", fontSize: "13px", fontWeight: "500", borderRadius: "6px", padding: "0 12px" }}
-              onClick={() => setShowAddModal(true)}
-              disabled={isPast}
-            >
-              <i className="bi bi-person-plus flex-shrink-0" style={{ fontSize: "14px" }} />
-              <span>Add</span>
-            </button>
-
-            <button
-              type="button"
-              className={`btn btn-sm d-inline-flex align-items-center justify-content-center gap-1.5 ${
-                showImport ? "btn-primary" : "btn-outline-secondary"
-              }`}
-              style={{ height: "36px", minHeight: "36px", fontSize: "13px", fontWeight: "500", borderRadius: "6px", padding: "0 12px" }}
-              onClick={() => setShowImport(true)}
-              disabled={isPast}
-            >
-              <i className="bi bi-cloud-upload flex-shrink-0" style={{ fontSize: "14px" }} />
-              <span>Import</span>
-            </button>
-          </div>
+          )}
+        </div>
+        <div className="ml-auto text-xs text-muted-foreground">
+          {filtered.length} of {eventAttendees.length}
         </div>
       </div>
 
-      {/* Desktop table */}
-      <div className="card border-0 shadow-sm d-none d-md-block">
-        <div className="card-body p-0">
-          <div className="table-responsive">
-            <table
-              className="table table-hover align-middle mb-0"
-              style={{ fontSize: 13 }}
-            >
-              <thead className="table-light">
+      {/* Table */}
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[11px] uppercase tracking-wider text-muted-foreground" style={{ background: "var(--muted-background)" }}>
+                <th className={TH_CLS} style={{ width: 64 }}>Sr No</th>
+                <th className={TH_CLS}>Name</th>
+                {showPhone && <th className={TH_CLS}>Phone</th>}
+                {showEmail && <th className={TH_CLS}>Email</th>}
+                {showCat && <th className={TH_CLS}>Category</th>}
+                {showOrg && <th className={TH_CLS}>Organization</th>}
+                <th className={TH_CLS}>Pass</th>
+                <th className="px-4 py-3 font-medium" style={{ width: 96, textAlign: "right" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
                 <tr>
-                  <th style={{ width: 36 }}>#</th>
-                  <th>Name</th>
-                  {showPhone && <th>Phone</th>}
-                  {showEmail && <th>Email</th>}
-                  {showCat && <th>Category</th>}
-                  {showOrg && <th>Organization</th>}
-                  <th>Pass</th>
-                  <th className="text-center">Actions</th>
+                  <td colSpan={colCount} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    {eventAttendees.length === 0
+                      ? "No attendees yet. Click Import to upload data, or Add to enter one."
+                      : "No results match your filter."}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={4 + (showPhone ? 1 : 0) + (showEmail ? 1 : 0) + (showCat ? 1 : 0) + (showOrg ? 1 : 0)} className="text-center py-5 text-muted">
-                      {eventAttendees.length === 0
-                        ? "No registrants yet. Click Import to upload data."
-                        : "No results match your filter."}
+              ) : (
+                filtered.map((a, i) => (
+                  <tr key={a.id} className="border-t hover:bg-accent/30">
+                    <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
+                    <td className="px-4 py-2.5 font-medium text-foreground">{a.name || "—"}</td>
+                    {showPhone && <td className="px-4 py-2.5">{a.phone || "—"}</td>}
+                    {showEmail && (
+                      <td className="px-4 py-2.5 truncate" style={{ maxWidth: 200 }}>
+                        {a.email || "—"}
+                      </td>
+                    )}
+                    {showCat && (
+                      <td className="px-4 py-2.5">
+                        {a.category ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs">
+                            <span className="h-2 w-2 rounded-full" style={{ background: getCatColor(a.category) }} />
+                            {a.category}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    )}
+                    {showOrg && <td className="px-4 py-2.5">{a.organization || "—"}</td>}
+                    <td className="px-4 py-2.5">
+                      {selectedEvent?.passDesignSaved || a.passGenerated ? (
+                        <button
+                          type="button"
+                          className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon"
+                          title="Preview pass"
+                          onClick={() => setPassPreviewTarget(a)}
+                          style={a.passGenerated ? { color: "var(--success)" } : undefined}
+                        >
+                          <i className="bi bi-eye" />
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5" style={{ textAlign: "right" }}>
+                      {!isPast && (
+                        <div className="inline-flex items-center gap-1">
+                          <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" title="Edit" onClick={() => setEditTarget(a)}>
+                            <i className="bi bi-pencil" />
+                          </button>
+                          <button type="button" className="ui-btn ui-btn-danger ui-btn-sm ui-btn-icon" title="Delete" onClick={() => handleDelete(a)}>
+                            <i className="bi bi-trash" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ) : (
-                  filtered.map((a, i) => {
-                    const st = STATUS_MAP[a.status] || STATUS_MAP.registered;
-                    return (
-                      <tr key={a.id}>
-                        <td className="text-muted">{i + 1}</td>
-                        <td className="fw-semibold">{a.name || "—"}</td>
-                        {showPhone && <td>{a.phone || "—"}</td>}
-                        {showEmail && (
-                          <td className="text-truncate" style={{ maxWidth: 160 }}>
-                            {a.email || "—"}
-                          </td>
-                        )}
-                        {showCat && (
-                          <td>
-                            {a.category ? (
-                              <span
-                                className="badge"
-                                style={{ background: getCatColor(a.category), color: "#fff" }}
-                              >
-                                {a.category}
-                              </span>
-                            ) : "—"}
-                          </td>
-                        )}
-                        {showOrg && <td>{a.organization || "—"}</td>}
-                        <td>
-                          {(selectedEvent?.passDesignSaved || a.passGenerated) ? (
-                            <i
-                              className="bi bi-eyeglasses"
-                              style={{ cursor: "pointer", fontSize: 16, color: a.passGenerated ? "var(--success)" : "#343a40" }}
-                              title="Click to preview pass"
-                              onClick={() => setPassPreviewTarget(a)}
-                            />
-                          ) : (
-                            <span className="text-muted small">—</span>
-                          )}
-                        </td>
-                        <td className="text-center">
-                          <div className="d-flex gap-2 justify-content-center">
-                            <i
-                              className="bi bi-chat"
-                              title="Message attendee"
-                              style={{ cursor: "pointer", fontSize: 15, color: "#343a40" }}
-                              onClick={() => { setCommTarget(a); setShowComm(true); }}
-                            />
-                            {!isPast && (
-                              <>
-                                <i
-                                  className="bi bi-pencil"
-                                  title="Edit"
-                                  style={{ cursor: "pointer", fontSize: 15, color: "#343a40" }}
-                                  onClick={() => setEditTarget(a)}
-                                />
-                                <i
-                                  className="bi bi-trash"
-                                  title="Delete"
-                                  style={{ cursor: "pointer", fontSize: 15, color: "var(--destructive)" }}
-                                  onClick={() => handleDelete(a)}
-                                />
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="d-md-none">
-        {filtered.length === 0 ? (
-          <div className="text-center py-5 text-muted">
-            {eventAttendees.length === 0
-              ? "No registrants yet. Tap Import."
-              : "No results match."}
-          </div>
-        ) : (
-          filtered.map((a) => {
-            const st = STATUS_MAP[a.status] || STATUS_MAP.registered;
-            return (
-              <div key={a.id} className="card border-0 shadow-sm mb-2">
-                <div className="card-body p-3">
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <div className="fw-bold">{a.name || "—"}</div>
-                      {a.organization && (
-                        <div className="text-muted small">{a.organization}</div>
-                      )}
-                    </div>
-                    <div className="d-flex gap-1 align-items-center flex-wrap justify-content-end">
-                      {(selectedEvent?.passDesignSaved || a.passGenerated) && (
-                        <i
-                          className="bi bi-eyeglasses"
-                          title="Click to preview pass"
-                          style={{ fontSize: 16, cursor: "pointer", color: a.passGenerated ? "var(--success)" : "#343a40" }}
-                          onClick={() => setPassPreviewTarget(a)}
-                        />
-                      )}
-                      {a.category && (
-                        <span
-                          className="badge"
-                          style={{
-                            background: getCatColor(a.category),
-                            color: "var(--card)",
-                            fontSize: 10,
-                          }}
-                        >
-                          {a.category}
-                        </span>
-                      )}
-                      <span
-                        className={`badge ${st.cls}`}
-                        style={{ fontSize: 10 }}
-                      >
-                        {st.label}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="row g-1 small text-muted mb-2">
-                    {a.phone && <div className="col-12">📞 {a.phone}</div>}
-                    {a.email && <div className="col-12">✉ {a.email}</div>}
-                    <div className="col-12" style={{ fontSize: 10 }}>
-                      <code>{a.passId}</code>
-                    </div>
-                  </div>
-                  <div className="d-flex gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-info flex-fill"
-                      onClick={() => {
-                        setCommTarget(a);
-                        setShowComm(true);
-                      }}
-                    >
-                      <i className="bi bi-chat me-1" /> Message
-                    </button>
-                    {!isPast && (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-secondary flex-fill"
-                          onClick={() => setEditTarget(a)}
-                        >
-                          <i className="bi bi-pencil me-1" /> Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger flex-fill"
-                          onClick={() => handleDelete(a)}
-                        >
-                          <i className="bi bi-trash" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
       </div>
 
       {/* Modals */}
@@ -1946,17 +1588,6 @@ const EventAttendeesPage = () => {
           onImported={handleImported}
         />
       )}
-      {showComm && (
-        <CommModal
-          attendee={commTarget}
-          eventId={eventId}
-          allAttendees={eventAttendees}
-          onClose={() => {
-            setCommTarget(null);
-            setShowComm(false);
-          }}
-        />
-      )}
       {editTarget && (
         <EditModal
           attendee={editTarget}
@@ -1965,15 +1596,15 @@ const EventAttendeesPage = () => {
           onClose={() => setEditTarget(null)}
         />
       )}
-      {passPreviewTarget && (
-        <PassViewModal
-          attendee={passPreviewTarget}
-          event={selectedEvent}
-          onClose={() => setPassPreviewTarget(null)}
-        />
-      )}
+      {passPreviewTarget &&
+        (selectedEvent.passLayout?.blocks ? (
+          <PassPreviewModal attendee={passPreviewTarget} event={selectedEvent} onClose={() => setPassPreviewTarget(null)} />
+        ) : (
+          <PassViewModal attendee={passPreviewTarget} event={selectedEvent} onClose={() => setPassPreviewTarget(null)} />
+        ))}
     </div>
   );
 };
+
 
 export default EventAttendeesPage;

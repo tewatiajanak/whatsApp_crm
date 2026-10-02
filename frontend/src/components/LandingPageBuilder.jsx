@@ -49,6 +49,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
   const [htmlSourceCode, setHtmlSourceCode] = useState("");
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [loadingForms, setLoadingForms] = useState(false);
+  const [enquiryFormsList, setEnquiryFormsList] = useState([]);
   const [showQuickAddMenu, setShowQuickAddMenu] = useState(null);
   const [draggableId, setDraggableId] = useState(null);
   const [isDraggingActive, setIsDraggingActive] = useState(false);

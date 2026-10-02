@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Webhook, ArrowLeft, Plus, X, Trash2, ExternalLink, Play, Copy } from "lucide-react";
+import { appStore } from "../../api/appStore";
 
 type Endpoint = {
   id: string;
@@ -25,14 +26,14 @@ const EVENTS = [
 const STORAGE = "em_webhook_endpoints";
 const load = (): Endpoint[] => {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE) || "[]");
+    return JSON.parse(appStore.getItem(STORAGE) || "[]");
   } catch {
     return [];
   }
 };
 const save = (e: Endpoint[]) => {
   try {
-    localStorage.setItem(STORAGE, JSON.stringify(e));
+    appStore.setItem(STORAGE, JSON.stringify(e));
   } catch {}
 };
 const uid = () =>
@@ -85,7 +86,7 @@ export default function AutomationWebhooksPage() {
   };
 
   return (
-    <div className="p-4 max-w-[1400px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link to="/modules/automation" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1" style={{ textDecoration: "none" }}>
@@ -97,7 +98,6 @@ export default function AutomationWebhooksPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Outbound Webhooks</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">Signed HTTPS webhooks to your systems with retry and delivery logs.</p>
         </div>
         <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium text-white shadow-sm" style={{ background: "var(--primary)" }}>
           <Plus className="h-4 w-4" />

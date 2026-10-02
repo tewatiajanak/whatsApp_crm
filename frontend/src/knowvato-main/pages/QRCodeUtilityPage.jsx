@@ -7,7 +7,7 @@ export default function QRCodeUtilityPage() {
   const [activeTab, setActiveTab] = useState("generate"); // "generate" | "bulk"
 
   return (
-    <div className="space-y-3 p-1 sm:p-2">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       {/* Top Tab Bar Navigation */}
       <div className="bg-white border rounded-xl p-2.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -16,7 +16,6 @@ export default function QRCodeUtilityPage() {
           </div>
           <div>
             <h1 className="text-base font-bold text-slate-900 tracking-tight m-0">QR Code Studio</h1>
-            <p className="text-xs text-slate-500 m-0">Generate single custom QR codes or import in bulk via Excel/CSV</p>
           </div>
         </div>
 

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { http } from "../../api";
 import { useToast } from "../../context/ToastContext";
-import { Building2, Plus, Trash2, Pencil, Loader2, X, Save } from "lucide-react";
+import { Building2, Plus, Trash2, Pencil, Loader2, Save } from "lucide-react";
 import { UIButton, SearchInput } from "../components/UIKit";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { fmtDate } from "../utils/date";
 
 type Dept = {
@@ -28,7 +29,7 @@ export default function DepartmentsPage() {
       const res: any = await http.get("/designations?perPage=200&sort=order");
       setItems(res?.data ?? res?.items ?? []);
     } catch (e: any) {
-      toast?.error?.(e?.message);
+      toast?.(e?.message, "error");
     } finally {
       setLoading(false);
     }
@@ -51,11 +52,11 @@ export default function DepartmentsPage() {
     try {
       if (editing) await http.patch(`/designations/${editing._id}`, { name: form.name.trim(), order: form.order });
       else await http.post("/designations", { name: form.name.trim(), order: form.order });
-      toast?.success?.(editing ? "Department updated" : "Department created");
+      toast?.(editing ? "Department updated" : "Department created");
       setShowForm(false);
       await load();
     } catch (e: any) {
-      toast?.error?.(e?.message);
+      toast?.(e?.message, "error");
     } finally {
       setSaving(false);
     }
@@ -67,7 +68,7 @@ export default function DepartmentsPage() {
       await http.del(`/designations/${d._id}`);
       await load();
     } catch (e: any) {
-      toast?.error?.(e?.message);
+      toast?.(e?.message, "error");
     }
   };
 
@@ -79,7 +80,6 @@ export default function DepartmentsPage() {
             <Building2 className="h-4 w-4 text-primary" />
             <h2 className="text-base font-semibold text-foreground leading-tight">Departments</h2>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 leading-snug">Organize your team by department. Users can be assigned one department each.</p>
         </div>
         <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           New department
@@ -122,13 +122,12 @@ export default function DepartmentsPage() {
         </table>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="bg-card rounded-xl border shadow-2xl w-full max-w-md p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between">
-              <div className="text-lg font-semibold">{editing ? "Edit department" : "New department"}</div>
-              <button onClick={() => setShowForm(false)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent"><X className="h-4 w-4" /></button>
-            </div>
+      <Sheet open={showForm} onOpenChange={setShowForm}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col gap-0 p-0">
+          <SheetHeader className="border-b p-4 pr-10">
+            <SheetTitle>{editing ? "Edit department" : "New department"}</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Name</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1 w-full h-9 px-3 rounded-md border bg-background text-sm" placeholder="e.g. Sales" />
@@ -137,15 +136,15 @@ export default function DepartmentsPage() {
               <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Sort priority</label>
               <input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} className="mt-1 w-full h-9 px-3 rounded-md border bg-background text-sm" placeholder="Lower value shows first" />
             </div>
-            <div className="flex gap-2 pt-2 border-t">
-              <UIButton variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancel</UIButton>
-              <UIButton onClick={save} disabled={!form.name.trim()} loading={saving} leftIcon={<Save className="h-3.5 w-3.5" />} className="flex-1">
-                {editing ? "Save" : "Create"}
-              </UIButton>
-            </div>
           </div>
-        </div>
-      )}
+          <SheetFooter className="border-t p-4 flex-row gap-2 sm:space-x-0">
+            <UIButton variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancel</UIButton>
+            <UIButton onClick={save} disabled={!form.name.trim()} loading={saving} leftIcon={<Save className="h-3.5 w-3.5" />} className="flex-1">
+              {editing ? "Save" : "Create"}
+            </UIButton>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

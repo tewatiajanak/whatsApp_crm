@@ -59,9 +59,6 @@ export default function SmsIntegrationPage() {
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">SMS Gateway Integration</h1>
-          <p className="text-sm text-muted-foreground">
-            Connect MSG91, Twilio, Kaleyra or custom DLT-compliant SMS gateways for instant alerts.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -91,7 +88,6 @@ export default function SmsIntegrationPage() {
               <span>MSG91 Gateway</span>
               <Smartphone className="h-4 w-4 text-primary" />
             </CardTitle>
-            <CardDescription className="text-xs">DLT verified SMS & OTP API.</CardDescription>
           </CardHeader>
         </Card>
 
@@ -106,7 +102,6 @@ export default function SmsIntegrationPage() {
               <span>Twilio SMS</span>
               <MessageSquare className="h-4 w-4 text-primary" />
             </CardTitle>
-            <CardDescription className="text-xs">Global cloud SMS dispatch API.</CardDescription>
           </CardHeader>
         </Card>
 
@@ -121,7 +116,6 @@ export default function SmsIntegrationPage() {
               <span>Kaleyra / Textlocal</span>
               <ShieldAlert className="h-4 w-4 text-primary" />
             </CardTitle>
-            <CardDescription className="text-xs">Enterprise DLT SMS provider.</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -131,9 +125,6 @@ export default function SmsIntegrationPage() {
         <CardHeader className="py-4 px-6 border-b flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base font-semibold">{vendor.toUpperCase()} Credentials & DLT Info</CardTitle>
-            <CardDescription className="text-xs">
-              DLT Entity ID and Header Sender ID compliance details.
-            </CardDescription>
           </div>
           <Badge variant="default" className="bg-emerald-600">
             Active ✓

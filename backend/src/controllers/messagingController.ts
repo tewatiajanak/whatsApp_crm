@@ -76,8 +76,36 @@ export const sharedSend = asyncHandler(async (req: Request, res: Response) => {
     sections,
     header,
     footer,
+    meta,
   } = req.body || {};
   if (!to) throw new ApiError(400, "`to` is required");
+  // who/what the message was for — kept with the message so the sender's history can show it
+  const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined);
+  const info = {
+    channel: channel === "email" ? "email" : "whatsapp",
+    source: str(meta?.source, 40),
+    eventId: str(meta?.eventId, 80),
+    eventName: str(meta?.eventName, 200),
+    contactName: str(meta?.contactName, 200),
+    template: str(meta?.templateName, 200) || template,
+  };
+  // a failed send is recorded too when the sender keeps a history
+  const recordFailure = async (e: any, body?: string) => {
+    if (info.source)
+      await Message.create({
+        tenant: req.tenantId,
+        direction: "outbound",
+        type: template ? "template" : "text",
+        body,
+        subject: channel === "email" ? subject : undefined,
+        phone: to,
+        status: "failed",
+        failReason: String(e?.message || "Send failed").slice(0, 500),
+        agent: req.auth?.name || "system",
+        ...info,
+      }).catch(() => undefined);
+    throw e;
+  };
 
   if (channel === "email") {
     let html = text;
@@ -89,12 +117,14 @@ export const sharedSend = asyncHandler(async (req: Request, res: Response) => {
       subj = subject || tpl.name.replace(/_/g, " ");
     }
     if (!html) throw new ApiError(400, "Provide `template` or `text` for the email body");
-    const result = await sendEmail({ to, subject: subj, html });
+    const result = await sendEmail({ to, subject: subj, html }).catch((e) => recordFailure(e, html));
     await Message.create({
       tenant: req.tenantId,
       direction: "outbound",
       type: template ? "template" : "text",
-      template,
+      ...info,
+      subject: subj,
+      simulated: !!result.simulated,
       body: html,
       phone: to,
       status: "sent",
@@ -119,6 +149,7 @@ export const sharedSend = asyncHandler(async (req: Request, res: Response) => {
   let result: any;
   let msgType = "text";
 
+  try {
   if (type === "media" && mediaUrl) {
     msgType = "image";
     result = await sendMedia(req.tenantId!, to, "image", mediaUrl, caption, filename);
@@ -141,13 +172,17 @@ export const sharedSend = asyncHandler(async (req: Request, res: Response) => {
   } else {
     throw new ApiError(400, "Provide template, text, mediaUrl, or interactive payload");
   }
+  } catch (e) {
+    await recordFailure(e, text || (template ? str(meta?.preview, 4000) : undefined));
+  }
 
   await Message.create({
     tenant: req.tenantId,
     direction: "outbound",
     type: msgType as any,
-    template,
-    body: text || caption || (buttons ? "Interactive buttons" : "Interactive list"),
+    ...info,
+    simulated: !!result.simulated,
+    body: (template && str(meta?.preview, 4000)) || text || caption || (buttons ? "Interactive buttons" : "Interactive list"),
     phone: to,
     status: "sent",
     sentAt: new Date(),

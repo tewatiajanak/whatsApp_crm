@@ -150,9 +150,6 @@ export default function CommunicationPage() {
             <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">Communication & Announcements</h1>
-          <p className="text-sm text-muted-foreground">
-            Multi-channel messaging, campaign broadcasts, SMS alerts, and email newsletters.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -271,9 +268,6 @@ export default function CommunicationPage() {
       <Card>
         <CardHeader className="py-4 px-6 border-b">
           <CardTitle className="text-base font-semibold">Broadcast & Communication History</CardTitle>
-          <CardDescription className="text-xs">
-            Review past announcements, recipient counts, and delivery metrics.
-          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

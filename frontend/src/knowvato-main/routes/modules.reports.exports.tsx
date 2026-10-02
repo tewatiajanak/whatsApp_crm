@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, ArrowLeft, Search, FileText, Trash2 } from "lucide-react";
+import { appStore } from "../../api/appStore";
 
 type ExportJob = {
   id: string;
@@ -14,14 +15,14 @@ type ExportJob = {
 const STORAGE = "em_export_history";
 const load = (): ExportJob[] => {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE) || "[]");
+    return JSON.parse(appStore.getItem(STORAGE) || "[]");
   } catch {
     return [];
   }
 };
 const save = (jobs: ExportJob[]) => {
   try {
-    localStorage.setItem(STORAGE, JSON.stringify(jobs));
+    appStore.setItem(STORAGE, JSON.stringify(jobs));
   } catch {}
 };
 
@@ -63,7 +64,7 @@ export default function ReportsExportsPage() {
   };
 
   return (
-    <div className="p-4 max-w-[1400px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link to="/modules/reports" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1" style={{ textDecoration: "none" }}>
@@ -75,7 +76,6 @@ export default function ReportsExportsPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Exports & Downloads</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">History of every export job — click Report Builder to run a new one.</p>
         </div>
         {jobs.length > 0 && (
           <button onClick={clearAll} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-xs font-medium hover:bg-red-50 text-muted-foreground hover:text-red-600">

@@ -3737,7 +3737,6 @@ export default function VideoEditor() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 m-0">Export Timeline Video</h3>
-                  <p className="text-[10px] text-slate-500 m-0">Render timeline edits, multi-tracks and blur masks</p>
                 </div>
               </div>
               <button
@@ -3760,7 +3759,6 @@ export default function VideoEditor() {
 
                   <div>
                     <h4 className="text-sm font-bold text-slate-900 m-0">Video Rendered Successfully!</h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Ready for high-definition playback and download</p>
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-[6px] border border-slate-300 text-left font-mono text-[11px] space-y-1">

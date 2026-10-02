@@ -21,6 +21,7 @@ import {
   QrCode,
   Layers,
   UserCheck,
+  ClipboardCheck,
   X,
   Sparkles,
   Film,
@@ -42,6 +43,14 @@ import {
   GitBranch,
   PlayCircle,
   Webhook,
+  SlidersHorizontal,
+  Send,
+  History,
+  FileText,
+  Bot,
+  Flag,
+  ShieldCheck,
+  IndianRupee,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -51,10 +60,7 @@ const modules = [
   { title: "Event Manager", slug: "events", icon: CalendarRange },
   { title: "CRM", slug: "whatsapp", icon: MessageSquare },
   { title: "Website Builder", slug: "website", icon: Globe2 },
-  { title: "Communication", slug: "communication", icon: Megaphone },
-  { title: "Automation", slug: "automation", icon: GitBranch },
   { title: "Front Office", slug: "front-office", icon: Building2 },
-  { title: "Participants", slug: "participants", icon: UserCheck },
   { title: "Reports & Analytics", slug: "reports", icon: BarChart3 },
   { title: "Utilities", slug: "utilities", icon: Sparkles },
 ];
@@ -66,6 +72,8 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "organization-details",
   "users",
   "roles",
+  "user-types",
+  "password-policy",
   "departments",
   "security",
   "audit-logs",
@@ -75,48 +83,74 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "taxes-invoicing",
   "platform-invoices",
   "billing-details",
-  "event-types",
-  "event-categories",
-  "event-statuses",
-  "event-default-features",
   "event-id-formats",
-  "checklist-templates",
-  "field-library",
-  "form-templates",
   "master-lists",
-  "pass-templates",
-  "venues",
   "seating-maps",
   "message-delivery",
   "staff-notifications",
   "branding",
   "privacy-requests",
   "page-templates",
-  "certificate-templates",
   "backup-export",
 ]);
 
 const eventsSubmenu = [
   { title: "Overview", path: "/modules/events", icon: LayoutDashboard, exact: true },
   { title: "Events", path: "/modules/events/all", icon: List },
-  { title: "Event Templates", path: "/modules/events/templates", icon: Layers },
-  { title: "Calendar", path: "/modules/events/calendar", icon: CalendarIcon },
-  { title: "Checklist", path: "/modules/events/checklist", icon: CheckSquare },
-  { title: "Tasks", path: "/modules/events/tasks", icon: ListTodo },
   { title: "Registrants", path: "/modules/events/registrants", icon: UserCheck },
+  { title: "Calendar", path: "/modules/events/calendar", icon: CalendarIcon },
+  { title: "Communication", path: "/modules/events/communication", icon: Megaphone },
+  { title: "Tasks", path: "/modules/events/tasks", icon: ListTodo },
+  { title: "Payments", path: "/modules/events/payments", icon: IndianRupee },
   { title: "Scan Pass", path: "/modules/events/scan", icon: ScanLine },
+  { title: "Attendance", path: "/modules/events/attendance", icon: ClipboardCheck },
   { title: "Activity Log", path: "/modules/events/activity", icon: Activity },
+  { title: "Setup", path: "/modules/events/setup", icon: SlidersHorizontal, prefix: true },
+];
+
+// CRM / WhatsApp Manager submenu (was the standalone CRM Layout sidebar).
+// `module` is the permission key checked with can(module, "view").
+const crmSubmenu = [
+  {
+    label: "WhatsApp Manager",
+    items: [
+      { title: "Conversations", path: "/crm/chat", icon: MessageSquare, module: "chat" },
+      { title: "Bulk Campaigns", path: "/crm/campaigns", icon: Send, module: "blast" },
+      { title: "Message History", path: "/crm/history", icon: History, module: "reports" },
+      { title: "Templates", path: "/crm/templates", icon: FileText, module: "blast" },
+      { title: "Manage Media", path: "/crm/media", icon: Film, module: "setup" },
+      { title: "Chatbot & Bot Flows", path: "/crm/chatbot", icon: Bot, module: "setup" },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { title: "Dashboard", path: "/crm", icon: LayoutDashboard, module: "dashboard", exact: true },
+      { title: "Leads", path: "/crm/leads", icon: Flag, module: "leads" },
+      { title: "Follow-ups", path: "/crm/followups", icon: Bell, module: "followups" },
+      { title: "Conversion", path: "/crm/conversion", icon: TrendingUp, module: "conversion" },
+      { title: "Contacts", path: "/crm/contacts", icon: Users, module: "contacts" },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      { title: "Setup", path: "/crm/setup", icon: SlidersHorizontal, module: "setup" },
+      { title: "Audit Logs", path: "/crm/audit", icon: ShieldCheck, module: "reports" },
+    ],
+  },
+];
+
+// Front Office submenu — flat, same style as the Event Manager menu.
+const frontOfficeSubmenu = [
+  { title: "Today Visitors", path: "/modules/front-office/visitors/today", icon: UserCheck },
+  { title: "Upcoming Visitors", path: "/modules/front-office/visitors/upcoming", icon: CalendarClock },
+  { title: "Setup", path: "/modules/front-office/setup", icon: SlidersHorizontal, prefix: true },
 ];
 
 const utilitiesSubmenu = [
   { title: "QR Code", path: "https://qr.nirvaantechnologies.in", icon: QrCode, external: true },
   { title: "Video Edit", path: "https://fve.nirvaantechnologies.in", icon: Film, external: true },
-];
-
-const participantsSubmenu = [
-  { title: "All Participants", path: "/modules/participants", icon: Users, exact: true },
-  { title: "Duplicates", path: "/modules/participants/duplicates", icon: Copy },
-  { title: "Segments", path: "/modules/participants/segments", icon: Filter },
 ];
 
 const communicationSubmenu = [
@@ -148,7 +182,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const pathname = location.pathname;
-  const { user, logout } = useAuth();
+  const { user, logout, can } = useAuth() as any;
   const { bookmarks } = useBookmarks();
   const [utilitiesOpen, setUtilitiesOpen] = useState(false);
 
@@ -161,7 +195,6 @@ export function AppSidebar() {
     : "";
   const isConfigurationPath =
     pathname.startsWith("/modules/integrations-") ||
-    pathname.startsWith("/modules/templates-") ||
     pathname === "/modules/configuration" ||
     CONFIGURATION_SUBSLUGS.has(configSlug);
 
@@ -169,7 +202,95 @@ export function AppSidebar() {
     const isCollapsed = isMobileDrawer ? false : collapsed;
     return (
       <div className="flex-grow overflow-y-auto py-2">
-        {pathname.startsWith("/modules/events") ? (
+        {pathname === "/crm" || pathname.startsWith("/crm/") ? (
+          <div className="nav-section px-2 py-1">
+            <div className="space-y-1">
+              <Link
+                to="/"
+                onClick={handleLinkClick}
+                title="Home"
+                className={`nav-link text-decoration-none flex items-center ${
+                  isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                } text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]`}
+              >
+                <Home className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>Home</span>}
+              </Link>
+            </div>
+            {crmSubmenu.map((group) => {
+              const visible = group.items.filter((s) => !can || can(s.module, "view"));
+              if (!visible.length) return null;
+              return (
+                <div key={group.label} className="mt-2">
+                  {!isCollapsed && (
+                    <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
+                      {group.label}
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    {visible.map((s) => {
+                      const active = s.exact ? pathname === s.path : pathname === s.path || pathname.startsWith(`${s.path}/`);
+                      const Icon = s.icon;
+                      return (
+                        <Link
+                          key={s.path}
+                          to={s.path}
+                          onClick={handleLinkClick}
+                          title={s.title}
+                          className={`nav-link text-decoration-none flex items-center ${
+                            isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                          } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          {!isCollapsed && <span>{s.title}</span>}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : pathname === "/modules/front-office" || pathname.startsWith("/modules/front-office/") ? (
+          <div className="nav-section px-2 py-1">
+            {!isCollapsed && (
+              <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
+                Front Office
+              </div>
+            )}
+            <div className="space-y-1">
+              <Link
+                to="/"
+                onClick={handleLinkClick}
+                title="Home"
+                className={`nav-link text-decoration-none flex items-center ${
+                  isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                } text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]`}
+              >
+                <Home className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>Home</span>}
+              </Link>
+              {frontOfficeSubmenu.map((s) => {
+                const active = pathname === s.path || (!!s.prefix && pathname.startsWith(`${s.path}/`));
+                const Icon = s.icon;
+                return (
+                  <Link
+                    key={s.path}
+                    to={s.path}
+                    onClick={handleLinkClick}
+                    title={s.title}
+                    className={`nav-link text-decoration-none flex items-center ${
+                      isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                    } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>{s.title}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ) : pathname.startsWith("/modules/events") ? (
           <div className="nav-section px-2 py-1">
             {!isCollapsed && (
               <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
@@ -189,7 +310,7 @@ export function AppSidebar() {
                 {!isCollapsed && <span>Home</span>}
               </Link>
               {eventsSubmenu.map((s) => {
-                const active = pathname === s.path;
+                const active = pathname === s.path || (!!s.prefix && pathname.startsWith(`${s.path}/`));
                 const Icon = s.icon;
                 return (
                   <Link
@@ -307,45 +428,6 @@ export function AppSidebar() {
               </Link>
               {communicationSubmenu.map((s) => {
                 const active = pathname === s.path;
-                const Icon = s.icon;
-                return (
-                  <Link
-                    key={s.path}
-                    to={s.path}
-                    onClick={handleLinkClick}
-                    title={s.title}
-                    className={`nav-link text-decoration-none flex items-center ${
-                      isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
-                    } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    {!isCollapsed && <span>{s.title}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ) : pathname.startsWith("/modules/participants") ? (
-          <div className="nav-section px-2 py-1">
-            {!isCollapsed && (
-              <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
-                Participants
-              </div>
-            )}
-            <div className="space-y-1">
-              <Link
-                to="/"
-                onClick={handleLinkClick}
-                title="Home"
-                className={`nav-link text-decoration-none flex items-center ${
-                  isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
-                } ${pathname === "/" ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
-              >
-                <Home className="h-4 w-4 shrink-0" />
-                {!isCollapsed && <span>Home</span>}
-              </Link>
-              {participantsSubmenu.map((s) => {
-                const active = s.exact ? pathname === s.path : pathname === s.path;
                 const Icon = s.icon;
                 return (
                   <Link
@@ -537,6 +619,7 @@ export function AppSidebar() {
                       : `/modules/${m.slug}`;
                   const active =
                     pathname === url ||
+                    pathname.startsWith(`${url}/`) ||
                     (m.slug === "whatsapp" && pathname.startsWith("/crm"));
                   const Icon = m.icon;
                   return (

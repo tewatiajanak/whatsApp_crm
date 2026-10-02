@@ -9,6 +9,7 @@ import {
   Download,
   Database,
 } from "lucide-react";
+import { appStore } from "../../api/appStore";
 
 const SOURCES = [
   { key: "events", label: "Events", storage: "em_mock_events", fields: ["eventName", "eventType", "startDate", "endDate", "venue", "organizer", "capacity"] },
@@ -27,7 +28,7 @@ const uid = () =>
 
 const loadStorage = (key: string): any[] => {
   try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
+    return JSON.parse(appStore.getItem(key) || "[]");
   } catch {
     return [];
   }
@@ -104,7 +105,7 @@ export default function ReportsBuilderPage() {
       limit,
       createdAt: new Date().toISOString(),
     };
-    localStorage.setItem(STORAGE_SAVED, JSON.stringify([report, ...saved]));
+    appStore.setItem(STORAGE_SAVED, JSON.stringify([report, ...saved]));
     alert(`Saved "${reportName}"`);
     setReportName("");
   };
@@ -131,11 +132,11 @@ export default function ReportsBuilderPage() {
       rows: results.length,
       createdAt: new Date().toISOString(),
     });
-    localStorage.setItem("em_export_history", JSON.stringify(exports.slice(0, 50)));
+    appStore.setItem("em_export_history", JSON.stringify(exports.slice(0, 50)));
   };
 
   return (
-    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+    <div className="px-4 py-3 max-w-[1600px] mx-auto space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <Link to="/modules/reports" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1" style={{ textDecoration: "none" }}>
@@ -147,9 +148,6 @@ export default function ReportsBuilderPage() {
             </span>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Report Builder</h1>
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            No-code data explorer — pick a source, choose fields, filter, sort, and export.
-          </p>
         </div>
       </div>
 

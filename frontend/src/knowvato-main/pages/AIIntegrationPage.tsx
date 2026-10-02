@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { useBookmarks } from "@/lib/bookmarks";
 import { aiApi } from "../../api";
 import { toast } from "sonner";
+import { appStore } from "../../api/appStore";
 
 interface AIConfig {
   enabled: boolean;
@@ -177,7 +178,7 @@ export default function AIIntegrationPage() {
         apiKey: apiKeyInput.trim() || undefined,
       });
       // Trigger storage event so floating widget updates immediately
-      localStorage.setItem("knowvato_ai_enabled", checked ? "true" : "false");
+      appStore.setItem("knowvato_ai_enabled", checked ? "true" : "false");
       window.dispatchEvent(new Event("knowvato_ai_status_changed"));
       toast.success(checked ? "AI Copilot enabled! Floating assistant icon is now active." : "AI Copilot disabled.");
     } catch (err: any) {
@@ -227,7 +228,7 @@ export default function AIIntegrationPage() {
         hasApiKey: Boolean(data.hasApiKey),
       }));
       setApiKeyInput("");
-      localStorage.setItem("knowvato_ai_enabled", config.enabled ? "true" : "false");
+      appStore.setItem("knowvato_ai_enabled", config.enabled ? "true" : "false");
       window.dispatchEvent(new Event("knowvato_ai_status_changed"));
       toast.success("AI Integration configuration saved successfully!");
     } catch (err: any) {
@@ -254,9 +255,6 @@ export default function AIIntegrationPage() {
             </span>
             AI Integration & Assistant Settings
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Connect Google Gemini, Anthropic Claude, or OpenAI to power your operational AI Copilot across KnowVato CRM and Events.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -340,7 +338,6 @@ export default function AIIntegrationPage() {
                     </Badge>
                   </div>
                   <CardTitle className="text-base font-semibold">{p.name}</CardTitle>
-                  <CardDescription className="text-xs mt-1 leading-relaxed">{p.desc}</CardDescription>
                 </CardHeader>
                 <div className="px-4 pb-3 pt-1 border-t flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{p.models.length} model choices</span>
@@ -363,9 +360,6 @@ export default function AIIntegrationPage() {
                 <Key className="h-4 w-4 text-primary" />
                 2. API Credentials & Model Configuration
               </CardTitle>
-              <CardDescription className="text-xs">
-                Enter your {currentProvider.name} secret key. Keys are securely stored and encrypted per tenant.
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <form onSubmit={handleSaveConfig} className="space-y-4">
@@ -472,9 +466,6 @@ export default function AIIntegrationPage() {
                 <span>Integration Method & Setup</span>
                 <HelpCircle className="h-4 w-4 text-muted-foreground" />
               </CardTitle>
-              <CardDescription className="text-xs">
-                How to integrate {currentProvider.name} with your workspace
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">

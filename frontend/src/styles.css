@@ -60,11 +60,16 @@
   --shadow-lift: 0 2px 8px rgba(37, 51, 56, 0.06), 0 18px 38px -20px rgba(37, 51, 56, 0.18);
   --shadow-button: 0 5px 14px -6px rgba(33, 126, 121, 0.45);
 
+  /* Density. --ui-scale shrinks spacing and control sizes (paddings, gaps,
+     button and input heights) while text sizes stay as they are.
+     1 = original, 0.95 = 5% tighter. */
+  --ui-scale: 0.95;
+  --spacing: calc(0.25rem * var(--ui-scale));
   --base-font-size: 12.5px;
   --base-line-height: 1.45;
-  --btn-height: 34px;
-  --btn-height-sm: 28px;
-  --input-height: 34px;
+  --btn-height: calc(34px * var(--ui-scale));
+  --btn-height-sm: calc(28px * var(--ui-scale));
+  --input-height: calc(34px * var(--ui-scale));
   --control-radius: 8px;
 
   font-family: 'DM Sans', 'Segoe UI', sans-serif !important;
@@ -106,10 +111,34 @@
   color: var(--primary-foreground);
   box-shadow: var(--shadow-button);
 }
+/* A theme preset recolours every submit button; the app's own primary button
+   and the sign-in button stay on the brand colour. */
+.crm-theme .ui-btn.ui-btn-primary[type="submit"],
+.crm-theme button.login-submit[type="submit"] {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+.crm-theme .ui-btn.ui-btn-primary[type="submit"]:hover:not([disabled]),
+.crm-theme button.login-submit[type="submit"]:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--primary) 90%, black 10%) !important;
+}
+.crm-theme button.login-submit[type="submit"][disabled] {
+  background: #999 !important;
+  border-color: #999 !important;
+}
+
 .crm-theme .ui-btn-primary:hover:not([disabled]),
 .ui-btn-primary:hover:not([disabled]) {
   background: color-mix(in srgb, var(--primary) 92%, black 8%);
 }
+
+/* A link styled as a button keeps the button's text colour (the generic link
+   colour would otherwise paint it the same colour as its background). */
+a.ui-btn, a.ui-btn:hover { text-decoration: none !important; }
+a.ui-btn.ui-btn-primary, a.ui-btn.ui-btn-primary:hover { color: var(--primary-foreground) !important; }
+a.ui-btn.ui-btn-outline, a.ui-btn.ui-btn-outline:hover { color: var(--foreground) !important; }
+a.ui-btn.ui-btn-ghost { color: var(--muted-foreground) !important; }
 
 .crm-theme .ui-btn-outline,
 .ui-btn-outline {
@@ -1037,3 +1066,331 @@ a { color: var(--primary); }
   }
 }
 
+
+/* ============================================================
+   CRM pages → Event Manager look
+   CRM pages still use Bootstrap classes (.btn, .table, .form-control,
+   .card, .tab-track). Inside the CRM page wrapper (.crm-page, see
+   components/Layout.jsx) these render with the same sizes, radii, fonts
+   and spacing as the Event Manager UI kit (.ui-btn / .ui-input / tables).
+   ============================================================ */
+
+/* Buttons → .ui-btn */
+.crm-page .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: none !important;
+  padding: 0 14px !important;
+  border-radius: 8px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+}
+.crm-page .btn-wa,
+.crm-page .btn-primary,
+.crm-page .btn-dark,
+.crm-page .btn-success {
+  background: var(--primary) !important;
+  border: 1px solid transparent !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: var(--shadow-button) !important;
+}
+.crm-page .btn-wa:hover:not([disabled]),
+.crm-page .btn-primary:hover:not([disabled]),
+.crm-page .btn-dark:hover:not([disabled]),
+.crm-page .btn-success:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--primary) 92%, black 8%) !important;
+}
+.crm-page .btn-outline-secondary,
+.crm-page .btn-outline-primary,
+.crm-page .btn-outline-dark,
+.crm-page .btn-light,
+.crm-page .btn-secondary {
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+.crm-page .btn-outline-secondary:hover:not([disabled]),
+.crm-page .btn-outline-primary:hover:not([disabled]),
+.crm-page .btn-outline-dark:hover:not([disabled]),
+.crm-page .btn-light:hover:not([disabled]),
+.crm-page .btn-secondary:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--foreground) 5%, var(--card)) !important;
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border)) !important;
+}
+.crm-page .btn-outline-danger,
+.crm-page .btn-danger {
+  background: var(--card) !important;
+  color: var(--destructive) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+.crm-page .btn-outline-danger:hover:not([disabled]),
+.crm-page .btn-danger:hover:not([disabled]) {
+  background: var(--destructive-bg) !important;
+}
+.crm-page .btn-sm {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+}
+.crm-page .btn-lg {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 18px !important;
+  font-size: 13px !important;
+}
+.crm-page .btn-link {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--primary) !important;
+}
+.crm-page .btn .bi { font-size: 13px; }
+.crm-page .btn .me-1,
+.crm-page .btn .me-2 { margin-right: 0 !important; }
+
+/* Row icon buttons → ghost icon-sm */
+.crm-page .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--muted-foreground);
+}
+.crm-page .btn-icon:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); color: var(--foreground); }
+.crm-page .btn-icon.danger:hover { background: var(--destructive-bg); color: var(--destructive); }
+
+/* Inputs → .ui-input */
+.crm-page .form-control,
+.crm-page .form-select {
+  height: var(--input-height, 34px);
+  min-height: var(--input-height, 34px) !important;
+  padding: 0 12px;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  background-color: var(--card);
+  font-size: 13px !important;
+  color: var(--foreground);
+  box-shadow: none;
+}
+.crm-page .form-select { padding-right: 32px; }
+.crm-page textarea.form-control {
+  height: auto;
+  padding: 8px 12px;
+}
+.crm-page .form-control-sm,
+.crm-page .form-select-sm {
+  height: var(--btn-height-sm, 28px);
+  min-height: var(--btn-height-sm, 28px) !important;
+  font-size: 12.5px !important;
+}
+.crm-page .form-control:focus,
+.crm-page .form-select:focus {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border)) !important;
+  box-shadow: 0 0 0 3px var(--ring) !important;
+  outline: none;
+}
+.crm-page .form-label,
+.crm-page .field-label:not(.sr-only) {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  margin-bottom: 4px;
+}
+
+/* Cards → rounded-xl bordered panels */
+.crm-page .card {
+  border: 1px solid var(--border) !important;
+  border-radius: 0.75rem !important;
+  background: var(--card) !important;
+  box-shadow: none !important;
+}
+.crm-page .card-header {
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0.75rem 0.75rem 0 0 !important;
+}
+.crm-page .card-body { padding: 1rem; }
+
+/* Tables → Event Manager table */
+.crm-page .table {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  font-size: 0.875rem;
+  margin-bottom: 0;
+}
+.crm-page .card .table,
+.crm-page .table-responsive .table { border: none; border-radius: 0; }
+.crm-page .table-responsive {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+.crm-page .card .table-responsive { border: none; border-radius: 0; }
+.crm-page .table > thead > tr > th {
+  background: var(--muted-background) !important;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  /* = py-3 px-4 on the Event Manager tables */
+  padding: 1rem 1.5rem;
+  border-bottom: none;
+  white-space: nowrap;
+}
+.crm-page .table > tbody > tr > td {
+  /* = py-2.5 px-4 */
+  padding: calc(var(--spacing) * 2.5) 1.5rem;
+  font-size: 0.875rem;
+  border-bottom: none;
+  border-top: 1px solid var(--border);
+}
+.crm-page .table > thead > tr > th:first-child,
+.crm-page .table > thead > tr > th:last-child,
+.crm-page .table > tbody > tr:last-child > td:first-child,
+.crm-page .table > tbody > tr:last-child > td:last-child { border-radius: 0; }
+.crm-page .table-hover > tbody > tr:hover > td,
+.crm-page .table > tbody > tr:hover > td { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* Section spacing → the same single gap used between sections on Event
+   Manager pages (space-y-3), instead of Bootstrap's larger steps. */
+.crm-page .mb-3,
+.crm-page .mb-4 { margin-bottom: calc(var(--spacing) * 3) !important; }
+.crm-page .mt-3,
+.crm-page .mt-4 { margin-top: calc(var(--spacing) * 3) !important; }
+.crm-page .row.g-3,
+.crm-page .row.g-4 { --bs-gutter-x: calc(var(--spacing) * 3); --bs-gutter-y: calc(var(--spacing) * 3); }
+.crm-page .row.g-3.mb-3,
+.crm-page .row.g-3.mb-4,
+.crm-page .row.g-4.mb-4 { margin-bottom: calc(var(--spacing) * 3) !important; }
+
+/* Tabs → segmented track */
+.crm-page .tab-track {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px !important;
+  box-shadow: 0 1px 2px rgba(37, 51, 56, 0.05);
+}
+.crm-page .tab-track .tab {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 12px !important;
+}
+.crm-page .tab-track .tab.active { box-shadow: 0 1px 2px rgba(37, 51, 56, 0.08); font-weight: 500; }
+
+/* Chat fills the viewport under the 48px top bar + page padding */
+.crm-page .chat-grid { height: calc(100vh - 48px - 32px); }
+
+/* Filter bar → inline controls, no card (Event Manager filter row) */
+.crm-page .filter-bar {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* Remaining Bootstrap button tones → primary (one accent colour, like Event Manager) */
+.crm-page .btn-warning,
+.crm-page .btn-info {
+  background: var(--primary) !important;
+  border: 1px solid transparent !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: var(--shadow-button) !important;
+}
+
+/* Grid gutters. event-manager/styles/custom.css sets every .row / .g-* gutter
+   to var(--compact-gutter-*), which is only defined inside .em-shell — once
+   that stylesheet loads, rows elsewhere collapse to a 0 gap. Define the vars
+   globally and give CRM rows the same compact gutter as Event Manager. */
+:root {
+  --compact-gutter-x: 0.55rem;
+  --compact-gutter-y: 0.55rem;
+}
+.crm-page .row {
+  --bs-gutter-x: var(--compact-gutter-x);
+  --bs-gutter-y: var(--compact-gutter-y);
+}
+
+/* Drawers and popups render outside .crm-theme: give them the same density. */
+:root {
+  --ui-scale: 0.95;
+  --spacing: calc(0.25rem * var(--ui-scale));
+}
+
+
+/* Bootstrap's own "primary" is blue; the app's is the brand teal. Without this,
+   any .bg-primary / .text-primary / .border-primary shows up blue. */
+:root {
+  --bs-primary: #217E79;
+  --bs-primary-rgb: 33, 126, 121;
+  --bs-link-color: #217E79;
+  --bs-link-color-rgb: 33, 126, 121;
+  --bs-link-hover-color: #1b6965;
+  --bs-link-hover-color-rgb: 27, 105, 101;
+}
+
+/* Left submenu of Setup / Configuration pages (same in every module). */
+.subnav-item {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px 7px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.subnav-item:hover {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  color: var(--foreground);
+}
+.subnav-item.is-active {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-weight: 600;
+}
+.subnav-item.is-active::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--primary);
+}
+
+/* Bootstrap sets `label { display: inline-block }` outside any layer, which beats
+   Tailwind's layered utilities — restore the display a label asks for. */
+label.flex { display: flex; }
+label.block { display: block; }
+label.inline-flex { display: inline-flex; }

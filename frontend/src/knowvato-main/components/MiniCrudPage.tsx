@@ -1,31 +1,47 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Pencil, X, Save, type LucideIcon } from "lucide-react";
+import { Plus, Trash2, Pencil, Save, type LucideIcon } from "lucide-react";
 import { UIButton, SearchInput } from "./UIKit";
+import { http } from "../../api";
+import { useToast } from "../../context/ToastContext";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { appStore } from "../../api/appStore";
 
 type Field = {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "number" | "select" | "color";
+  type?: "text" | "textarea" | "number" | "select" | "color" | "toggle" | "multiselect";
   options?: string[];
+  /** multiselect: the things to tick. Nothing ticked means "all" (see emptyLabel). */
+  choices?: { value: string; label: string }[];
+  emptyLabel?: string;
   placeholder?: string;
   required?: boolean;
 };
+
+const COLOR_SWATCHES = ["#2249b7", "#059669", "#dc2626", "#f97316", "#a855f7", "#0891b2", "#eab308", "#64748b"];
 
 type CrudRow = { id: string; [k: string]: any };
 
 type Props = {
   title: string;
-  description: string;
+  /** One short line for a rule the user can't guess (e.g. available tokens). */
+  hint?: string;
   icon: LucideIcon;
   accent?: string;
   accentTint?: string;
   storageKey: string;
+  /** When set, rows are loaded from / saved to this backend endpoint (MongoDB)
+   *  instead of appStore. `params` are sent as list filters and merged
+   *  into every created row (e.g. `{ module: "crm" }`). */
+  endpoint?: string;
+  params?: Record<string, string>;
   fields: Field[];
   columns: { key: string; label: string; render?: (row: CrudRow) => any }[];
   seed?: CrudRow[];
+  /** Numeric field key; when set, rows are always listed in ascending order of it. */
+  sortKey?: string;
   createLabel?: string;
   emptyMessage?: string;
-  footer?: string;
 };
 
 const uid = () =>
@@ -35,53 +51,72 @@ const uid = () =>
 
 export default function MiniCrudPage({
   title,
-  description,
+  hint,
   icon: Icon,
   accent = "var(--primary)",
   accentTint = "color-mix(in srgb, var(--primary) 12%, transparent)",
   storageKey,
+  sortKey,
+  endpoint,
+  params,
   fields,
   columns,
   seed = [],
   createLabel = "Add",
   emptyMessage,
-  footer,
 }: Props) {
   const [items, setItems] = useState<CrudRow[]>([]);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CrudRow | null>(null);
   const [form, setForm] = useState<any>({});
+  const toast = useToast() as any;
+  const paramsKey = JSON.stringify(params ?? {});
+
+  const loadRemote = async () => {
+    try {
+      const qs = new URLSearchParams({ ...(params ?? {}), perPage: "200" }).toString();
+      const res: any = await http.get(`${endpoint}?${qs}`);
+      setItems((res?.data ?? []).map((d: any) => ({ ...d, id: d._id })));
+    } catch (e: any) {
+      toast?.(e?.message || "Failed to load", "error");
+    }
+  };
 
   useEffect(() => {
+    if (endpoint) {
+      loadRemote();
+      return;
+    }
     try {
-      const raw = localStorage.getItem(storageKey);
+      const raw = appStore.getItem(storageKey);
       if (raw) setItems(JSON.parse(raw));
       else if (seed.length > 0) {
-        localStorage.setItem(storageKey, JSON.stringify(seed));
+        appStore.setItem(storageKey, JSON.stringify(seed));
         setItems(seed);
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
+  }, [storageKey, endpoint, paramsKey]);
 
   const persist = (next: CrudRow[]) => {
     setItems(next);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(next));
+      appStore.setItem(storageKey, JSON.stringify(next));
     } catch {}
   };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((row) => Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q)));
-  }, [items, search]);
+    const rows = q ? items.filter((row) => Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q))) : items;
+    if (!sortKey) return rows;
+    return [...rows].sort((a, b) => (Number(a[sortKey]) || 0) - (Number(b[sortKey]) || 0));
+  }, [items, search, sortKey]);
 
   const openCreate = () => {
     setEditing(null);
     const f: any = {};
-    fields.forEach((fd) => { f[fd.key] = fd.type === "color" ? "#2249b7" : fd.type === "number" ? 0 : ""; });
+    fields.forEach((fd) => { f[fd.key] = fd.type === "color" ? "#2249b7" : fd.type === "number" ? 0 : fd.type === "toggle" ? true : fd.type === "multiselect" ? [] : ""; });
     setForm(f);
     setShowForm(true);
   };
@@ -92,9 +127,25 @@ export default function MiniCrudPage({
     setShowForm(true);
   };
 
-  const save = () => {
+  const save = async () => {
     if (fields.some((f) => f.required && !form[f.key]?.toString().trim())) {
       alert("Fill required fields");
+      return;
+    }
+    if (endpoint) {
+      const body: any = {};
+      fields.forEach((f) => { body[f.key] = form[f.key]; });
+      try {
+        if (editing) await http.patch(`${endpoint}/${editing.id}`, body);
+        else await http.post(endpoint, { ...body, ...(params ?? {}) });
+        toast?.(editing ? "Saved" : "Created");
+        setShowForm(false);
+        setEditing(null);
+        setForm({});
+        await loadRemote();
+      } catch (e: any) {
+        toast?.(e?.message || "Failed to save", "error");
+      }
       return;
     }
     if (editing) persist(items.map((r) => (r.id === editing.id ? { ...editing, ...form } : r)));
@@ -104,13 +155,22 @@ export default function MiniCrudPage({
     setForm({});
   };
 
-  const remove = (row: CrudRow) => {
+  const remove = async (row: CrudRow) => {
     if (!confirm("Delete this item?")) return;
+    if (endpoint) {
+      try {
+        await http.del(`${endpoint}/${row.id}`);
+        await loadRemote();
+      } catch (e: any) {
+        toast?.(e?.message || "Failed to delete", "error");
+      }
+      return;
+    }
     persist(items.filter((r) => r.id !== row.id));
   };
 
   return (
-    <div className="p-4 md:p-5 space-y-3">
+    <div className="p-4 space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b">
         <div>
           <div className="flex items-center gap-2">
@@ -119,7 +179,7 @@ export default function MiniCrudPage({
             </span>
             <h2 className="text-base font-semibold text-foreground leading-tight">{title}</h2>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-snug">{description}</p>
+          {hint && <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-snug">{hint}</p>}
         </div>
         <UIButton onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
           {createLabel}
@@ -142,7 +202,7 @@ export default function MiniCrudPage({
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-muted-foreground" style={{ background: "var(--muted-background)" }}>
                 {columns.map((c) => <th key={c.key} className="px-4 py-3 text-left font-medium">{c.label}</th>)}
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 text-right font-medium w-24" style={{ textAlign: "right" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -177,17 +237,13 @@ export default function MiniCrudPage({
         </div>
       </div>
 
-      {footer && <div className="text-xs text-muted-foreground pt-2 border-t">{footer}</div>}
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="bg-card rounded-xl border shadow-2xl w-full max-w-lg p-5 space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between">
-              <div className="text-lg font-semibold">{editing ? "Edit" : createLabel}</div>
-              <UIButton size="icon-sm" variant="ghost" onClick={() => setShowForm(false)}>
-                <X className="h-4 w-4" />
-              </UIButton>
-            </div>
+      <Sheet open={showForm} onOpenChange={setShowForm}>
+        <SheetContent className="crm-theme w-full sm:max-w-lg flex flex-col gap-0 p-0">
+          <SheetHeader className="border-b p-4 pr-10">
+            <SheetTitle>{editing ? "Edit" : createLabel}</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {fields.map((f) => (
               <div key={f.key}>
                 <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -201,10 +257,55 @@ export default function MiniCrudPage({
                       <option value="">— choose —</option>
                       {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
+                  ) : f.type === "multiselect" ? (
+                    (() => {
+                      const picked: string[] = Array.isArray(form[f.key]) ? form[f.key] : [];
+                      const toggle = (v: string) =>
+                        setForm({ ...form, [f.key]: picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v] });
+                      return (
+                        <div className="rounded-md border bg-background max-h-48 overflow-y-auto">
+                          <label className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer border-b">
+                            <input type="checkbox" checked={picked.length === 0} onChange={() => setForm({ ...form, [f.key]: [] })} />
+                            <span className="font-medium">{f.emptyLabel || "All"}</span>
+                          </label>
+                          {(f.choices || []).map((c) => (
+                            <label key={c.value} className="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-accent/40">
+                              <input type="checkbox" checked={picked.includes(c.value)} onChange={() => toggle(c.value)} />
+                              <span className="truncate">{c.label}</span>
+                            </label>
+                          ))}
+                          {(f.choices || []).length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">Nothing to choose from yet.</div>}
+                        </div>
+                      );
+                    })()
+                  ) : f.type === "toggle" ? (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={form[f.key] !== false}
+                      onClick={() => setForm({ ...form, [f.key]: form[f.key] === false })}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <span
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form[f.key] !== false ? "" : "bg-muted"}`}
+                        style={form[f.key] !== false ? { background: "var(--primary)" } : undefined}
+                      >
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${form[f.key] !== false ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </span>
+                      <span className="text-xs font-medium">{form[f.key] !== false ? "Active" : "Inactive"}</span>
+                    </button>
                   ) : f.type === "color" ? (
-                    <div className="flex items-center gap-2">
-                      <input type="color" value={form[f.key] || "#2249b7"} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} className="h-9 w-14 rounded-md border cursor-pointer bg-background" />
-                      <input value={form[f.key] || ""} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} className="flex-1 h-9 px-3 rounded-md border bg-background text-xs font-mono" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {COLOR_SWATCHES.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          title={c}
+                          onClick={() => setForm({ ...form, [f.key]: c })}
+                          className={`h-8 w-8 rounded-md border transition-shadow ${(form[f.key] || "").toLowerCase() === c ? "ring-2 ring-offset-2 ring-foreground" : ""}`}
+                          style={{ background: c }}
+                        />
+                      ))}
                     </div>
                   ) : (
                     <input type={f.type || "text"} value={form[f.key] || ""} onChange={(e) => setForm({ ...form, [f.key]: f.type === "number" ? parseInt(e.target.value) || 0 : e.target.value })} className="w-full h-9 px-3 rounded-md border bg-background text-sm" placeholder={f.placeholder} />
@@ -212,17 +313,17 @@ export default function MiniCrudPage({
                 </div>
               </div>
             ))}
-            <div className="flex gap-2 pt-2 border-t">
-              <UIButton variant="outline" onClick={() => setShowForm(false)} className="flex-1">
-                Cancel
-              </UIButton>
-              <UIButton onClick={save} leftIcon={<Save className="h-3.5 w-3.5" />} className="flex-1">
-                {editing ? "Save" : "Create"}
-              </UIButton>
-            </div>
           </div>
-        </div>
-      )}
+          <SheetFooter className="border-t p-4 flex-row gap-2 sm:space-x-0">
+            <UIButton variant="outline" onClick={() => setShowForm(false)} className="flex-1">
+              Cancel
+            </UIButton>
+            <UIButton onClick={save} leftIcon={<Save className="h-3.5 w-3.5" />} className="flex-1">
+              {editing ? "Save" : "Create"}
+            </UIButton>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

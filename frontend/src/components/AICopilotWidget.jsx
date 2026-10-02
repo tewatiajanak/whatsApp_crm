@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { aiApi } from "../api";
 import { getToken } from "../api/client";
+import { appStore } from "../api/appStore";
 
 export default function AICopilotWidget() {
   const [isEnabled, setIsEnabled] = useState(false);
@@ -51,7 +52,7 @@ export default function AICopilotWidget() {
   // 1. Fetch AI status & listen to toggle changes
   const checkStatus = async () => {
     if (!getToken()) {
-      const local = localStorage.getItem("knowvato_ai_enabled") === "true";
+      const local = appStore.getItem("knowvato_ai_enabled") === "true";
       setIsEnabled(local);
       return;
     }
@@ -64,7 +65,7 @@ export default function AICopilotWidget() {
       if (data.provider) setProvider(data.provider);
       if (data.model) setModel(data.model);
     } catch {
-      const local = localStorage.getItem("knowvato_ai_enabled") === "true";
+      const local = appStore.getItem("knowvato_ai_enabled") === "true";
       setIsEnabled(local);
     }
   };

@@ -35,6 +35,9 @@ const EM_KNOWN = [
 export function remapEmPath(to: string): string {
   if (!to || typeof to !== "string") return to;
   if (to.startsWith(EM_PREFIX) || to.startsWith("/modules/")) return to;
+  // Per-event pages: /events/<id>/(attendees|upload|logs) are real routes.
+  const perEvent = to.match(/^\/events\/([^\/?]+)\/(attendees|upload|logs)(.*)$/);
+  if (perEvent) return `${EM_PREFIX}/${perEvent[1]}/${perEvent[2]}${perEvent[3]}`;
   if (to.startsWith("/events")) {
     // The ported CreateEventPage IS the events list/create screen and lives
     // at "/modules/events/create". Everything under "/events" maps there

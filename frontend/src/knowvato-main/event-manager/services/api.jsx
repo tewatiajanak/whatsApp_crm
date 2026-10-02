@@ -1,20 +1,23 @@
-// Frontend-only mock of the original REST API.
-// Persists each collection to localStorage so pages behave end-to-end
-// without a backend. Swap this file for a real fetch wrapper when you
-// wire the AWS backend in VS Code — all signatures match the original.
+// Data layer for the Event Manager pages. Nothing is persisted in the browser.
+//
+// Events, attendees and activity logs are real MongoDB collections behind
+// /api/events, /api/attendees and /api/event-logs. The smaller setup lists
+// (user fields, categories, forms, pass templates) are kept as one JSON value
+// each in the server-side app store (/api/app-store).
 //
 // EXCEPTION: `fetchEventTypes` (and its create/patch/remove siblings)
 // call the real backend at /event-types since PHASE-4 shipped that model
-// for real. The other endpoints are still localStorage-backed.
+// for real. The other collections go through the app store.
 
 import { http } from "../../../api";
+import { appStore } from "../../../api/appStore";
 
 const PREFIX = "em_mock_";
 const delay = (v, ms = 80) => new Promise((r) => setTimeout(() => r(v), ms));
 
 const read = (key) => {
   try {
-    const raw = localStorage.getItem(PREFIX + key);
+    const raw = appStore.getItem(PREFIX + key);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -22,7 +25,7 @@ const read = (key) => {
 };
 const write = (key, data) => {
   try {
-    localStorage.setItem(PREFIX + key, JSON.stringify(data));
+    appStore.setItem(PREFIX + key, JSON.stringify(data));
   } catch {}
 };
 const uid = () =>
@@ -65,11 +68,19 @@ export const createCategory = (d) => create("categories", d);
 export const patchCategory = (id, d) => update("categories", id, d);
 export const removeCategory = (id) => remove("categories", id);
 
+const unwrap = (res) => res?.data ?? res;
+// A browser that still held old local data uploads it right after sign-in; let
+// that finish so the server can fold it into the collections before we read.
+const settled = () => appStore.whenIdle();
+
 // Events
-export const fetchEvents = () => list("events");
-export const createEvent = (d) => create("events", d);
-export const patchEvent = (id, d) => update("events", id, d);
-export const removeEvent = (id) => remove("events", id);
+export const fetchEvents = async () => {
+  await settled();
+  return unwrap(await http.get("/events"));
+};
+export const createEvent = async (d) => unwrap(await http.post("/events", d));
+export const patchEvent = async (id, d) => unwrap(await http.patch(`/events/${id}`, d));
+export const removeEvent = async (id) => unwrap(await http.del(`/events/${id}`));
 
 // Event Types — REAL backend (PHASE-4 shipped).
 // Normalized to the mock shape the old Event Manager pages expect:
@@ -128,26 +139,20 @@ export const removeEventType = async (id) => {
   return { ok: true };
 };
 
-// Attendees (kept eventId arg for signature compatibility)
-export const fetchAttendees = (eventId) => {
-  const all = read("attendees");
-  return delay(eventId ? all.filter((a) => a.eventId === eventId) : all);
+// Attendees
+const eventQuery = (eventId) => (eventId ? `?eventId=${encodeURIComponent(eventId)}` : "");
+export const fetchAttendees = async (eventId) => {
+  await settled();
+  return unwrap(await http.get(`/attendees${eventQuery(eventId)}`));
 };
-export const createAttendee = (eventId, data) =>
-  create("attendees", { ...data, eventId });
-export const bulkCreateAttendees = (eventId, attendees) => {
-  const all = read("attendees");
-  const created = attendees.map((a) => ({
-    ...a,
-    eventId,
-    id: a.id || uid(),
-    createdAt: new Date().toISOString(),
-  }));
-  write("attendees", [...created, ...all]);
-  return delay(created);
-};
-export const patchAttendee = (id, d) => update("attendees", id, d);
-export const removeAttendee = (id) => remove("attendees", id);
+export const createAttendee = async (eventId, data) =>
+  unwrap(await http.post("/attendees", { ...data, eventId }));
+export const bulkCreateAttendees = async (eventId, attendees) =>
+  unwrap(await http.post("/attendees/bulk", { eventId, attendees }));
+export const markAttendeesPassGenerated = async (eventId) =>
+  unwrap(await http.post("/attendees/mark-pass-generated", { eventId }));
+export const patchAttendee = async (id, d) => unwrap(await http.patch(`/attendees/${id}`, d));
+export const removeAttendee = async (id) => unwrap(await http.del(`/attendees/${id}`));
 
 // Pass Templates
 export const fetchPassTemplates = () => list("pass-templates");
@@ -173,25 +178,27 @@ export const patchAppUser = (id, d) => update("app-users", id, d);
 export const removeAppUser = (id) => remove("app-users", id);
 
 // Event Logs
-export const fetchEventLogs = (eventId) => {
-  const all = read("event-logs");
-  return delay(eventId ? all.filter((l) => l.eventId === eventId) : all);
+export const fetchEventLogs = async (eventId) => {
+  await settled();
+  return unwrap(await http.get(`/event-logs${eventQuery(eventId)}`));
 };
-export const createEventLog = (data) => create("event-logs", data);
-export const clearEventLogs = (eventId) => {
-  const all = read("event-logs").filter((l) => l.eventId !== eventId);
-  write("event-logs", all);
-  return delay({ ok: true });
-};
+export const createEventLog = async (data) => unwrap(await http.post("/event-logs", data));
+export const clearEventLogs = async (eventId) => unwrap(await http.del(`/event-logs${eventQuery(eventId)}`));
 
 // Public registration
-export const fetchPublicEvent = (eventId) => find("events", eventId);
+export const fetchPublicEvent = async (eventId) => {
+  try {
+    return unwrap(await http.get(`/events/${eventId}`));
+  } catch {
+    return null;
+  }
+};
 export const fetchFormBySlug = async (slug) => {
   const all = read("forms");
   return delay(all.find((f) => f.slug === slug) || null);
 };
 export const publicRegister = (eventId, data) =>
-  create("attendees", { ...data, eventId, status: "registered" });
+  createAttendee(eventId, { ...data, status: "registered" });
 
 // Forms
 export const fetchForms = () => list("forms");
