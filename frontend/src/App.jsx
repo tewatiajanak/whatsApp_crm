@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "./context/AuthContext";
 import { useToast } from "./context/ToastContext";
@@ -24,6 +24,12 @@ import EnquiryForms from "./pages/EnquiryForms";
 import Audit from "./pages/Audit";
 import ClarwynEnquiryNow from "./pages/ClarwynEnquiryNow";
 import MessageHistory from "./pages/MessageHistory";
+import Automation from "./pages/Automation";
+import CrmSettings from "./pages/CrmSettings";
+import Targets from "./pages/Targets";
+import Applications from "./pages/Applications";
+import { PublicPayPage, PublicApplicationPage, PublicPartnerPage, PublicBookingPage, ApplicantLoginPage } from "./pages/PublicCrmPages";
+import { Approvals, Partners, Reports } from "./pages/CrmMorePages";
 
 // FlowChat Studio Builder
 import BotBuilder from "./flowchat/pages/BotBuilder";
@@ -82,7 +88,33 @@ import TemplatesEmail from "./knowvato-main/routes/modules.templates-email";
 import TemplatesSms from "./knowvato-main/routes/modules.templates-sms";
 import IntegrationsWhatsapp from "./knowvato-main/routes/modules.integrations-whatsapp";
 import ModulePage from "./knowvato-main/routes/modules.$module";
+import { WebsitesPage, SitePagesPage, DesignerPage, MenusPage, SiteSettingsPage } from "./website-builder/pages";
+import WebsitePageBuilder from "./website-builder/BuilderPage";
+import { PublicSite, SitePreview, SharedPreview } from "./website-builder/SiteView";
+import { ContentPage, DataApisPage, InboxPage, AppsPage } from "./website-builder/dataPages";
+import { TemplateGalleryPage } from "./website-builder/templates";
+import WebsiteLandingPages from "./knowvato-main/pages/WebsiteBuilderPage";
 import FrontOfficePage from "./knowvato-main/pages/FrontOfficePage";
+import PmLayout, { PmIndex, PmGuard } from "./knowvato-main/pm/PmLayout";
+import TeamHierarchyPage from "./knowvato-main/pm/TeamHierarchyPage";
+import PmSetupPage from "./knowvato-main/pm/PmSetupPage";
+import ProductBuilderPage from "./knowvato-main/pm/ProductBuilderPage";
+import PmClientsPage from "./knowvato-main/pm/ClientsPage";
+import PmProjectsPage from "./knowvato-main/pm/ProjectsPage";
+import PmProjectDetailPage from "./knowvato-main/pm/ProjectDetailPage";
+import PmMyWorkPage from "./knowvato-main/pm/MyWorkPage";
+import PmTasksPage from "./knowvato-main/pm/TasksPage";
+import PmDailyPlanPage from "./knowvato-main/pm/DailyPlanPage";
+import PmTeamCalendarPage from "./knowvato-main/pm/TeamCalendarPage";
+import PmMessageLogPage from "./knowvato-main/pm/MessageLogPage";
+import PmNotificationsPage from "./knowvato-main/pm/Notifications";
+import PmMeetingsPage from "./knowvato-main/pm/MeetingsPage";
+import PmTicketsPage from "./knowvato-main/pm/TicketsPage";
+import PmPortalApp from "./knowvato-main/pm/PortalApp";
+import { PublicMeetingPage, PublicVerifyPage, PublicSignoffPage } from "./knowvato-main/pm/PublicPages";
+import PmDashboardPage from "./knowvato-main/pm/DashboardPage";
+import PmReportsPage from "./knowvato-main/pm/ReportsPage";
+import PmPersonPage from "./knowvato-main/pm/PersonPage";
 
 // Utilities Module Components
 import UtilitiesLayout from "./knowvato-main/routes/modules.utilities";
@@ -158,9 +190,12 @@ function ChangePasswordGate() {
 
 function Protected({ children }) {
   const { user, loading, storeError, retryStore } = useAuth();
+  const { pathname } = useLocation();
   if (loading) return <Spinner label="Starting…" />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.mustChangePassword) return <ChangePasswordGate />;
+  // a client's own user lives in the client portal, nowhere else
+  if (user.pmClient && !pathname.startsWith("/portal")) return <Navigate to="/portal" replace />;
   if (storeError) {
     return (
       <div className="crm-theme min-h-screen flex items-center justify-center p-4" style={{ background: "var(--page-bg)" }}>
@@ -193,9 +228,25 @@ export default function App() {
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <div className="crm-theme"><Login /></div>} />
         <Route path="/public/enquiry-form/:formId" element={<div className="crm-theme"><PublicEnquiryForm /></div>} />
         <Route path="/public/landing-page/:pageId" element={<div className="crm-theme"><PublicLandingPage /></div>} />
+        {/* Website Builder: published websites (public) */}
+        <Route path="/site/:siteKey/*" element={<PublicSite />} />
+        <Route path="/site-preview/:token/*" element={<SharedPreview />} />
         <Route path="/clp/enquirenow" element={<div className="crm-theme"><ClarwynEnquiryNow /></div>} />
+        {/* Lead CRM links sent to a lead: pay a fee, follow an application (public) */}
+        <Route path="/pay/:token" element={<PublicPayPage />} />
+        <Route path="/application/:token" element={<PublicApplicationPage />} />
+        <Route path="/partner/:token" element={<PublicPartnerPage />} />
+        <Route path="/applicant" element={<ApplicantLoginPage />} />
+        <Route path="/book/:token" element={<PublicBookingPage />} />
         {/* Live event registration form (public) */}
         <Route path="/e/:eventId" element={<PublicEventFormPage />} />
+
+        {/* Project Management links opened from an email / WhatsApp message (no login) */}
+        <Route path="/pm/meeting/:token" element={<PublicMeetingPage />} />
+        <Route path="/pm/verify/:token" element={<PublicVerifyPage />} />
+        <Route path="/pm/signoff/:token" element={<PublicSignoffPage />} />
+        {/* Client portal */}
+        <Route path="/portal/*" element={<Protected><PmPortalApp /></Protected>} />
 
         {/* Old scanner link → the real Scan Pass page */}
         <Route path="/scan/*" element={<Navigate to="/modules/events/scan" replace />} />
@@ -287,6 +338,21 @@ export default function App() {
             <Route path="video-edit" element={<VideoEditorPage />} />
             <Route path="photo-edit" element={<PhotoEditorPage />} />
           </Route>
+          <Route path="modules/website" element={<WebsitesPage />} />
+          <Route path="modules/website/templates" element={<TemplateGalleryPage />} />
+          <Route path="modules/website/landing" element={<WebsiteLandingPages />} />
+          <Route path="modules/website/s/:siteId" element={<Navigate to="pages" replace />} />
+          <Route path="modules/website/s/:siteId/pages" element={<SitePagesPage />} />
+          <Route path="modules/website/s/:siteId/designer" element={<DesignerPage />} />
+          <Route path="modules/website/s/:siteId/menus" element={<MenusPage />} />
+          <Route path="modules/website/s/:siteId/settings" element={<SiteSettingsPage />} />
+          <Route path="modules/website/s/:siteId/content" element={<ContentPage />} />
+          <Route path="modules/website/s/:siteId/content/:key" element={<ContentPage />} />
+          <Route path="modules/website/s/:siteId/data" element={<DataApisPage />} />
+          <Route path="modules/website/s/:siteId/inbox" element={<InboxPage />} />
+          <Route path="modules/website/s/:siteId/apps" element={<AppsPage />} />
+          <Route path="modules/website/s/:siteId/builder/:pageId" element={<WebsitePageBuilder />} />
+          <Route path="modules/website/s/:siteId/preview" element={<SitePreview />} />
           <Route path="modules/website/setup" element={<ModulePage setupModule="website" />} />
           <Route path="modules/website/setup/:slug" element={<ModulePage setupModule="website" />} />
           <Route path="modules/front-office" element={<Navigate to="/modules/front-office/visitors/today" replace />} />
@@ -295,6 +361,31 @@ export default function App() {
           <Route path="modules/front-office/communication" element={<Navigate to="/modules/front-office" replace />} />
           <Route path="modules/front-office/setup" element={<ModulePage setupModule="front-office" />} />
           <Route path="modules/front-office/setup/:slug" element={<ModulePage setupModule="front-office" />} />
+          <Route path="modules/projects" element={<PmLayout />}>
+            <Route index element={<PmIndex />} />
+            <Route path="team" element={<PmGuard screen="team"><TeamHierarchyPage /></PmGuard>} />
+            <Route path="dashboard" element={<PmGuard screen="dashboard"><PmDashboardPage /></PmGuard>} />
+            <Route path="reports" element={<PmGuard screen="reports"><PmReportsPage /></PmGuard>} />
+            <Route path="people/:personId" element={<PmGuard any={["team", "my_tasks", "dashboard"]}><PmPersonPage /></PmGuard>} />
+            <Route path="my-work" element={<PmGuard any={["my_tasks", "tasks"]}><PmMyWorkPage /></PmGuard>} />
+            <Route path="list" element={<PmGuard screen="projects"><PmProjectsPage /></PmGuard>} />
+            {/* the new-project form is a drawer on the Projects page */}
+            <Route path="new" element={<Navigate to="/modules/projects/list?new=1" replace />} />
+            <Route path="p/:projectId" element={<PmGuard screen="projects"><PmProjectDetailPage /></PmGuard>} />
+            <Route path="tasks" element={<PmGuard screen="tasks"><PmTasksPage /></PmGuard>} />
+            <Route path="daily-plan" element={<PmGuard screen="daily_plan"><PmDailyPlanPage /></PmGuard>} />
+            <Route path="team-calendar" element={<PmGuard screen="team_calendar"><PmTeamCalendarPage /></PmGuard>} />
+            <Route path="meetings" element={<PmGuard screen="meetings"><PmMeetingsPage /></PmGuard>} />
+            <Route path="tickets" element={<PmGuard screen="tickets"><PmTicketsPage /></PmGuard>} />
+            <Route path="clients" element={<PmGuard screen="clients"><PmClientsPage /></PmGuard>} />
+            {/* Templates live under Setup; the old address still works */}
+            <Route path="templates" element={<Navigate to="/modules/projects/setup/templates" replace />} />
+            <Route path="messages" element={<PmGuard any={["notification_rules", "reports", "setup"]}><PmMessageLogPage /></PmGuard>} />
+            <Route path="notifications" element={<PmNotificationsPage />} />
+            <Route path="products/:productId" element={<PmGuard screen="setup"><ProductBuilderPage /></PmGuard>} />
+            <Route path="setup" element={<PmGuard screen="setup"><PmSetupPage /></PmGuard>} />
+            <Route path="setup/:slug" element={<PmGuard screen="setup"><PmSetupPage /></PmGuard>} />
+          </Route>
           <Route path="modules/:module" element={<ModulePage />} />
           {/* Notification Center (Phase 11 stub) — top-level entry from the
               bell in the top bar. Same page also renders inside Communication. */}
@@ -316,6 +407,13 @@ export default function App() {
           <Route path="followups" element={<FollowUps />} />
           <Route path="conversion" element={<Conversion />} />
           <Route path="contacts" element={<Contacts />} />
+          <Route path="applications" element={<Applications />} />
+          <Route path="targets" element={<Targets />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="approvals" element={<Approvals />} />
+          <Route path="partners" element={<Partners />} />
+          <Route path="automation" element={<Automation />} />
+          <Route path="settings" element={<CrmSettings />} />
           <Route path="chat" element={<Conversations />} />
           <Route path="campaigns" element={<Campaigns />} />
           <Route path="history" element={<MessageHistory />} />

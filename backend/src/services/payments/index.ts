@@ -157,6 +157,11 @@ export async function applyOutcome(txn: IPaymentTransaction, status: PayStatus, 
 
 /** Reflect a payment outcome on the record it was for (event registration). */
 async function syncReference(txn: IPaymentTransaction) {
+  if (txn.reference?.module === "crm_fee" && txn.reference.id) {
+    const { feePaymentOutcome } = await import("../leadFees");
+    await feePaymentOutcome(txn.reference.id, txn.tenant, { status: txn.status, txnId: txn.txnId, provider: txn.provider, amount: txn.amount });
+    return;
+  }
   if (txn.reference?.module !== "events" || !txn.reference.id) return;
   await EmAttendee.updateOne(
     { _id: txn.reference.id, tenant: txn.tenant },

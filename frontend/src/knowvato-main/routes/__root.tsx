@@ -1,3 +1,4 @@
+import { PmBell } from "../pm/Notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
@@ -116,7 +117,8 @@ function MainHeader() {
         <BreadcrumbNav />
       </div>
       <div className="flex items-center gap-3 text-[11.5px] text-[var(--muted-foreground)] flex-shrink-0">
-        <i className="bi bi-bell"></i>
+        <div id="pm-header-tools" />
+        <PmBell />
         <span className="hidden sm:inline">{user?.email || "admin@knowvato.com"}</span>
       </div>
     </div>

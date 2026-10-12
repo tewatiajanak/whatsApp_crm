@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 
+import { showNotice, askConfirm } from "../utils/dialog";
+import { sanitizeHtml, textToHtml } from "../utils/sanitizeHtml";
 /*
  * RegistrationFormBuilder
  * -----------------------
@@ -31,20 +33,24 @@ import React, { useEffect, useRef } from 'react';
 
 const SCOPED_CSS = `
   .rfb-scope {
-    --accent:#0d6efd;
-    --accent-dark:#0b5ed7;
-    --bg:#F7FBFE;
-    --text:#40474D;
-    --border:#E5EAEE;
-    --white:#ffffff;
-    --green:#1E9E6B;
-    --amber:#C98A1F;
-    --red:#D14343;
+    --accent:var(--primary,#2249b7);
+    --accent-dark:color-mix(in srgb, var(--primary,#2249b7) 82%, #000);
+    --wash:color-mix(in srgb, var(--primary,#2249b7) 7%, #fff);
+    --wash-border:color-mix(in srgb, var(--primary,#2249b7) 30%, #fff);
+    --ring:color-mix(in srgb, var(--primary,#2249b7) 16%, transparent);
+    --bg:transparent;
+    --text:var(--foreground,#0e1a30);
+    --text-muted:var(--muted-foreground,#596475);
+    --surface-light:var(--muted,#f6f7f9);
+    --white:var(--card,#ffffff);
+    --green:var(--success,#139948);
+    --amber:var(--warning,#b07400);
+    --red:var(--destructive,#e62b34);
     --radius:10px;
   }
   .rfb-scope * {box-sizing:border-box;}
   .rfb-scope {
-    margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    margin:0;
     background:var(--bg); color:var(--text);
   }
   .rfb-scope .app {display:flex; min-height:100vh;}
@@ -59,7 +65,7 @@ const SCOPED_CSS = `
   .rfb-scope .side-step {
     display:flex; gap:10px; align-items:flex-start; padding:8px 8px; border-radius:8px; margin-bottom:2px; cursor:pointer; opacity:.5;
   }
-  .rfb-scope .side-step.active {background:#EAF6FA; opacity:1;}
+  .rfb-scope .side-step.active {background:var(--wash); opacity:1;}
   .rfb-scope .side-step.done {opacity:1;}
   .rfb-scope .side-num {
     width:22px;height:22px;border-radius:50%;background:var(--border);color:#fff;font-size:11px;
@@ -88,8 +94,8 @@ const SCOPED_CSS = `
     position:relative; border:2px solid var(--border); border-radius:var(--radius); padding:14px; cursor:pointer; background:#fff;
     transition:.15s; box-shadow:0 1px 2px rgba(20,30,40,.03);
   }
-  .rfb-scope .choice:hover {border-color:#bfe3ee; box-shadow:0 2px 8px rgba(0,133,168,.08);}
-  .rfb-scope .choice.selected {border-color:var(--accent); background:#F0FAFC; box-shadow:0 2px 10px rgba(0,133,168,.12);}
+  .rfb-scope .choice:hover {border-color:var(--wash-border); box-shadow:0 2px 8px var(--ring);}
+  .rfb-scope .choice.selected {border-color:var(--accent); background:#fff; box-shadow:0 2px 10px var(--ring);}
   .rfb-scope .choice-radio {
     position:absolute; top:18px; right:18px; width:20px;height:20px;border-radius:50%;border:2px solid #cdd6db;background:#fff;
   }
@@ -102,14 +108,14 @@ const SCOPED_CSS = `
   .rfb-scope .choice h4 {margin:0; font-size:14px;}
   .rfb-scope .choice p {margin:0 0 8px; font-size:12px; color:#8a939b; line-height:1.4;}
   .rfb-scope .wireframe {width:100%; border-radius:7px; background:#F4F8FA; border:1px solid var(--border); padding:10px;}
-  .rfb-scope .choice.selected .wireframe {background:#fff; border-color:#d7ecf2;}
+  .rfb-scope .choice.selected .wireframe {background:#fff; border-color:var(--wash-border);}
 
   /* step list builder (for choosing stepper steps) */
   .rfb-scope .steplist {display:flex; flex-direction:column; gap:8px;}
   .rfb-scope .step-row {display:flex; align-items:center; gap:10px; border:1px solid var(--border); border-radius:8px; padding:10px 12px;}
   .rfb-scope .step-row input[type=text] {flex:1; border:none; font-size:13.5px; font-weight:600; outline:none; background:transparent; color:var(--text);}
   .rfb-scope .step-row-wrap {border-radius:8px;}
-  .rfb-scope .step-row-wrap.has-approval .step-row {border-color:#bfe3ee; background:#FAFEFF; border-radius:8px 8px 0 0;}
+  .rfb-scope .step-row-wrap.has-approval .step-row {border-color:var(--wash-border); background:var(--wash); border-radius:8px 8px 0 0;}
   .rfb-scope .approval-check {display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:#76808a; cursor:pointer; flex-shrink:0; padding:5px 9px; border-radius:20px; background:#F2F4F6;}
   .rfb-scope .approval-check input {margin:0; accent-color:var(--green);}
   .rfb-scope .step-row-wrap.has-approval .approval-check {background:#E8F6EF; color:var(--green);}
@@ -123,9 +129,13 @@ const SCOPED_CSS = `
   .rfb-scope .approval-group-header .group-name-input {flex:1; border:none; background:transparent; font-size:13.5px; font-weight:600; color:var(--text); outline:none;}
   .rfb-scope .chip-approval {font-size:11px; padding:3px 8px; border-radius:20px; background:#D9F0E2; color:var(--green); font-weight:600;}
   .rfb-scope .approval-group-card .approval-detail {padding:14px 18px 16px;}
-  .rfb-scope .drag {color:#c4cbd1; cursor:grab; font-size:14px;}
+  .rfb-scope .drag {color:#9aa3a9; cursor:grab; font-size:16px; width:36px; text-align:center; user-select:none;}
+  .rfb-scope .drag:active {cursor:grabbing;}
+  .rfb-scope .drag.locked {opacity:.3; cursor:not-allowed;}
+  .rfb-scope tr.dragging {opacity:.4;}
+  .rfb-scope tr.drag-over > td {box-shadow:inset 0 2px 0 var(--accent);}
   .rfb-scope .chip {
-    font-size:11px; padding:3px 8px; border-radius:20px; background:#EAF6FA; color:var(--accent-dark); font-weight:600;
+    font-size:11px; padding:3px 8px; border-radius:20px; background:var(--wash); color:var(--accent-dark); font-weight:600;
   }
   .rfb-scope .icon-btn {
     background:none;border:none;color:#b6bec5;cursor:pointer;font-size:15px;padding:2px 6px;border-radius:6px;
@@ -135,7 +145,7 @@ const SCOPED_CSS = `
     border:1.5px dashed #c9d3da; border-radius:8px; padding:10px; text-align:center; font-size:13px; color:var(--accent-dark);
     cursor:pointer; font-weight:600; background:#fff;
   }
-  .rfb-scope .add-row-btn:hover {border-color:var(--accent); background:#F0FAFC;}
+  .rfb-scope .add-row-btn:hover {border-color:var(--accent); background:var(--wash);}
 
   /* tabs for stepper config */
   .rfb-scope .tabbar {display:flex; gap:6px; border-bottom:1px solid var(--border); margin-bottom:18px; overflow-x:auto;}
@@ -151,7 +161,7 @@ const SCOPED_CSS = `
 
   /* builder screen 2 header */
   .rfb-scope .builder-head {display:flex; align-items:flex-start; gap:14px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border);}
-  .rfb-scope .builder-head-ic {width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0; box-shadow:0 3px 8px rgba(0,133,168,.25);}
+  .rfb-scope .builder-head-ic {width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0; box-shadow:0 3px 8px var(--ring);}
   .rfb-scope .builder-head h1 {margin-bottom:3px;}
   .rfb-scope .builder-stats {display:flex; gap:18px; margin-left:auto; flex-shrink:0; padding-top:2px;}
   .rfb-scope .builder-stat {text-align:center; min-width:46px;}
@@ -192,7 +202,7 @@ const SCOPED_CSS = `
     transition:border-color .15s, box-shadow .15s;
   }
   .rfb-scope select:focus, .rfb-scope input[type=text]:focus, .rfb-scope input[type=number]:focus, .rfb-scope input[type=email]:focus, .rfb-scope input[type=tel]:focus, .rfb-scope input[type=date]:focus, .rfb-scope textarea:focus {
-    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,133,168,.12);
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--ring);
   }
   .rfb-scope textarea {font-family:inherit; resize:vertical;}
   .rfb-scope input[type=file] {padding:6px 10px; font-size:12.5px; cursor:pointer;}
@@ -206,7 +216,7 @@ const SCOPED_CSS = `
   }
   .rfb-scope .btn:hover {background:var(--accent-dark);}
   .rfb-scope .btn.secondary {background:#fff; color:var(--accent-dark); border:1px solid var(--accent);}
-  .rfb-scope .btn.secondary:hover {background:#F0FAFC;}
+  .rfb-scope .btn.secondary:hover {background:var(--wash);}
   .rfb-scope .btn.ghost {background:none; color:#8a939b; border:1px solid var(--border);}
   .rfb-scope .btn.ghost:hover {color:var(--text); border-color:#c9d3da;}
   .rfb-scope .btn:disabled {opacity:.4; cursor:not-allowed;}
@@ -241,7 +251,7 @@ const SCOPED_CSS = `
   .rfb-scope .pf-step:last-child::after {display:none;}
 
   .rfb-scope .summary-pill {
-    display:inline-flex; align-items:center; gap:6px; background:#EAF6FA; color:var(--accent-dark); font-size:11.5px; font-weight:600;
+    display:inline-flex; align-items:center; gap:6px; background:var(--wash); color:var(--accent-dark); font-size:11.5px; font-weight:600;
     padding:4px 10px; border-radius:20px; margin:3px 4px 0 0;
   }
   .rfb-scope .json-box {
@@ -264,7 +274,7 @@ const SCOPED_CSS = `
     border:1.5px dashed #c9d3da; border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; color:var(--accent-dark);
     cursor:pointer; background:#fff;
   }
-  .rfb-scope .preset-chip:hover {border-color:var(--accent); background:#F0FAFC;}
+  .rfb-scope .preset-chip:hover {border-color:var(--accent); background:var(--wash);}
   .rfb-scope .preset-chip.selected {border:1.5px solid var(--accent); background:var(--accent); color:#fff;}
   .rfb-scope .seqlist {display:flex; flex-direction:column; gap:6px;}
   .rfb-scope .seq-row {display:flex; align-items:center; gap:10px; border:1px solid var(--border); border-radius:8px; padding:9px 12px; background:#fff;}
@@ -287,7 +297,7 @@ const SCOPED_CSS = `
   .rfb-scope .editable-name-wrap:hover .edit-pencil {color:var(--accent);}
   .rfb-scope .seq-actions {display:flex; gap:2px;}
   .rfb-scope .seq-row-add {border-style:dashed; cursor:pointer; background:#fff;}
-  .rfb-scope .seq-row-add:hover {border-color:var(--accent); background:#F0FAFC;}
+  .rfb-scope .seq-row-add:hover {border-color:var(--accent); background:var(--wash);}
   .rfb-scope .seq-num-empty {background:#fff; border:1.5px dashed #c9d3da; color:#c9d3da;}
   .rfb-scope .seq-name-muted {color:var(--accent-dark); font-weight:600;}
   .rfb-scope .new-group-row {display:flex; gap:8px; align-items:center;}
@@ -343,10 +353,10 @@ const SCOPED_CSS = `
     display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 14px; border:2px solid var(--border);
     border-radius:9px; cursor:pointer; background:#fff; transition:.15s; min-width:68px;
   }
-  .rfb-scope .col-option:hover {border-color:#bfe3ee;}
-  .rfb-scope .col-option.active {border-color:var(--accent); background:#F0FAFC;}
+  .rfb-scope .col-option:hover {border-color:var(--wash-border);}
+  .rfb-scope .col-option.active {border-color:var(--accent); background:var(--wash);}
   .rfb-scope .col-option-vis {display:flex; gap:3px; align-items:flex-end; height:28px;}
-  .rfb-scope .col-bar {background:#d5e8ef; border-radius:3px; width:14px;}
+  .rfb-scope .col-bar {background:var(--wash-border); border-radius:3px; width:14px;}
   .rfb-scope .col-option.active .col-bar {background:var(--accent);}
   .rfb-scope .col-option-label {font-size:11.5px; font-weight:700; color:#76808a;}
   .rfb-scope .col-option.active .col-option-label {color:var(--accent-dark);}
@@ -358,8 +368,8 @@ const SCOPED_CSS = `
     border-radius:20px; cursor:pointer; font-size:12.5px; font-weight:600; color:#76808a; background:#fff;
     transition:.15s;
   }
-  .rfb-scope .approval-type-opt:hover {border-color:#bfe3ee;}
-  .rfb-scope .approval-type-opt.active {border-color:var(--accent); background:#F0FAFC; color:var(--accent-dark);}
+  .rfb-scope .approval-type-opt:hover {border-color:var(--wash-border);}
+  .rfb-scope .approval-type-opt.active {border-color:var(--accent); background:var(--wash); color:var(--accent-dark);}
   .rfb-scope .approval-type-dot {width:12px;height:12px;border-radius:50%;border:2px solid #c9d3da;flex-shrink:0;}
   .rfb-scope .approval-type-opt.active .approval-type-dot {background:var(--accent);border-color:var(--accent);}
 
@@ -375,9 +385,76 @@ const SCOPED_CSS = `
   .rfb-scope .sim-title {font-size:17px; font-weight:700; color:#1e293b; margin:0;}
   .rfb-scope .sim-tagline {font-size:12.5px; color:#64748b; font-style:italic; margin-top:2px;}
 
+  /* ===== progress ===== */
+  .rfb-scope .wiz {display:flex; align-items:center; gap:8px; margin-bottom:16px; padding:10px 14px; background:var(--white); border:1px solid var(--border); border-radius:var(--radius);}
+  .rfb-scope .wiz-step {display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--text-muted); white-space:nowrap;}
+  .rfb-scope .wiz-step.done {cursor:pointer; color:var(--text);}
+  .rfb-scope .wiz-step.active {color:var(--accent);}
+  .rfb-scope .wiz-num {width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11.5px; background:var(--surface-light); border:1px solid var(--border);}
+  .rfb-scope .wiz-step.active .wiz-num, .rfb-scope .wiz-step.done .wiz-num {background:var(--accent); border-color:var(--accent); color:#fff;}
+  .rfb-scope .wiz-line {flex:1; height:2px; background:var(--border); min-width:12px;}
+
+  /* ===== shared section bits ===== */
+  .rfb-scope .sec-title {display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; margin-bottom:12px; color:var(--text);}
+  .rfb-scope .sec-title i {color:var(--accent);}
+  .rfb-scope .btn.sm {padding:6px 12px; font-size:12px; font-weight:600;}
+  .rfb-scope .pill-row {display:flex; flex-wrap:wrap; gap:4px; background:var(--surface-light); padding:4px; border-radius:14px; border:1px solid var(--border);}
+  .rfb-scope .pill {flex:1 1 30%; text-align:center; padding:7px 10px; border-radius:10px; cursor:pointer; font-size:12px; font-weight:600; color:var(--text-muted); transition:.15s; white-space:nowrap;}
+  .rfb-scope .pill.on {background:var(--white); color:var(--accent); box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .rfb-scope .pill.page {border:1px dashed var(--border);}
+  .rfb-scope .pill.page.on {border:1px solid var(--accent);}
+  .rfb-scope .pick-row {display:flex; flex-wrap:wrap; gap:6px;}
+  .rfb-scope .pick-chip {display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; border:1px solid var(--border); background:var(--white); font-size:12.5px; font-weight:600; color:var(--text-muted); cursor:pointer; user-select:none;}
+  .rfb-scope .pick-chip.on {background:var(--accent); border-color:var(--accent); color:#fff;}
+  .rfb-scope .pick-chip.sm {padding:3px 10px; font-size:11.5px;}
+  .rfb-scope .matrix-wrap {overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:var(--radius);}
+  .rfb-scope table.matrix {width:100%; border-collapse:collapse; font-size:12.5px;}
+  .rfb-scope table.matrix th {background:var(--surface-light); text-align:left; padding:9px 12px; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted); white-space:nowrap; border-bottom:1px solid var(--border);}
+  .rfb-scope table.matrix td {padding:7px 12px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  .rfb-scope table.matrix tr:last-child td {border-bottom:none;}
+  .rfb-scope table.matrix .cls {font-weight:600; white-space:nowrap;}
+  .rfb-scope table.matrix .num {text-align:right; font-weight:700; white-space:nowrap;}
+  .rfb-scope table.matrix tr.off .cls {color:var(--text-muted); font-weight:500;}
+  .rfb-scope .fee-cell {display:flex; align-items:center; gap:8px;}
+  .rfb-scope .fee-cell input[type=number] {width:110px; padding:6px 8px;}
+  .rfb-scope .fee-cell input[type=number]:disabled {background:var(--surface-light);}
+  .rfb-scope .if-row {display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;}
+  .rfb-scope .if-row input[type=text] {flex:1; min-width:180px;}
+
+  /* ===== text editor ===== */
+  .rfb-scope .rte {border:1px solid var(--border); border-radius:var(--radius); background:var(--white); overflow:hidden;}
+  .rfb-scope .rte:focus-within {border-color:var(--accent); box-shadow:0 0 0 3px var(--ring);}
+  .rfb-scope .rte-bar {display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:6px 8px; background:var(--surface-light); border-bottom:1px solid var(--border);}
+  .rfb-scope .rte-bar select {padding:4px 6px; font-size:12px; height:30px; max-width:120px;}
+  .rfb-scope .rte-bar input[type=text] {padding:4px 8px; font-size:12px; height:30px; width:130px;}
+  .rfb-scope .rte-btn {width:30px; height:30px; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--text); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; position:relative; padding:0;}
+  .rfb-scope .rte-btn:hover {background:var(--white); border-color:var(--border);}
+  .rfb-scope .rte-btn input[type=color] {position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; padding:0; border:none;}
+  .rfb-scope .rte-sep {width:1px; height:20px; background:var(--border); margin:0 3px;}
+  .rfb-scope .rte-area {min-height:180px; max-height:420px; overflow-y:auto; padding:14px 16px; font-size:14px; line-height:1.6; outline:none; color:var(--text);}
+  .rfb-scope .rte-area h1 {font-size:22px; margin:0 0 8px;} .rfb-scope .rte-area h2 {font-size:18px; margin:0 0 8px;} .rfb-scope .rte-area h3 {font-size:15px; margin:0 0 6px;}
+  .rfb-scope .rte-area blockquote {border-left:3px solid var(--border); margin:0 0 8px; padding-left:12px; color:var(--text-muted);}
+  .rfb-scope .rte-area ul, .rfb-scope .rte-area ol {padding-left:22px;}
+  .rfb-scope .rich-text h1 {font-size:22px;} .rfb-scope .rich-text h2 {font-size:18px;} .rfb-scope .rich-text h3 {font-size:15px;}
+  .rfb-scope .rich-text ul, .rfb-scope .rich-text ol {padding-left:22px;}
+
+  @media (max-width: 860px) {
+    .rfb-scope .main {padding:12px;}
+    .rfb-scope .setup-row {grid-template-columns:1fr;}
+    .rfb-scope .notif-grid {grid-template-columns:1fr;}
+    .rfb-scope .field-builder-form {grid-template-columns:1fr;}
+    .rfb-scope .builder-stats {display:none;}
+    .rfb-scope .footer-nav {gap:8px;}
+    .rfb-scope .footer-nav .btn {flex:1;}
+    .rfb-scope .wiz-step:not(.active) .wiz-label {display:none;}
+    .rfb-scope .sim-container {flex-direction:column;}
+    .rfb-scope .sim-sidebar {width:100%; border-right:none; border-bottom:1px solid var(--border); display:flex; gap:4px; overflow-x:auto;}
+    .rfb-scope .tab-settings {margin-left:0;}
+  }
+
 `;
 
-export default function RegistrationFormBuilder({ initialForm, onSave, onCancel, statuses = [], templates = [], startScreen = "setup" }) {
+export default function RegistrationFormBuilder({ initialForm, onSave, onCancel, statuses = [], templates = [], grades = [], feeHeads = [], documentTypes = [], startScreen = "setup" }) {
   const sidebarRef = useRef(null);
   const mainRef = useRef(null);
   const initialized = useRef(false);
@@ -391,6 +468,17 @@ export default function RegistrationFormBuilder({ initialForm, onSave, onCancel,
     const MAIN_ID = instanceId.current + '-main';
     if (sidebarRef.current) sidebarRef.current.id = SIDEBAR_ID;
     if (mainRef.current) mainRef.current.id = MAIN_ID;
+
+    // Setup masters: classes, fee heads (class-wise amounts) and document types (class mapping)
+    const GRADES = (grades || []).map(g => ({ id: String(g._id), name: g.name }));
+    const refId = v => String((v && v._id) || v || '');
+    const FEE_MASTER = (feeHeads || []).filter(h => h.isActive !== false).map(h => ({
+      id: String(h._id), name: h.name,
+      classes: Object.fromEntries((h.classFees || []).map(c => [refId(c.grade), Number(c.amount) || 0]))
+    }));
+    const DOC_MASTER = (documentTypes || []).filter(d => d.isActive !== false).map(d => ({
+      id: String(d._id), name: d.name, mandatory: !!d.mandatory, grades: (d.grades || []).map(refId)
+    }));
 
     const emailTemplates = templates.filter(t => t.channel === "email");
     const smsTemplates = templates.filter(t => t.channel === "sms");
@@ -488,9 +576,18 @@ let state = {
   declarationText: initialForm ? (initialForm.declarationText || '') : '',
   declarationPoints: initialForm ? (initialForm.declarationPoints || []) : [],
   theme: initialForm ? (initialForm.theme || {}) : {},
+  instructionsHtml: initialForm ? (initialForm.instructionsHtml || '') : '',   // rich text for the Instructions page
+  instructionFields: initialForm ? (initialForm.instructionFields || []) : [], // [{id,type:'checkbox'|'text',label,required}]
+  declarationHtml: initialForm ? (initialForm.declarationHtml || '') : '',
+  feeConfig: initialForm ? (initialForm.feeConfig || null) : null,             // {heads:[{id,name,classes:{gradeId:amount}}]}
+  docConfig: initialForm ? (initialForm.docConfig || null) : null,             // {docs:[{id,name,mandatory,grades:[gradeId]}]}
+  setupPanel: null,           // 'instructions' | 'declaration' — editor opened from the form-type row
+  previewGradeId: '',
   openStyleAccordion: 'portal',
   simActiveIdx: 0
 };
+
+if (!state.instructionsHtml && state.instructions) state.instructionsHtml = textToHtml(state.instructions);
 
 if (!state.declarationPoints) {
   state.declarationPoints = [];
@@ -584,7 +681,8 @@ function mkStep(name, seedGroupName, seq){
 function mkGroup(name, seq){
   const catKey = Object.keys(FIELD_LIBRARY).find(c=>c.toLowerCase()===(name||'').toLowerCase());
   let fields = [];
-  if(catKey){
+  // Documents come from Setup › Document Types when any are defined, so the group starts empty
+  if(catKey && !(catKey==='Documents' && DOC_MASTER.length)){
     const usedLabels = new Set();
     (state.steps||[]).forEach(s=> s.groups.forEach(g=> g.fields.forEach(f=>{ if(f.sourceLabel) usedLabels.add(f.sourceLabel); })));
     
@@ -627,12 +725,12 @@ function render(){
 
 /* ---------- SIDEBAR ---------- */
 function sidebarSteps(){
-  let arr = [{key:'setup', label:'Name & form type', sub:'Title + layout'}];
-  arr.push({key:'builder', label:'Add fields', sub:'Build each step / form'});
+  let arr = [{key:'setup', label:'Setup', sub:'Title + layout'}];
+  arr.push({key:'builder', label:'Fields', sub:'Build each step / form'});
   if(state.formType!=='stepper'){
     arr.push({key:'notif', label:'Alerts', sub:'Email, SMS, WhatsApp, status'});
   }
-  arr.push({key:'preview', label:'Preview & publish', sub:'Review the live form'});
+  arr.push({key:'preview', label:'Preview', sub:'Review the live form'});
   return arr;
 }
 
@@ -689,10 +787,271 @@ function builderGoBack(){
 /* ---------- MAIN ROUTER ---------- */
 function renderMain(){
   const m = document.getElementById(MAIN_ID);
-  if(state.screen==='setup') m.innerHTML = screenSetup();
-  else if(state.screen==='builder') m.innerHTML = screenBuilder();
-  else if(state.screen==='notif') m.innerHTML = screenNotif();
-  else if(state.screen==='preview') m.innerHTML = screenPreview();
+  if(state.screen==='setup') m.innerHTML = progressBar() + screenSetup();
+  else if(state.screen==='builder') m.innerHTML = progressBar() + screenBuilder();
+  else if(state.screen==='notif') m.innerHTML = progressBar() + screenNotif();
+  else if(state.screen==='preview') m.innerHTML = progressBar() + screenPreview();
+}
+function progressBar(){
+  if(state.previewOnly) return '';
+  const order = sidebarSteps();
+  const cur = order.findIndex(s=>s.key===state.screen);
+  return `<div class="wiz">${order.map((s,i)=>`
+    <div class="wiz-step ${i===cur?'active':(i<cur?'done':'')}" ${i<cur?`onclick="goScreen('${s.key}')"`:''}>
+      <span class="wiz-num">${i<cur?'<i class="bi bi-check2"></i>':i+1}</span><span class="wiz-label">${s.label}</span>
+    </div>`).join('<span class="wiz-line"></span>')}</div>`;
+}
+
+/* ================= SETUP MASTERS IN THE FORM: fees + documents ================= */
+function stepKind(name){
+  const n = (name||'').toLowerCase().trim();
+  if(n==='instructions' || n==='instruction') return 'instructions';
+  if(n==='declaration') return 'declaration';
+  if(n.includes('payment') || n.includes('fee')) return 'payment';
+  if(n.includes('document')) return 'documents';
+  return null;
+}
+function fmtINR(n){ return '₹' + (Number(n)||0).toLocaleString('en-IN'); }
+function feeCfg(){
+  if(!state.feeConfig) state.feeConfig = { heads: FEE_MASTER.map(h=>({id:h.id, name:h.name, classes:{...h.classes}})) };
+  if(!Array.isArray(state.feeConfig.heads)) state.feeConfig.heads = [];
+  state.feeConfig.heads.forEach(h=>{ if(!h.classes) h.classes = {}; });
+  return state.feeConfig;
+}
+function feeTotal(gradeId){
+  return feeCfg().heads.reduce((sum,h)=> sum + (Number(h.classes[gradeId])||0), 0);
+}
+function feeEditor(){
+  const cfg = feeCfg();
+  const all = FEE_MASTER.concat(cfg.heads.filter(h=>!FEE_MASTER.some(m=>m.id===h.id)));
+  const title = `<div class="sec-title"><i class="bi bi-cash-coin"></i> Fees</div>`;
+  if(!all.length) return `<div class="card">${title}<div class="empty">No fee heads — add in Setup › Fee Heads</div></div>`;
+  const chips = all.map(h=>{
+    const on = cfg.heads.some(x=>x.id===h.id);
+    return `<div class="pick-chip ${on?'on':''}" onclick="toggleFeeHead('${h.id}')"><i class="bi bi-${on?'check2':'plus'}"></i>${esc(h.name)}</div>`;
+  }).join('');
+  const heads = cfg.heads;
+  let matrix = '';
+  if(heads.length && !GRADES.length) matrix = `<div class="empty">No grades — add in Setup › Grades</div>`;
+  else if(heads.length) matrix = `
+    <div class="matrix-wrap"><table class="matrix">
+      <thead><tr><th>Class</th>${heads.map(h=>`<th>${esc(h.name)}</th>`).join('')}<th class="num">Total</th></tr></thead>
+      <tbody>${GRADES.map(g=>`
+        <tr>
+          <td class="cls">${esc(g.name)}</td>
+          ${heads.map(h=>{
+            const on = Object.prototype.hasOwnProperty.call(h.classes, g.id);
+            return `<td><div class="fee-cell">
+              <input type="checkbox" ${on?'checked':''} title="Applicable" onchange="toggleFeeClass('${h.id}','${g.id}')">
+              <input type="number" min="0" ${on?'':'disabled'} value="${on?h.classes[g.id]:''}" oninput="setFeeAmount('${h.id}','${g.id}',this.value)">
+            </div></td>`;
+          }).join('')}
+          <td class="num" id="feeTotal_${g.id}">${fmtINR(feeTotal(g.id))}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+  return `<div class="card">${title}<label class="f">Fee heads</label><div class="pick-row">${chips}</div>${matrix}</div>`;
+}
+function toggleFeeHead(id){
+  const cfg = feeCfg();
+  const idx = cfg.heads.findIndex(h=>h.id===id);
+  if(idx>-1) cfg.heads.splice(idx,1);
+  else { const m = FEE_MASTER.find(h=>h.id===id); if(m) cfg.heads.push({id:m.id, name:m.name, classes:{...m.classes}}); }
+  render();
+}
+function toggleFeeClass(headId, gradeId){
+  const h = feeCfg().heads.find(x=>x.id===headId);
+  if(!h) return;
+  if(Object.prototype.hasOwnProperty.call(h.classes, gradeId)) delete h.classes[gradeId];
+  else { const m = FEE_MASTER.find(x=>x.id===headId); h.classes[gradeId] = (m && m.classes[gradeId]) || 0; }
+  render();
+}
+function setFeeAmount(headId, gradeId, val){
+  const h = feeCfg().heads.find(x=>x.id===headId);
+  if(!h) return;
+  h.classes[gradeId] = Math.max(0, Number(val)||0);
+  const cell = document.getElementById('feeTotal_'+gradeId);
+  if(cell) cell.textContent = fmtINR(feeTotal(gradeId));
+}
+
+function docCfg(){
+  if(!state.docConfig) state.docConfig = { docs: DOC_MASTER.map(d=>({id:d.id, name:d.name, mandatory:d.mandatory, grades:[...d.grades]})) };
+  if(!Array.isArray(state.docConfig.docs)) state.docConfig.docs = [];
+  state.docConfig.docs.forEach(d=>{ if(!Array.isArray(d.grades)) d.grades = []; });
+  return state.docConfig;
+}
+function docEditor(){
+  const cfg = docCfg();
+  const all = DOC_MASTER.concat(cfg.docs.filter(d=>!DOC_MASTER.some(m=>m.id===d.id)));
+  const title = `<div class="sec-title"><i class="bi bi-file-earmark-arrow-up"></i> Documents</div>`;
+  if(!all.length) return `<div class="card">${title}<div class="empty">No document types — add in Setup › Document Types</div></div>`;
+  const rows = all.map(m=>{
+    const d = cfg.docs.find(x=>x.id===m.id);
+    return `<tr class="${d?'':'off'}">
+      <td style="width:36px;"><input type="checkbox" ${d?'checked':''} onchange="toggleDoc('${m.id}')"></td>
+      <td class="cls">${esc(m.name)}</td>
+      <td>${d?`<div class="toggle ${d.mandatory?'on':''}" title="Required" onclick="toggleDocMandatory('${m.id}')"></div>`:''}</td>
+      <td>${d?(GRADES.length?`<div class="pick-row">${GRADES.map(g=>`<div class="pick-chip sm ${d.grades.includes(g.id)?'on':''}" onclick="toggleDocClass('${m.id}','${g.id}')">${esc(g.name)}</div>`).join('')}</div>`:'No grades'):''}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="card">${title}
+    <div class="matrix-wrap" style="margin-top:0;"><table class="matrix">
+      <thead><tr><th></th><th>Document</th><th>Required</th><th>Classes</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div></div>`;
+}
+function toggleDoc(id){
+  const cfg = docCfg();
+  const idx = cfg.docs.findIndex(d=>d.id===id);
+  if(idx>-1) cfg.docs.splice(idx,1);
+  else { const m = DOC_MASTER.find(d=>d.id===id); if(m) cfg.docs.push({id:m.id, name:m.name, mandatory:m.mandatory, grades:[...m.grades]}); }
+  render();
+}
+function toggleDocMandatory(id){
+  const d = docCfg().docs.find(x=>x.id===id);
+  if(d) d.mandatory = !d.mandatory;
+  render();
+}
+function toggleDocClass(id, gradeId){
+  const d = docCfg().docs.find(x=>x.id===id);
+  if(!d) return;
+  d.grades = d.grades.includes(gradeId) ? d.grades.filter(g=>g!==gradeId) : d.grades.concat(gradeId);
+  render();
+}
+
+/* ================= TEXT EDITOR (Instructions / Declaration pages) ================= */
+let rteRange = null;
+function rteEl(key){ return document.getElementById('rte_'+key); }
+function rteSaveSel(key){
+  const sel = window.getSelection(), el = rteEl(key);
+  if(sel && sel.rangeCount && el && el.contains(sel.anchorNode)) rteRange = sel.getRangeAt(0).cloneRange();
+}
+function rteRestoreSel(key){
+  const el = rteEl(key);
+  if(!el) return;
+  el.focus();
+  if(rteRange && el.contains(rteRange.commonAncestorContainer)){
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(rteRange);
+  }
+}
+function rteSync(key){
+  const el = rteEl(key);
+  if(!el) return;
+  const text = el.innerText.trim();
+  state[key] = (text || el.querySelector('hr')) ? sanitizeHtml(el.innerHTML) : '';
+  if(key==='instructionsHtml') state.instructions = text; // plain copy for older readers of the form
+}
+function rteCmd(key, cmd, val){
+  rteRestoreSel(key);
+  document.execCommand('styleWithCSS', false, true);
+  document.execCommand(cmd, false, val===undefined ? null : val);
+  rteSaveSel(key);
+  rteSync(key);
+}
+function rteLink(key){
+  const inp = document.getElementById('rteUrl_'+key);
+  let url = inp ? inp.value.trim() : '';
+  if(!url){ if(inp) inp.focus(); return; }
+  if(!/^(https?:|mailto:|tel:)/i.test(url)) url = 'https://' + url;
+  rteCmd(key, 'createLink', url);
+  if(inp) inp.value = '';
+}
+function rteHtml(key){
+  const b = (cmd, icon, title, val) => `<button type="button" class="rte-btn" title="${title}" onmousedown="event.preventDefault()" onclick="rteCmd('${key}','${cmd}'${val?`,'${val}'`:''})"><i class="bi bi-${icon}"></i></button>`;
+  const sep = '<span class="rte-sep"></span>';
+  const fonts = ['Arial','Georgia','Times New Roman','Courier New','Verdana','Tahoma','Trebuchet MS'];
+  return `
+  <div class="rte">
+    <div class="rte-bar">
+      <select title="Style" onchange="rteCmd('${key}','formatBlock',this.value); this.selectedIndex=0;">
+        <option value="">Style</option><option value="P">Normal</option><option value="H1">Heading 1</option><option value="H2">Heading 2</option><option value="H3">Heading 3</option><option value="BLOCKQUOTE">Quote</option>
+      </select>
+      <select title="Font" onchange="rteCmd('${key}','fontName',this.value); this.selectedIndex=0;">
+        <option value="">Font</option>${fonts.map(f=>`<option value="${f}" style="font-family:${f}">${f}</option>`).join('')}
+      </select>
+      <select title="Size" onchange="rteCmd('${key}','fontSize',this.value); this.selectedIndex=0;">
+        <option value="">Size</option><option value="1">Tiny</option><option value="2">Small</option><option value="3">Normal</option><option value="4">Large</option><option value="5">Larger</option><option value="6">Huge</option>
+      </select>
+      ${sep}
+      ${b('bold','type-bold','Bold')}${b('italic','type-italic','Italic')}${b('underline','type-underline','Underline')}${b('strikeThrough','type-strikethrough','Strikethrough')}
+      <label class="rte-btn" title="Text colour"><i class="bi bi-fonts"></i><input type="color" value="#e62b34" onmousedown="rteSaveSel('${key}')" oninput="rteCmd('${key}','foreColor',this.value)"></label>
+      <label class="rte-btn" title="Highlight"><i class="bi bi-highlighter"></i><input type="color" value="#fff3a3" onmousedown="rteSaveSel('${key}')" oninput="rteCmd('${key}','hiliteColor',this.value)"></label>
+      ${sep}
+      ${b('insertUnorderedList','list-ul','Bullet list')}${b('insertOrderedList','list-ol','Numbered list')}${b('outdent','text-indent-right','Outdent')}${b('indent','text-indent-left','Indent')}
+      ${sep}
+      ${b('justifyLeft','text-left','Align left')}${b('justifyCenter','text-center','Align centre')}${b('justifyRight','text-right','Align right')}${b('justifyFull','justify','Justify')}
+      ${sep}
+      <input type="text" id="rteUrl_${key}" aria-label="Link" onkeydown="if(event.key==='Enter'){event.preventDefault(); rteLink('${key}');}">
+      <button type="button" class="rte-btn" title="Add link" onmousedown="event.preventDefault()" onclick="rteLink('${key}')"><i class="bi bi-link-45deg"></i></button>
+      ${b('unlink','link','Remove link')}${b('insertHorizontalRule','hr','Line')}
+      ${sep}
+      ${b('removeFormat','eraser','Clear formatting')}${b('undo','arrow-counterclockwise','Undo')}${b('redo','arrow-clockwise','Redo')}
+    </div>
+    <div class="rte-area" id="rte_${key}" contenteditable="true" oninput="rteSync('${key}')" onkeyup="rteSaveSel('${key}')" onmouseup="rteSaveSel('${key}')" onblur="rteSaveSel('${key}')">${sanitizeHtml(state[key]||'')}</div>
+  </div>`;
+}
+
+function instructionsEditorBody(){
+  const rows = state.instructionFields.map(f=>`
+    <div class="if-row">
+      <span class="chip">${f.type==='checkbox'?'Checkbox':'Text'}</span>
+      <input type="text" value="${esc(f.label)}" oninput="setInstField('${f.id}','label',this.value)">
+      <label class="approval-check ${f.required?'checked':''}">
+        <input type="checkbox" ${f.required?'checked':''} onchange="setInstField('${f.id}','required',this.checked); render();">
+        <span>Required</span>
+      </label>
+      <button class="icon-btn" title="Remove" onclick="removeInstField('${f.id}')"><i class="bi bi-trash"></i></button>
+    </div>`).join('');
+  return `
+    ${rteHtml('instructionsHtml')}
+    <label class="f" style="margin-top:14px;">Fields</label>
+    ${rows}
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn ghost sm" onclick="addInstField('checkbox')"><i class="bi bi-check2-square"></i> Checkbox</button>
+      <button class="btn ghost sm" onclick="addInstField('text')"><i class="bi bi-input-cursor-text"></i> Text field</button>
+    </div>`;
+}
+function instructionsEditor(){
+  return `<div class="card"><div class="sec-title"><i class="bi bi-info-circle"></i> Instructions</div>${instructionsEditorBody()}</div>`;
+}
+function addInstField(type){
+  state.instructionFields.push({id:uid(), type, label: type==='checkbox' ? 'I agree and wish to proceed' : 'Field name', required:true});
+  render();
+}
+function setInstField(id, key, val){
+  const f = state.instructionFields.find(x=>x.id===id);
+  if(f) f[key] = val;
+}
+function removeInstField(id){
+  state.instructionFields = state.instructionFields.filter(x=>x.id!==id);
+  render();
+}
+function declarationEditorBody(){
+  const points = state.declarationPoints.map(p=>`
+    <div class="if-row" style="align-items:flex-start;">
+      <textarea rows="2" style="flex:1; min-width:200px;" oninput="updateDeclarationPointText('${p.id}', this.value)">${esc(p.text)}</textarea>
+      <label class="approval-check ${p.requiredCheckbox?'checked':''}" style="margin-top:6px;">
+        <input type="checkbox" ${p.requiredCheckbox?'checked':''} onchange="toggleDeclarationPointCheckbox('${p.id}', this.checked)">
+        <span>Checkbox</span>
+      </label>
+      <button class="icon-btn" style="margin-top:4px;" title="Remove" onclick="removeDeclarationPoint('${p.id}')"><i class="bi bi-trash"></i></button>
+    </div>`).join('');
+  return `
+    ${rteHtml('declarationHtml')}
+    <label class="f" style="margin-top:14px;">Points</label>
+    <div id="declarationPointsList">${points}</div>
+    <div><button class="btn ghost sm" onclick="addDeclarationPoint()"><i class="bi bi-plus-lg"></i> Point</button></div>`;
+}
+function declarationEditor(){
+  return `<div class="card"><div class="sec-title"><i class="bi bi-patch-check"></i> Declaration</div>${declarationEditorBody()}</div>`;
+}
+function openSetupPanel(panel){
+  state.setupPanel = state.setupPanel===panel ? null : panel;
+  render();
+  const card = document.getElementById('setupPanelCard');
+  if(card) card.scrollIntoView({block:'nearest', behavior:'smooth'});
 }
 
 /* ================= SCREEN: NAME + CHOOSE TYPE + GROUPS/STEPS (combined) ================= */
@@ -735,10 +1094,10 @@ function screenSetup(){
   }
 
   const followUp = !state.formType ? '' : (state.formType==='single' ? setupGroupsSection() : setupStepsSection());
+  const panel = state.setupPanel==='instructions' ? instructionsEditor() : (state.setupPanel==='declaration' ? declarationEditor() : '');
+  const fees = (state.formCategory==='payment' && state.formType) ? `<div style="margin-top:12px;">${feeEditor()}</div>` : '';
   return `
-  <div class="titlerow"><span class="topline">Step 1</span></div>
-  <h1>Let's set up your form</h1>
-  <div class="desc">Give it a name and pick how it should work. You can fill in the fields next — nothing is locked in yet.</div>
+  <h1>Form setup</h1>
 
   <div class="setup-row">
     <div class="card">
@@ -746,15 +1105,12 @@ function screenSetup(){
         <span style="width:18px;height:18px;border-radius:5px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;">✎</span>
         Form name
       </label>
-      <input type="text" id="formTitleInput" value="${esc(state.formTitle)}" style="width:100%; padding:11px 12px; font-size:14px; border-radius:8px;" placeholder="e.g. Class 1 Admission Registration" oninput="state.formTitle=this.value; refreshContinueBtn();">
+      <input type="text" id="formTitleInput" value="${esc(state.formTitle)}" style="width:100%; padding:11px 12px; font-size:14px; border-radius:8px;" oninput="state.formTitle=this.value; refreshContinueBtn();">
       <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
         <label class="f" style="font-size:11px; letter-spacing:.03em; text-transform:uppercase; margin-bottom:8px;">Form Type</label>
-        <div style="display:flex; gap:4px; background:#f8fafc; padding:4px; border-radius:24px; border:1px solid var(--border); margin-bottom:14px;">
-          ${['enquiry', 'registration', 'payment'].map(cat=>`
-            <div style="flex:1; text-align:center; padding:6px 12px; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600; color:${state.formCategory===cat?'var(--accent-dark)':'#76808a'}; background:${state.formCategory===cat?'#ffffff':'transparent'}; box-shadow:${state.formCategory===cat?'0 2px 4px rgba(0,0,0,0.05)':'none'}; transition:.15s;" onclick="pickCategory('${cat}')">
-              ${cat.charAt(0).toUpperCase() + cat.slice(1)}
-            </div>
-          `).join('')}
+        <div class="pill-row">
+          ${['enquiry', 'registration', 'payment'].map(cat=>`<div class="pill ${state.formCategory===cat?'on':''}" onclick="pickCategory('${cat}')">${cat.charAt(0).toUpperCase() + cat.slice(1)}</div>`).join('')}
+          ${['instructions', 'declaration'].map(pg=>`<div class="pill page ${state.setupPanel===pg?'on':''}" onclick="openSetupPanel('${pg}')"><i class="bi bi-pencil-square"></i> ${pg.charAt(0).toUpperCase() + pg.slice(1)}</div>`).join('')}
         </div>
       </div>
       <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
@@ -781,14 +1137,14 @@ function screenSetup(){
         <rect x="8" y="72" width="224" height="18" rx="3" fill="#e7edf0"/>
         <rect x="8" y="102" width="60" height="8" rx="2" fill="#cfd8dd"/>
         <rect x="8" y="118" width="224" height="18" rx="3" fill="#e7edf0"/>
-        <rect x="184" y="130" width="48" height="16" rx="4" fill="#0085A8"/>
+        <rect x="184" y="130" width="48" height="16" rx="4" style="fill:var(--accent)"/>
       </svg>
     </div>
     <div class="choice ${state.formType==='stepper'?'selected':''}" onclick="pickType('stepper')">
       <div class="choice-radio"></div>
       <div class="choice-head"><div class="choice-icon">▤</div><h4>Stepper Form</h4></div>
       <svg class="wireframe" viewBox="0 0 240 150" height="140">
-        <circle cx="20" cy="16" r="10" fill="#0085A8"/>
+        <circle cx="20" cy="16" r="10" style="fill:var(--accent)"/>
         <text x="20" y="20" font-size="10" fill="#fff" text-anchor="middle" font-family="Arial">1</text>
         <line x1="30" y1="16" x2="76" y2="16" stroke="#cfd8dd" stroke-width="2"/>
         <circle cx="86" cy="16" r="10" fill="#dfe5e9"/>
@@ -803,16 +1159,19 @@ function screenSetup(){
         <rect x="8" y="60" width="224" height="18" rx="3" fill="#e7edf0"/>
         <rect x="8" y="90" width="60" height="8" rx="2" fill="#cfd8dd"/>
         <rect x="8" y="106" width="224" height="18" rx="3" fill="#e7edf0"/>
-        <rect x="184" y="130" width="48" height="16" rx="4" fill="#0085A8"/>
+        <rect x="184" y="130" width="48" height="16" rx="4" style="fill:var(--accent)"/>
       </svg>
     </div>
   </div>
 
+  ${panel ? `<div id="setupPanelCard" style="margin-top:12px;">${panel}</div>` : ''}
+
   ${followUp}
+  ${fees}
 
   <div class="footer-nav">
     <button class="btn ghost" onclick="closeEditor()">Cancel</button>
-    <button class="btn" id="setupContinueBtn" ${(!state.formTitle.trim()||!state.formType)?'disabled':''} onclick="goScreen('builder')">Continue →</button>
+    <button class="btn" id="setupContinueBtn" onclick="setupContinue()">Continue →</button>
   </div>`;
 }
 
@@ -825,7 +1184,8 @@ function setupGroupsSection(){
   const unselectedPresets = PRESET_GROUPS.filter(p=>!selectedNames.includes(p.toLowerCase()));
 
   const selectedRows = groups.map((g,i)=>`
-    <tr>
+    <tr ${dragRowAttrs('group', g)}>
+      ${dragHandle('group', g)}
       <td>
         <input type="number" class="form-control form-control-sm text-center" style="width: 70px; border: 1px solid var(--border); border-radius: 6px;" min="1" max="99" value="${g.seq||(i+1)}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,2)" onchange="reorderGroupToPosition('${g.id}', this.value)">
       </td>
@@ -840,21 +1200,21 @@ function setupGroupsSection(){
     </tr>`).join('');
 
   return `
-  <h3 style="font-size:14.5px; margin:22px 0 4px;">What groups should this form have, and in what order?</h3>
-  <div class="desc" style="margin-bottom:14px;">Define the groups that will collect fields. The sequence numbers will dictate the layout order. Click preset chips below to quick-add, or create custom ones.</div>
+  <h3 style="font-size:14.5px; margin:22px 0 10px;">Groups</h3>
   
   <div class="card" style="padding: 18px; border-radius: 12px; background: #fff; border: 1px solid var(--border);">
     <div class="table-responsive">
       <table class="table align-middle" style="margin-bottom: 12px; width: 100%;">
         <thead>
           <tr style="background: var(--surface-light); border-bottom: 2px solid var(--border);">
+            <th style="width: 36px; padding: 8px;"></th>
             <th style="width: 110px; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 8px;">Sequence</th>
             <th style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 8px;">Group Name</th>
             <th style="width: 110px; text-align: center; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 8px;">Action</th>
           </tr>
         </thead>
         <tbody>
-          ${selectedRows || '<tr><td colspan="3" class="text-center text-muted py-3">No groups added yet. Quick-add presets below or create a custom group.</td></tr>'}
+          ${selectedRows || '<tr><td colspan="4" class="text-center text-muted py-3">No groups added yet. Quick-add presets below or create a custom group.</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -886,9 +1246,9 @@ function toggleSetupGroup(name){
 function addSetupGroup(){
   const el = document.getElementById('setupNewGroupName');
   const val = el.value.trim();
-  if(!val){ alert('Please enter a group name.'); return; }
+  if(!val){ showNotice('Please enter a group name.'); return; }
   const step = state.steps[0];
-  if(step.groups.some(g=>g.name.toLowerCase()===val.toLowerCase())){ alert('That group already exists.'); return; }
+  if(step.groups.some(g=>g.name.toLowerCase()===val.toLowerCase())){ showNotice('That group already exists.'); return; }
   const maxSeq = step.groups.reduce((m,g)=>Math.max(m, g.seq||0), 0);
   step.groups.push(mkGroup(val, Math.min(99, maxSeq+1)));
   render();
@@ -927,7 +1287,8 @@ function setupStepsSection(){
   state.steps.sort(compareStepsAndGroups);
   if(activeId){ const ni = state.steps.findIndex(s=>s.id===activeId); if(ni>-1) state.activeStepIdx = ni; }
   const rows = state.steps.map((s,i)=>`
-    <tr>
+    <tr ${dragRowAttrs('step', s)}>
+      ${dragHandle('step', s)}
       <td>
         <input type="number" class="form-control form-control-sm text-center" style="width: 70px; border: 1px solid var(--border); border-radius: 6px;" min="1" max="99" value="${s.seq||(i+1)}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,2)" onchange="reorderStepToPosition('${s.id}', this.value)">
       </td>
@@ -944,14 +1305,14 @@ function setupStepsSection(){
     </tr>`).join('');
 
   return `
-  <h3 style="font-size:14.5px; margin:22px 0 4px;">How many steps, and in what sequence?</h3>
-  <div class="desc" style="margin-bottom:14px;">These become the pages of your form, shown to applicants in this order. Use the sequence numbers to reorder, rename or remove steps.</div>
+  <h3 style="font-size:14.5px; margin:22px 0 10px;">Steps</h3>
   
   <div class="card" style="padding: 18px; border-radius: 12px; background: #fff; border: 1px solid var(--border);">
     <div class="table-responsive">
       <table class="table align-middle" style="margin-bottom: 12px; width: 100%;">
         <thead>
           <tr style="background: var(--surface-light); border-bottom: 2px solid var(--border);">
+            <th style="width: 36px; padding: 8px;"></th>
             <th style="width: 110px; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 8px;">Sequence</th>
             <th style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 8px;">Step Name</th>
             <th style="width: 110px; text-align: center; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 8px;">Action</th>
@@ -963,7 +1324,8 @@ function setupStepsSection(){
       </table>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
+    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 18px; flex-wrap: wrap;">
+      <input type="text" id="setupNewStepName" class="form-control form-control-sm" style="width: 220px; border-radius: 6px; padding: 6px 12px; border: 1px solid var(--border);" onkeydown="if(event.key==='Enter') addStep()">
       <button class="btn btn-sm btn-wa" style="border-radius: 6px; font-size: 12px; font-weight: 600; padding: 6px 14px;" onclick="addStep()">+ Add Step</button>
     </div>
   </div>`;
@@ -993,10 +1355,10 @@ function reorderStepToPosition(id, val){
   render();
 }
 
-function pickType(t){
+async function pickType(t){
   if(state.formType !== t){
     if (state.formTitle.trim() && state.steps.some(s => s.groups.some(g => g.fields.length > 0))) {
-      if (!confirm("Changing layout will reset your current form steps and fields. Do you want to proceed?")) {
+      if (!(await askConfirm("Changing layout will reset your current form steps and fields. Do you want to proceed?", { confirmLabel: "Reset" }))) {
         render();
         return;
       }
@@ -1010,15 +1372,17 @@ function pickType(t){
   render();
 }
 
-function pickCategory(cat){
+async function pickCategory(cat){
+  if(state.formCategory === cat && state.setupPanel){ state.setupPanel = null; render(); return; }
   if(state.formCategory !== cat){
     if (state.formTitle.trim() && state.steps.some(s => s.groups.some(g => g.fields.length > 0))) {
-      if (!confirm("Changing form type will reset your current form steps and fields. Do you want to proceed?")) {
+      if (!(await askConfirm("Changing form type will reset your current form steps and fields. Do you want to proceed?", { confirmLabel: "Reset" }))) {
         render();
         return;
       }
     }
     state.formCategory = cat;
+    state.setupPanel = null;
     state.activeStepIdx = 0;
     state.steps = []; // clear first
     if (state.formType) {
@@ -1029,8 +1393,75 @@ function pickCategory(cat){
   render();
 }
 function refreshContinueBtn(){
-  const btn = document.getElementById('setupContinueBtn');
-  if(btn) btn.disabled = !(state.formTitle.trim() && state.formType);
+  const inp = document.getElementById('formTitleInput');
+  if(inp && state.formTitle.trim()) inp.style.borderColor = '';
+}
+function setupContinue(){
+  if(!state.formTitle.trim()){
+    const inp = document.getElementById('formTitleInput');
+    if(inp){ inp.style.borderColor = 'var(--red)'; inp.focus(); inp.scrollIntoView({block:'center', behavior:'smooth'}); }
+    showNotice('Enter a form name.', 'error');
+    return;
+  }
+  if(!state.formType){ showNotice('Choose Single Page or Stepper.', 'error'); return; }
+  goScreen('builder');
+}
+
+/* Drag a row by its handle to reorder steps (stepper) or groups (single page) on the setup page */
+let dragItem = null;
+function isPinnedRow(name){
+  const n = (name||'').toLowerCase().trim();
+  return n==='instructions' || n==='instruction' || n==='declaration';
+}
+function dragHandle(kind, item){
+  return isPinnedRow(item.name)
+    ? `<td class="drag locked"><i class="bi bi-grip-vertical"></i></td>`
+    : `<td class="drag" draggable="true" title="Drag" ondragstart="dragRowStart(event,'${kind}','${item.id}')" ondragend="dragRowEnd(event)"><i class="bi bi-grip-vertical"></i></td>`;
+}
+function dragRowAttrs(kind, item){
+  return `ondragover="dragRowOver(event,'${kind}')" ondragleave="dragRowLeave(event)" ondrop="dragRowDrop(event,'${kind}','${item.id}')"`;
+}
+function dragRowStart(e, kind, id){
+  dragItem = {kind, id};
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', id);
+  const tr = e.target.closest('tr');
+  if(tr){ e.dataTransfer.setDragImage(tr, 18, 18); setTimeout(()=>tr.classList.add('dragging'), 0); }
+}
+function dragRowOver(e, kind){
+  if(!dragItem || dragItem.kind!==kind) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function dragRowLeave(e){
+  if(!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('drag-over');
+}
+function dragRowEnd(e){
+  dragItem = null;
+  const tr = e.target.closest && e.target.closest('tr');
+  if(tr) tr.classList.remove('dragging');
+}
+function dragRowDrop(e, kind, targetId){
+  e.preventDefault();
+  const item = dragItem;
+  dragItem = null;
+  if(!item || item.kind!==kind || item.id===targetId){ render(); return; }
+  const list = kind==='step' ? state.steps : state.steps[0].groups;
+  const activeId = state.steps[state.activeStepIdx] ? state.steps[state.activeStepIdx].id : null;
+  const from = list.findIndex(x=>x.id===item.id);
+  const to = list.findIndex(x=>x.id===targetId);
+  if(from<0 || to<0){ render(); return; }
+  const [moved] = list.splice(from, 1);
+  list.splice(to, 0, moved);
+  list.forEach((x,i)=>{ x.seq = i+1; });
+  if(kind==='step'){
+    cleanAndSortSteps();
+    if(activeId){ const ni = state.steps.findIndex(s=>s.id===activeId); if(ni>-1) state.activeStepIdx = ni; }
+  } else {
+    cleanAndSortGroups(state.steps[0]);
+  }
+  render();
 }
 
 /* Step list management — used on the setup page (stepper) and inline inside the builder's tab bar */
@@ -1076,16 +1507,22 @@ function addApprovalStep(){
 }
 function addStep(){
   const el = document.getElementById('setupNewStepName');
-  const val = el ? el.value.trim() : '';
-  if(!val){ alert('Please enter a step name.'); return; }
-  if(state.steps.some(s=>s.name.toLowerCase()===val.toLowerCase())){ alert('That step already exists.'); return; }
+  let val = el ? el.value.trim() : '';
+  if(!val && !el){
+    // builder tab bar has no name box — add with a default name, renamed from step settings
+    let n = state.steps.length + 1;
+    while(state.steps.some(s=>s.name.toLowerCase()===('step '+n))) n++;
+    val = 'Step ' + n;
+  }
+  if(!val){ showNotice('Please enter a step name.'); if(el) el.focus(); return; }
+  if(state.steps.some(s=>s.name.toLowerCase()===val.toLowerCase())){ showNotice('That step already exists.'); return; }
   const maxSeq = state.steps.reduce((m,s)=>Math.max(m, s.seq||0), 0);
   state.steps.push(mkStep(val, val, Math.min(99, maxSeq+1)));
   state.activeStepIdx = state.steps.length-1;
   render();
 }
 function removeStep(id){
-  if(state.steps.length<=1){ alert('You need at least one step.'); return; }
+  if(state.steps.length<=1){ showNotice('You need at least one step.'); return; }
   state.steps = state.steps.filter(s=>s.id!==id);
   if(state.activeStepIdx>=state.steps.length) state.activeStepIdx=0;
   render();
@@ -1153,6 +1590,14 @@ function screenBuilder(){
   const presetChips = PRESET_GROUPS.filter(p=>!existingNames.includes(p.toLowerCase()))
     .map(p=>`<div class="preset-chip" onclick="addGroup('${escJs(p)}')">+ ${p}</div>`).join('');
 
+  // Stepper pages driven by Setup masters / the text editor instead of field groups
+  const kind = state.formType==='stepper' ? stepKind(step.name) : null;
+  const pageOnly = kind==='instructions' || kind==='declaration';
+  const special = kind==='instructions' ? instructionsEditor()
+    : kind==='declaration' ? declarationEditor()
+    : kind==='payment' ? feeEditor()
+    : kind==='documents' ? docEditor() : '';
+
   const totalFields = step.groups.reduce((n,g)=>n+g.fields.length,0);
   const totalMandatory = step.groups.reduce((n,g)=>n+g.fields.filter(f=>f.mandatory).length,0);
 
@@ -1169,17 +1614,17 @@ function screenBuilder(){
     ${commOpen?`
     <div class="notif-grid" style="margin-top:14px;">
       <div class="notif-card">
-        <div class="ic">✉️</div>
+        <div class="ic"><i class="bi bi-envelope"></i></div>
         <h4>Email template</h4>
         <select onchange="setStepNotif('${step.id}','email',this.value)">${getTemplateOptions('email', step.notif.email)}</select>
       </div>
       <div class="notif-card">
-        <div class="ic">💬</div>
+        <div class="ic"><i class="bi bi-chat-dots"></i></div>
         <h4>SMS template</h4>
         <select onchange="setStepNotif('${step.id}','sms',this.value)">${getTemplateOptions('sms', step.notif.sms)}</select>
       </div>
       <div class="notif-card">
-        <div class="ic">📱</div>
+        <div class="ic"><i class="bi bi-whatsapp"></i></div>
         <h4>WhatsApp template</h4>
         <select onchange="setStepNotif('${step.id}','whatsapp',this.value)">${getTemplateOptions('whatsapp', step.notif.whatsapp)}</select>
       </div>
@@ -1196,9 +1641,7 @@ function screenBuilder(){
   <div class="builder-head">
     <div class="builder-head-ic">▤</div>
     <div>
-      <div class="topline">Step 2</div>
-      <h1>Add fields ${state.formType==='stepper'?`— ${esc(step.name)}`:''}</h1>
-      <div class="desc" style="margin-bottom:0;">Open a group, tick the fields you need from the list, then move to the next group.</div>
+      <h1>${state.formType==='stepper' ? esc(step.name) : 'Fields'}</h1>
     </div>
     <div class="builder-stats">
       <div class="builder-stat"><strong>${step.groups.length}</strong><span>group${step.groups.length!==1?'s':''}</span></div>
@@ -1208,8 +1651,9 @@ function screenBuilder(){
   </div>
   ${tabs}
 
-  ${step.groups.length===0?`<div class="card"><div class="empty">No groups in ${state.formType==='stepper'?'this step':'this form'} yet.</div></div>`:''}
-  ${groupsHtml}
+  ${special}
+  ${(step.groups.length===0 && !special)?`<div class="card"><div class="empty">No groups</div></div>`:''}
+  ${pageOnly ? '' : groupsHtml}
 
   ${state.formType==='stepper' ? commStatusCard : ''}
 
@@ -1246,7 +1690,7 @@ function addGroup(name){
 function addCustomGroup(){
   const el = document.getElementById('newGroupName');
   const val = el.value.trim();
-  if(!val){ alert('Please enter a group name.'); return; }
+  if(!val){ showNotice('Please enter a group name.'); return; }
   const list = state.steps[state.activeStepIdx].groups;
   const maxSeq = list.reduce((m,g)=>Math.max(m, g.seq||0), 0);
   const g = mkGroup(val, Math.min(99, maxSeq+1));
@@ -1345,14 +1789,14 @@ function renderGroupAccordion(group, step, gIdx){
   if(group.type==='approval') return renderApprovalGroupCard(group);
   const isOpen = state.openGroupAccordion===group.id;
   const lowerName = group.name.toLowerCase();
-  const isSpecialGroup = ["instructions", "declaration"].includes(lowerName);
+  const isSpecialGroup = ["instructions", "instruction", "declaration"].includes(lowerName);
 
   const header = `
     <div class="acc-header" onclick="toggleAccordion('${group.id}')">
       <input type="number" class="seq-num-input" min="1" max="99" step="1" value="${group.seq||(gIdx+1)}" title="Type a position (1-99) to move this group there" onclick="event.stopPropagation()" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,2)" onchange="event.stopPropagation(); reorderGroupInStep('${group.id}', this.value)">
       <span class="acc-chevron">${isOpen?'▾':'▸'}</span>
       <input type="text" class="group-name-input" onclick="event.stopPropagation()" value="${esc(group.name)}" onchange="renameGroup('${group.id}',this.value)">
-      <span class="chip">${isSpecialGroup ? 'Page Text' : `${group.fields.length} field${group.fields.length!==1?'s':''}`}</span>
+      <span class="chip">${isSpecialGroup ? 'Page' : `${group.fields.length} field${group.fields.length!==1?'s':''}`}</span>
       <button class="icon-btn" title="Delete group" onclick="event.stopPropagation(); removeGroup('${group.id}')">✕</button>
     </div>`;
 
@@ -1360,48 +1804,17 @@ function renderGroupAccordion(group, step, gIdx){
     return `<div class="group-card">${header}</div>`;
   }
 
-  if (lowerName === "instructions") {
-    return `
-    <div class="group-card">
-      ${header}
-      <div style="padding: 14px 18px 18px;">
-        <label class="f" style="font-size:11px; letter-spacing:.03em; text-transform:uppercase; margin-bottom:8px; display:block; font-weight:600; color:var(--text-muted);">Instructions Page Text</label>
-        <textarea class="form-control form-control-sm" rows="5" placeholder="Write any instructions for applicants here (leave empty to skip instructions page)..." style="border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:12.5px; width: 100%; box-sizing: border-box;" oninput="state.instructions=this.value;">${esc(state.instructions)}</textarea>
-      </div>
-    </div>`;
+  if (lowerName === "instructions" || lowerName === "instruction") {
+    return `<div class="group-card">${header}<div style="padding-top:14px;">${instructionsEditorBody()}</div></div>`;
   }
 
   if (lowerName === "declaration") {
-    const pointsListHtml = state.declarationPoints.map((p, idx) => `
-      <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
-        <div style="flex: 1;">
-          <textarea class="form-control form-control-sm" style="border: 1px solid var(--border); border-radius: 6px; font-size: 12.5px; width: 100%; box-sizing: border-box; padding: 6px 10px;" rows="2" placeholder="e.g. I hereby declare that all the information provided is correct..." oninput="updateDeclarationPointText('${p.id}', this.value)">${esc(p.text)}</textarea>
-        </div>
-        <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; margin-top: 8px; cursor: pointer; user-select: none; white-space: nowrap; font-weight: 500; color: var(--text);">
-          <input type="checkbox" ${p.requiredCheckbox ? 'checked' : ''} onchange="toggleDeclarationPointCheckbox('${p.id}', this.checked)">
-          <span>Require checkbox</span>
-        </label>
-        <button class="btn btn-sm btn-outline-danger" style="padding: 4px 8px; margin-top: 4px;" title="Delete point" onclick="removeDeclarationPoint('${p.id}')">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>`).join('');
-
-    return `
-    <div class="group-card">
-      ${header}
-      <div style="padding: 14px 18px 18px;">
-        <div style="font-size: 11px; letter-spacing: .03em; text-transform: uppercase; margin-bottom: 10px; font-weight: 600; color: var(--text-muted);">Declaration Points &amp; Checkboxes</div>
-        
-        <div id="declarationPointsList">
-          ${pointsListHtml || '<div class="text-muted small mb-2">No declaration points added.</div>'}
-        </div>
-        
-        <div style="margin-top: 10px; text-align: right;">
-          <button class="btn btn-sm btn-wa" style="border-radius: 6px; font-size: 11px; font-weight: 600; padding: 4px 12px;" onclick="addDeclarationPoint()">+ Add Point</button>
-        </div>
-      </div>
-    </div>`;
+    return `<div class="group-card">${header}<div style="padding-top:14px;">${declarationEditorBody()}</div></div>`;
   }
+
+  // Payment / Documents groups show the Setup masters above their field list
+  const groupKind = state.formType==='single' ? stepKind(group.name) : null;
+  const masterBlock = groupKind==='payment' ? feeEditor() : (groupKind==='documents' ? docEditor() : '');
 
   const customFields = group.fields.filter(f=>!f.sourceLabel);
   const customFieldsHtml = customFields.length ? `
@@ -1441,6 +1854,7 @@ function renderGroupAccordion(group, step, gIdx){
   return `
   <div class="group-card">
     ${header}
+    ${masterBlock ? `<div style="margin-top:14px;">${masterBlock}</div>` : ''}
     ${customFieldsHtml}
     <div class="lib-inline">
       <div class="lib-inline-head">
@@ -1637,7 +2051,7 @@ function addCustomField(groupId){
   const mandatory = document.getElementById('cf_mandatory_'+groupId).value==='yes';
   const optEl = document.getElementById('cf_options_'+groupId);
   const options = optEl ? optEl.value : '';
-  if(!label){ alert('Please enter a field label.'); return; }
+  if(!label){ showNotice('Please enter a field label.'); return; }
   const group = findGroup(groupId);
   group.fields.push(mkField({label,type,mandatory,options}));
   state.openCustomFieldGroupId = null;
@@ -1690,26 +2104,24 @@ function screenNotif(){
   const step = state.steps[state.activeStepIdx];
 
   return `
-  <div class="topline">Step 3</div>
   <h1>Alerts</h1>
-  <div class="desc">Decide what happens after someone completes ${state.formType==='stepper'?'each step':'the form'} — which message goes out, and how the status updates.</div>
   ${state.formType==='stepper'?tabs:''}
   <div class="card">
     <h3>After "${esc(step.name)}" is completed</h3>
     <div class="hint">Choose templates to send automatically. Pick "No message" to skip a channel.</div>
     <div class="notif-grid">
       <div class="notif-card">
-        <div class="ic">✉️</div>
+        <div class="ic"><i class="bi bi-envelope"></i></div>
         <h4>Email template</h4>
         <select onchange="setNotif('email',this.value)">${getTemplateOptions('email', step.notif.email)}</select>
       </div>
       <div class="notif-card">
-        <div class="ic">💬</div>
+        <div class="ic"><i class="bi bi-chat-dots"></i></div>
         <h4>SMS template</h4>
         <select onchange="setNotif('sms',this.value)">${getTemplateOptions('sms', step.notif.sms)}</select>
       </div>
       <div class="notif-card">
-        <div class="ic">📱</div>
+        <div class="ic"><i class="bi bi-whatsapp"></i></div>
         <h4>WhatsApp template</h4>
         <select onchange="setNotif('whatsapp',this.value)">${getTemplateOptions('whatsapp', step.notif.whatsapp)}</select>
       </div>
@@ -1750,10 +2162,19 @@ function screenPreview(){
     simContentHtml = `
       <div style="flex:1;">
         <div style="${getGroupHeaderStyles()}">Instructions</div>
-        <p class="sim-inst-text" style="white-space:pre-wrap; color:${getThemeVal('instColor')}; font-size:${getThemeVal('instFontSize')}; line-height:${getThemeVal('instLineHeight')}; margin-bottom:24px;">${esc(state.instructions || 'Please read the instructions carefully before filling out the form.')}</p>
+        <div class="sim-inst-text rich-text" style="color:${getThemeVal('instColor')}; font-size:${getThemeVal('instFontSize')}; line-height:${getThemeVal('instLineHeight')}; margin-bottom:18px;">${state.instructionsHtml ? sanitizeHtml(state.instructionsHtml) : 'Please read the instructions carefully before filling out the form.'}</div>
+        ${state.instructionFields.map(f=> f.type==='checkbox' ? `
+          <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; margin-bottom:10px; font-size:13px; font-weight:500;">
+            <input type="checkbox" class="${f.required?'sim-inst-required':''}" style="margin-top:3px; flex-shrink:0;" onchange="validateSimInstFields()">
+            <span>${esc(f.label)}${f.required?' <span style="color:var(--red)">*</span>':''}</span>
+          </label>` : `
+          <div class="pf-field" style="margin-bottom:10px; max-width:360px;">
+            <label style="${getFieldLabelStyles()}">${esc(f.label)}${f.required?' <span style="color:var(--red)">*</span>':''}</label>
+            <input type="text" class="${f.required?'sim-inst-required':''}" style="width:100%;" oninput="validateSimInstFields()">
+          </div>`).join('')}
       </div>
       <div style="display:flex; justify-content:flex-end; border-top:1px solid #f1f5f9; padding-top:14px; margin-top:auto;">
-        <button class="btn" style="${getBtnStyles()}" onclick="nextSimStep()">Next: Fill Registration Form →</button>
+        <button class="btn" id="simInstNextBtn" style="${getBtnStyles()}" ${state.instructionFields.some(f=>f.required)?'disabled':''} onclick="nextSimStep()">Next →</button>
       </div>
     `;
   }
@@ -1805,11 +2226,43 @@ function screenPreview(){
       }
     }).join('');
 
+    // Class picker: fees and documents shown in the preview depend on the applicant's class
+    let hasDocs = false;
+    state.steps.forEach(s=>{ if(stepKind(s.name)==='documents' || s.groups.some(g=>stepKind(g.name)==='documents')) hasDocs = true; });
+    if(!hasPayment && (state.formCategory==='payment' || state.steps.some(s=>s.groups.some(g=>stepKind(g.name)==='payment')))) hasPayment = feeCfg().heads.length>0;
+    const feeHeadsCfg = hasPayment ? feeCfg().heads : [];
+    const docsCfg = hasDocs ? docCfg().docs : [];
+    const needsClass = GRADES.length && (feeHeadsCfg.length || docsCfg.length);
+    if(needsClass && !GRADES.some(g=>g.id===state.previewGradeId)) state.previewGradeId = GRADES[0].id;
+    const pg = state.previewGradeId;
+    const classPickerHtml = needsClass ? `
+      <div class="pf-field" style="margin-bottom:18px; max-width:260px;">
+        <label style="${getFieldLabelStyles()}">Class</label>
+        <select style="width:100%;" onchange="state.previewGradeId=this.value; render();">${GRADES.map(g=>`<option value="${g.id}" ${g.id===pg?'selected':''}>${esc(g.name)}</option>`).join('')}</select>
+      </div>` : '';
+    const classDocs = docsCfg.filter(d=>d.grades.includes(pg));
+    const docsHtml = (hasDocs && docsCfg.length) ? `
+      <div style="margin-bottom:18px;">
+        <div style="${getGroupHeaderStyles()}">Documents</div>
+        ${classDocs.length ? `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px 14px;">${classDocs.map(d=>`
+          <div class="pf-field"><label style="${getFieldLabelStyles()}">${esc(d.name)}${d.mandatory?' <span style="color:var(--red)">*</span>':''}</label><input type="file" style="width:100%;"></div>`).join('')}</div>` : `<div class="empty" style="padding:6px 0;">No documents for this class</div>`}
+      </div>` : '';
+    const classFees = feeHeadsCfg.filter(h=>Object.prototype.hasOwnProperty.call(h.classes, pg));
+    const feeTableHtml = feeHeadsCfg.length ? `
+      <div class="matrix-wrap" style="margin:0 0 12px;"><table class="matrix">
+        <thead><tr><th>Fee head</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+          ${classFees.map(h=>`<tr><td>${esc(h.name)}</td><td class="num">${fmtINR(h.classes[pg])}</td></tr>`).join('') || `<tr><td colspan="2" class="empty" style="padding:10px;">No fees for this class</td></tr>`}
+          ${classFees.length ? `<tr><td class="cls">Total</td><td class="num">${fmtINR(feeTotal(pg))}</td></tr>` : ''}
+        </tbody>
+      </table></div>` : '';
+
     const paymentHtml = hasPayment ? `
       <div style="margin-bottom:24px;">
         <div style="${getGroupHeaderStyles()}">Payment Details</div>
+        ${feeTableHtml}
         <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:10px 14px;">
-          <div class="pf-field"><label style="${getFieldLabelStyles()}">Amount</label><input type="number" class="form-control form-control-sm" style="border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;" value="" placeholder="e.g. 5000"></div>
+          <div class="pf-field"><label style="${getFieldLabelStyles()}">Amount</label><input type="number" class="form-control form-control-sm" style="border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;" value="${feeHeadsCfg.length ? feeTotal(pg) : ''}" ${feeHeadsCfg.length ? 'readonly' : ''}></div>
           <div class="pf-field"><label style="${getFieldLabelStyles()}">Payment Method</label><input type="text" class="form-control form-control-sm" style="border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;" value="" placeholder="e.g. Online"></div>
           <div class="pf-field"><label style="${getFieldLabelStyles()}">Reference Number</label><input type="text" class="form-control form-control-sm" style="border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;" value="" placeholder="e.g. TXN12345"></div>
         </div>
@@ -1819,13 +2272,16 @@ function screenPreview(){
 
     simContentHtml = `
       <div style="flex:1; overflow-y:auto; padding-right:6px;">
+        ${classPickerHtml}
         ${groupsPreviewHtml}
-        
+
+        ${docsHtml}
         ${paymentHtml}
         
         <div style="${getGroupHeaderStyles()}">Declaration</div>
         <div class="sim-decl-box" style="background:${getThemeVal('declBgColor')}; border:1px solid var(--border); padding:16px; border-radius:8px; margin-bottom:16px; color:${getThemeVal('declColor')}; font-size:${getThemeVal('declFontSize')};">
-          ${pointsHtml || '<p class="text-muted small">No declaration points configured.</p>'}
+          ${state.declarationHtml ? `<div class="rich-text" style="margin-bottom:12px; text-align:left;">${sanitizeHtml(state.declarationHtml)}</div>` : ''}
+          ${pointsHtml || (state.declarationHtml ? '' : '<p class="text-muted small">No declaration</p>')}
         </div>
       </div>
       <div style="display:flex; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:14px; margin-top:auto; gap:10px;">
@@ -1852,10 +2308,6 @@ function screenPreview(){
       <div>
         <label class="f" style="font-size:11px; text-transform:uppercase; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Portal Tagline</label>
         <input type="text" class="form-control form-control-sm" value="${esc(state.tagline || '')}" oninput="updateTagline(this.value)" placeholder="e.g. Shaping Future Leaders" style="border:1px solid var(--border); border-radius:6px; padding:6px 10px;">
-      </div>
-      <div>
-        <label class="f" style="font-size:11px; text-transform:uppercase; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Instructions Page Text</label>
-        <textarea class="form-control form-control-sm" rows="3" oninput="updateInstructions(this.value)" placeholder="Write any instructions for applicants..." style="border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px;">${esc(state.instructions || '')}</textarea>
       </div>
     </div>` : '';
 
@@ -2184,9 +2636,7 @@ function screenPreview(){
     </div>` : '';
 
   const headerHtml = state.previewOnly ? '' : `
-  <div class="topline">Step 4</div>
-  <h1>Customize Portal &amp; Preview</h1>
-  <div class="desc">Define applicant portal properties, customize fonts &amp; colors, and test the live application flow.</div>`;
+  <h1>Customize Portal &amp; Preview</h1>`;
 
   const settingsPanelHtml = state.previewOnly ? '' : `
     <!-- Portal Settings & Style Panel -->
@@ -2244,7 +2694,7 @@ function screenPreview(){
   </div>` : `
   <div class="footer-nav" style="margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
     <button class="btn ghost" onclick="goScreen('${state.formType==='stepper'?'builder':'notif'}')">← Back</button>
-    <button class="btn" onclick="publishForm()">✅ Publish form</button>
+    <button class="btn" onclick="publishForm()"><i class="bi bi-check2-circle"></i> Publish form</button>
   </div>`;
 
   if (state.previewOnly) {
@@ -2300,7 +2750,7 @@ function screenPreview(){
   return `
   ${headerHtml}
 
-  <div style="display:flex; gap:24px; margin-top:20px; align-items:stretch;">
+  <div style="display:flex; flex-wrap:wrap; gap:24px; margin-top:20px; align-items:stretch;">
     ${settingsPanelHtml}
 
     <!-- Applicant View Live Simulator -->
@@ -2350,6 +2800,13 @@ function prevSimStep(){
     state.simActiveIdx = 0;
     render();
   }
+}
+
+function validateSimInstFields(){
+  const btn = document.getElementById('simInstNextBtn');
+  if(!btn) return;
+  const all = Array.from(document.querySelectorAll('.rfb-scope .sim-inst-required'));
+  btn.disabled = !all.every(el => el.type==='checkbox' ? el.checked : el.value.trim());
 }
 
 function toggleSimSubmitBtn(checked) {
@@ -2860,10 +3317,17 @@ function publishForm(){
       instructions: state.instructions,
       declarationText: state.declarationText,
       declarationPoints: state.declarationPoints,
-      theme: state.theme
+      theme: state.theme,
+      instructionsHtml: state.instructionsHtml,
+      instructionFields: state.instructionFields,
+      declarationHtml: state.declarationHtml,
+      // class names travel with the form: a lead stores its class by name
+      classes: GRADES,
+      feeConfig: state.feeConfig,
+      docConfig: state.docConfig
     });
   } else {
-    alert('Form "'+state.formTitle+'" published! (This is a demo UI — connect it to EduNext backend to go live.)');
+    showNotice('Form "'+state.formTitle+'" published! (This is a demo UI — connect it to EduNext backend to go live.)');
   }
 }
 
@@ -2928,6 +3392,27 @@ function escJs(s){ return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
   mkStep,
   moveGroup,
   moveStep,
+  toggleFeeHead,
+  toggleFeeClass,
+  setFeeAmount,
+  toggleDoc,
+  toggleDocMandatory,
+  toggleDocClass,
+  rteCmd,
+  rteSync,
+  rteSaveSel,
+  rteLink,
+  addInstField,
+  setInstField,
+  removeInstField,
+  openSetupPanel,
+  validateSimInstFields,
+  setupContinue,
+  dragRowStart,
+  dragRowOver,
+  dragRowLeave,
+  dragRowEnd,
+  dragRowDrop,
   pickType,
   pickCategory,
   nextSimStep,

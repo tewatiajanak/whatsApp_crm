@@ -27,7 +27,6 @@ import {
   Film,
   List,
   Calendar as CalendarIcon,
-  CheckSquare,
   ListTodo,
   Activity,
   Copy,
@@ -51,6 +50,10 @@ import {
   Flag,
   ShieldCheck,
   IndianRupee,
+  KanbanSquare,
+  Network,
+  LayoutTemplate,
+  Palette,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -59,6 +62,7 @@ import { useBookmarks } from "@/lib/bookmarks";
 const modules = [
   { title: "Event Manager", slug: "events", icon: CalendarRange },
   { title: "CRM", slug: "whatsapp", icon: MessageSquare },
+  { title: "Project Management", slug: "projects", icon: KanbanSquare },
   { title: "Website Builder", slug: "website", icon: Globe2 },
   { title: "Front Office", slug: "front-office", icon: Building2 },
   { title: "Reports & Analytics", slug: "reports", icon: BarChart3 },
@@ -94,6 +98,34 @@ const CONFIGURATION_SUBSLUGS = new Set([
   "backup-export",
 ]);
 
+// Website Builder submenu. Inside a website (/modules/website/s/<id>/…) it lists that website's screens.
+function websiteSubmenu(pathname: string) {
+  const siteId = pathname.match(/^\/modules\/website\/s\/([^/]+)/)?.[1];
+  const home = [{ title: "Home", path: "/", icon: Home, exact: true }];
+  if (!siteId) {
+    return [
+      ...home,
+      { title: "Websites", path: "/modules/website", icon: Globe2, exact: true },
+      { title: "Website Templates", path: "/modules/website/templates", icon: Palette },
+      { title: "Landing Pages", path: "/modules/website/landing", icon: LayoutTemplate },
+      { title: "Setup", path: "/modules/website/setup", icon: SlidersHorizontal },
+    ];
+  }
+  const base = `/modules/website/s/${siteId}`;
+  return [
+    ...home,
+    { title: "All Websites", path: "/modules/website", icon: Globe2, exact: true },
+    { title: "Pages", path: `${base}/pages`, icon: FileText },
+    { title: "Designer", path: `${base}/designer`, icon: Palette },
+    { title: "Menus", path: `${base}/menus`, icon: List },
+    { title: "Content", path: `${base}/content`, icon: Layers },
+    { title: "Form Inbox", path: `${base}/inbox`, icon: ScrollText },
+    { title: "Apps", path: `${base}/apps`, icon: Sparkles },
+    { title: "Data & APIs", path: `${base}/data`, icon: Webhook },
+    { title: "Settings", path: `${base}/settings`, icon: Settings },
+  ];
+}
+
 const eventsSubmenu = [
   { title: "Overview", path: "/modules/events", icon: LayoutDashboard, exact: true },
   { title: "Events", path: "/modules/events/all", icon: List },
@@ -106,6 +138,21 @@ const eventsSubmenu = [
   { title: "Attendance", path: "/modules/events/attendance", icon: ClipboardCheck },
   { title: "Activity Log", path: "/modules/events/activity", icon: Activity },
   { title: "Setup", path: "/modules/events/setup", icon: SlidersHorizontal, prefix: true },
+];
+
+// Project Management submenu. `module` is the right that shows the item.
+const projectsSubmenu = [
+  { title: "Dashboard", path: "/modules/projects/dashboard", icon: LayoutDashboard, module: "pm_dashboard" },
+  { title: "Projects", path: "/modules/projects/list", icon: Layers, module: "pm_projects", also: "/modules/projects/p", alsoExact: "/modules/projects/new" },
+  // one entry for my tasks, team tasks, daily plan and team calendar (tabs on the page); it opens the first tab the user may see
+  { title: "Planner", path: "/modules/projects/my-work", icon: ListTodo, tabs: [["pm_my_tasks", "/modules/projects/my-work"], ["pm_tasks", "/modules/projects/my-work"], ["pm_daily_plan", "/modules/projects/daily-plan"], ["pm_team_calendar", "/modules/projects/team-calendar"]], alsoPaths: ["/modules/projects/tasks", "/modules/projects/daily-plan", "/modules/projects/team-calendar"] },
+  { title: "Meetings & Trainings", path: "/modules/projects/meetings", icon: Users, module: "pm_meetings" },
+  { title: "Tickets", path: "/modules/projects/tickets", icon: Bell, module: "pm_tickets" },
+  { title: "Clients", path: "/modules/projects/clients", icon: Building2, module: "pm_clients" },
+  { title: "Team Hierarchy", path: "/modules/projects/team", icon: Network, module: "pm_team" },
+  { title: "Reports", path: "/modules/projects/reports", icon: BarChart3, module: "pm_reports" },
+  { title: "Message Log", path: "/modules/projects/messages", icon: ScrollText, module: "pm_notification_rules" },
+  { title: "Setup", path: "/modules/projects/setup", icon: SlidersHorizontal, module: "pm_setup", prefix: true, also: "/modules/projects/products" },
 ];
 
 // CRM / WhatsApp Manager submenu (was the standalone CRM Layout sidebar).
@@ -129,12 +176,19 @@ const crmSubmenu = [
       { title: "Leads", path: "/crm/leads", icon: Flag, module: "leads" },
       { title: "Follow-ups", path: "/crm/followups", icon: Bell, module: "followups" },
       { title: "Conversion", path: "/crm/conversion", icon: TrendingUp, module: "conversion" },
+      { title: "Applications", path: "/crm/applications", icon: ClipboardCheck, module: "leads" },
+      { title: "Targets", path: "/crm/targets", icon: BarChart3, module: "leads" },
+      { title: "Report Builder", path: "/crm/reports", icon: Filter, module: "leads" },
+      { title: "Approvals", path: "/crm/approvals", icon: UserCheck, module: "leads" },
+      { title: "Partners", path: "/crm/partners", icon: Network, module: "leads" },
       { title: "Contacts", path: "/crm/contacts", icon: Users, module: "contacts" },
     ],
   },
   {
     label: "Administration",
     items: [
+      { title: "Automation", path: "/crm/automation", icon: Zap, module: "setup" },
+      { title: "CRM Settings", path: "/crm/settings", icon: Settings, module: "setup" },
       { title: "Setup", path: "/crm/setup", icon: SlidersHorizontal, module: "setup" },
       { title: "Audit Logs", path: "/crm/audit", icon: ShieldCheck, module: "reports" },
     ],
@@ -182,7 +236,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const pathname = location.pathname;
-  const { user, logout, can } = useAuth() as any;
+  const { user, logout, can, hasPm } = useAuth() as any;
   const { bookmarks } = useBookmarks();
   const [utilitiesOpen, setUtilitiesOpen] = useState(false);
 
@@ -251,6 +305,65 @@ export function AppSidebar() {
               );
             })}
           </div>
+        ) : pathname === "/modules/projects" || pathname.startsWith("/modules/projects/") ? (
+          <div className="nav-section px-2 py-1">
+            {!isCollapsed && (
+              <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
+                Project Management
+              </div>
+            )}
+            <div className="space-y-1">
+              <Link
+                to="/"
+                onClick={handleLinkClick}
+                title="Home"
+                className={`nav-link text-decoration-none flex items-center ${
+                  isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                } text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]`}
+              >
+                <Home className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>Home</span>}
+              </Link>
+              {projectsSubmenu
+                .map((s: any) => {
+                  if (!s.tabs) return !can || can(s.module, "view") ? s : null;
+                  const first = s.tabs.find(([m]: [string, string]) => !can || can(m, "view"));
+                  return first ? { ...s, path: first[1] } : null;
+                })
+                .filter(Boolean)
+                .map((s: any) => {
+                const active = pathname === s.path || (s.alsoPaths || []).includes(pathname) || (!!s.prefix && pathname.startsWith(`${s.path}/`)) || (!!s.also && pathname.startsWith(`${s.also}/`)) || pathname === s.alsoExact;
+                const Icon = s.icon;
+                return (
+                  <Link
+                    key={s.path}
+                    to={s.path}
+                    onClick={handleLinkClick}
+                    title={s.title}
+                    className={`nav-link text-decoration-none flex items-center ${
+                      isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                    } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>{s.title}</span>}
+                  </Link>
+                );
+              })}
+              {/* projects pinned with the star on the project page */}
+              {!isCollapsed && bookmarks.filter((b) => b.url.startsWith("/modules/projects/p/")).map((b) => (
+                <Link
+                  key={b.url}
+                  to={b.url}
+                  onClick={handleLinkClick}
+                  title={b.title}
+                  className={`nav-link text-decoration-none flex items-center gap-3 px-3 py-1.5 rounded-lg text-[13px] ${pathname === b.url ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+                >
+                  <Bookmark className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{b.title}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
         ) : pathname === "/modules/front-office" || pathname.startsWith("/modules/front-office/") ? (
           <div className="nav-section px-2 py-1">
             {!isCollapsed && (
@@ -272,6 +385,34 @@ export function AppSidebar() {
               </Link>
               {frontOfficeSubmenu.map((s) => {
                 const active = pathname === s.path || (!!s.prefix && pathname.startsWith(`${s.path}/`));
+                const Icon = s.icon;
+                return (
+                  <Link
+                    key={s.path}
+                    to={s.path}
+                    onClick={handleLinkClick}
+                    title={s.title}
+                    className={`nav-link text-decoration-none flex items-center ${
+                      isCollapsed ? "justify-center p-2.5 w-[44px] h-[44px] mx-auto rounded-lg" : "gap-3 px-3 py-2 rounded-lg text-[14px]"
+                    } ${active ? "active bg-[var(--sidebar-primary)] text-white font-medium shadow-xs" : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)]"}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>{s.title}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ) : pathname.startsWith("/modules/website") ? (
+          <div className="nav-section px-2 py-1">
+            {!isCollapsed && (
+              <div className="nav-label text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--sidebar-muted)] px-2 py-1.5">
+                Website Builder
+              </div>
+            )}
+            <div className="space-y-1">
+              {websiteSubmenu(pathname).map((s) => {
+                const active = s.exact ? pathname === s.path : pathname === s.path || pathname.startsWith(`${s.path}/`);
                 const Icon = s.icon;
                 return (
                   <Link
@@ -518,6 +659,8 @@ export function AppSidebar() {
               )}
               <div className="space-y-1">
                 {modules.map((m) => {
+                  // listed only for people with a Project Management right
+                  if (m.slug === "projects" && !hasPm) return null;
                   if (m.slug === "utilities") {
                     const isUtilitiesActive = pathname.startsWith("/modules/utilities");
                     const Icon = m.icon;

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken, JwtPayload } from "../utils/jwt";
 import { ApiError } from "../utils/http";
-import { User, UserType, IPermission, effectivePerms } from "../models/User";
+import { User, UserType, IPermission, PermAction, Visibility, effectivePerms } from "../models/User";
 
 // augment Express Request
 declare global {
@@ -11,6 +11,20 @@ declare global {
       auth?: JwtPayload;
       perms?: IPermission[];
       tenantId?: string;
+      /** whose Project Management data this user sees (from the role) */
+      visibility?: Visibility;
+      /** whose leads this user sees in the CRM (from the role) */
+      leadVisibility?: Visibility;
+      /** lead phone numbers and emails are hidden from this user */
+      maskContacts?: boolean;
+      /** branches this user is limited to (empty = all) */
+      leadBranches?: string[];
+      /** lead fields hidden from / locked for this user's role */
+      leadFieldRules?: { hidden: string[]; readOnly: string[] };
+      /** set when the signed-in user is a client's user, not our own team */
+      isClientUser?: boolean;
+      /** client portal: the client this user belongs to */
+      clientId?: string;
     }
   }
 }
@@ -32,6 +46,14 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
     if (!user || user.status !== "Active") throw new ApiError(401, "User inactive or not found");
     // role → the user's own exceptions → capped by the user type
     req.perms = effectivePerms(user.userType?.perms, user.permOverrides, user.category?.perms);
+    req.visibility = user.userType?.dataVisibility || "own";
+    // roles saved before this setting existed keep seeing every lead
+    req.leadVisibility = user.userType?.leadVisibility || "all";
+    req.maskContacts = !!user.userType?.maskContacts;
+    req.leadBranches = (user.crmBranches || []).filter(Boolean);
+    req.leadFieldRules = { hidden: user.userType?.leadFieldRules?.hidden || [], readOnly: user.userType?.leadFieldRules?.readOnly || [] };
+    req.isClientUser = user.category?.kind === "client" || !!user.pmClient;
+    req.clientId = user.pmClient ? String(user.pmClient) : undefined;
 
     next();
   } catch (e) {
@@ -40,7 +62,7 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
 };
 
 // permission guard factory: require(module, action)
-export const require_ = (module: string, action: "view" | "create" | "edit" | "del") => {
+export const require_ = (module: string, action: PermAction) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     const p = (req.perms || []).find((x) => x.module === module);
     if (!p || !p[action]) {

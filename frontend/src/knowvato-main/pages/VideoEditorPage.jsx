@@ -1675,6 +1675,7 @@ export default function VideoEditor() {
 
         const resp = await fetch("/api/media/process", {
           method: "POST",
+          headers: { Authorization: `Bearer ${localStorage.getItem("wacrm_token") || ""}` },
           body: form,
         });
         clearInterval(progressTimer);
@@ -2058,6 +2059,7 @@ export default function VideoEditor() {
                   const timeoutId = setTimeout(() => controller.abort(), 180000);
                   const resp = await fetch("/api/media/convert", {
                     method: "POST",
+                    headers: { Authorization: `Bearer ${localStorage.getItem("wacrm_token") || ""}` },
                     body: form,
                     signal: controller.signal
                   });

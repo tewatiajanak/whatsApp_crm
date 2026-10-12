@@ -27,14 +27,122 @@ export const leadsApi = {
   update: (id, body) => http.patch(`/leads/${id}`, body),
   remove: (id) => http.del(`/leads/${id}`),
   convert: (body) => http.post("/leads/convert", body),
-  setStatus: (id, statusId, subStatusId) => http.post(`/leads/${id}/status`, { statusId, subStatusId }),
+  setStatus: (id, statusId, subStatusId, lostReason) => http.post(`/leads/${id}/status`, { statusId, subStatusId, lostReason }),
   addNote: (id, text) => http.post(`/leads/${id}/notes`, { text }),
+  logCall: (id, body) => http.post(`/leads/${id}/calls`, body),
+  timeline: (id) => http.get(`/leads/${id}/timeline`),
+  followUps: (id) => http.get(`/leads/${id}/followups`),
+  // filters, pipeline, analytics
+  meta: () => http.get("/leads/meta"),
+  viewCounts: () => http.get("/leads/view-counts"),
+  board: (params) => http.get("/leads/board" + qs(params)),
+  analytics: (params) => http.get("/leads/analytics" + qs(params)),
+  checkDuplicate: (phone, exclude) => http.get("/leads/check-duplicate" + qs({ phone, exclude })),
+  // bulk tools
+  bulk: (body) => http.post("/leads/bulk", body),
+  importRows: (body) => http.post("/leads/import", body),
+  exportCsv: (params) => http.blob("/leads/export" + qs(params)),
+  duplicates: () => http.get("/leads/duplicates"),
+  merge: (primaryId, duplicateIds) => http.post("/leads/merge", { primaryId, duplicateIds }),
   // multi-service tracks
   addService: (id, serviceId, owner) => http.post(`/leads/${id}/services`, { serviceId, owner }),
   setServiceStatus: (id, serviceId, statusId, subStatusId) => http.post(`/leads/${id}/services/status`, { serviceId, statusId, subStatusId }),
   removeService: (id, serviceId) => http.del(`/leads/${id}/services/${serviceId}`),
   addFollowUp: (id, body) => http.post(`/leads/${id}/followups`, body),
   getServiceStatuses: (id, serviceId) => http.get(`/leads/${id}/service/${serviceId}/statuses`),
+};
+
+/* ---- Lead CRM extras: settings, automation, documents, fees, calling, targets, capture keys, applications ---- */
+export const crmApi = {
+  settings: () => http.get("/crm/settings"),
+  saveSettings: (b) => http.put("/crm/settings", b),
+  testSms: (b) => http.post("/crm/settings/test-sms", b),
+  sendReport: () => http.post("/crm/settings/send-report", {}),
+  automationMeta: () => http.get("/crm/automation/meta"),
+  automationRuns: (params) => http.get("/crm/automation/runs" + qs(params)),
+  documents: (leadId) => http.get(`/leads/${leadId}/documents`),
+  uploadDocument: (leadId, file, category) => {
+    const fd = new FormData();
+    fd.append("category", category || "");
+    fd.append("file", file);
+    return http.postForm(`/leads/${leadId}/documents`, fd);
+  },
+  documentFile: (leadId, docId) => http.blob(`/leads/${leadId}/documents/${docId}/file`),
+  removeDocument: (leadId, docId) => http.del(`/leads/${leadId}/documents/${docId}`),
+  fees: (leadId) => http.get(`/leads/${leadId}/fees`),
+  addFee: (leadId, b) => http.post(`/leads/${leadId}/fees`, b),
+  payFee: (feeId, b) => http.post(`/lead-fees/${feeId}/pay`, b),
+  cancelFee: (feeId) => http.post(`/lead-fees/${feeId}/cancel`, {}),
+  call: (leadId) => http.post(`/leads/${leadId}/call`, {}),
+  targets: (month) => http.get("/crm/targets" + qs({ month })),
+  saveTargets: (month, rows) => http.put("/crm/targets", { month, rows }),
+  apiKeys: () => http.get("/crm/api-keys"),
+  createApiKey: (b) => http.post("/crm/api-keys", b),
+  updateApiKey: (id, b) => http.patch(`/crm/api-keys/${id}`, b),
+  removeApiKey: (id) => http.del(`/crm/api-keys/${id}`),
+  applications: (params) => http.get("/crm/applications" + qs(params)),
+  setApplicationStage: (id, stage, note) => http.patch(`/crm/applications/${id}`, { stage, note }),
+  makeOffer: (id, b) => http.post(`/crm/applications/${id}/offer`, b),
+  customFields: () => http.get("/custom-fields?module=crm&perPage=200"),
+  createCustomField: (b) => http.post("/custom-fields", { ...b, module: "crm" }),
+  updateCustomField: (id, b) => http.patch(`/custom-fields/${id}`, b),
+  removeCustomField: (id) => http.del(`/custom-fields/${id}`),
+  testInbox: () => http.post("/crm/settings/test-inbox", {}),
+  googleConnect: () => http.get("/crm/google/connect"),
+  googleDisconnect: () => http.post("/crm/google/disconnect", {}),
+  setBranches: (userId, branches) => http.put(`/crm/availability/${userId}`, { branches }),
+  applicantCode: (phone) => http.post("/public/applicant/code", { phone }),
+  applicantVerify: (phone, code) => http.post("/public/applicant/verify", { phone, code }),
+  // recycle bin
+  trash: () => http.get("/crm/trash"),
+  restoreLead: (id) => http.post(`/crm/trash/${id}/restore`, {}),
+  purgeLead: (id) => http.del(`/crm/trash/${id}`),
+  // masters
+  master: (kind) => http.get(`/crm/${kind}`),
+  createMaster: (kind, b) => http.post(`/crm/${kind}`, b),
+  updateMaster: (kind, id, b) => http.patch(`/crm/${kind}/${id}`, b),
+  removeMaster: (kind, id) => http.del(`/crm/${kind}/${id}`),
+  courseSeats: () => http.get("/crm/course-seats"),
+  // spend per source, approvals
+  spend: (month) => http.get("/crm/spend" + qs({ month })),
+  saveSpend: (month, rows) => http.put("/crm/spend", { month, rows }),
+  approvals: (status) => http.get("/crm/approvals" + qs({ status })),
+  decideApproval: (id, approve, note) => http.post(`/crm/approvals/${id}/decide`, { approve, note }),
+  // fees: part payment, refund, plan, concession
+  refundFee: (feeId, b) => http.post(`/lead-fees/${feeId}/refund`, b),
+  feePlan: (leadId, b) => http.post(`/leads/${leadId}/fee-plan`, b),
+  requestDiscount: (feeId, b) => http.post(`/lead-fees/${feeId}/discount-request`, b),
+  // messaging, chat, insight
+  bulkMessage: (b) => http.post("/leads/bulk-message", b),
+  conversation: (leadId) => http.get(`/leads/${leadId}/conversation`),
+  webActivity: (leadId) => http.get(`/leads/${leadId}/web-activity`),
+  brief: (leadId, ai) => http.get(`/leads/${leadId}/brief` + qs({ ai: ai ? 1 : "" })),
+  leadApplications: (leadId) => http.get(`/leads/${leadId}/applications`),
+  // reports, calendar, availability, push
+  report: (params) => http.get("/leads/report" + qs(params)),
+  reportCsv: (params) => http.blob("/leads/report" + qs({ ...params, format: "csv" })),
+  calendar: (params) => http.get("/followups/calendar" + qs(params)),
+  myLinks: () => http.get("/crm/my-links"),
+  setAway: (away) => http.post("/crm/me/away", { away }),
+  availability: () => http.get("/crm/availability"),
+  setAvailability: (userId, away) => http.put(`/crm/availability/${userId}`, { away }),
+  pushKey: () => http.get("/crm/push/key"),
+  pushSubscribe: (subscription) => http.post("/crm/push/subscribe", { subscription }),
+  pushUnsubscribe: (endpoint) => http.post("/crm/push/unsubscribe", { endpoint }),
+  // pages opened from a link, without a login
+  publicPartner: (token) => http.get(`/public/partner/${token}`),
+  publicBooking: (token) => http.get(`/public/book/${token}`),
+  book: (token, b) => http.post(`/public/book/${token}`, b),
+  uploadApplicantDocument: (token, file, category) => {
+    const fd = new FormData();
+    fd.append("category", category || "");
+    fd.append("file", file);
+    return http.postForm(`/public/application/${token}/documents`, fd);
+  },
+  publicFee: (token) => http.get(`/public/pay/${token}`),
+  startFeePayment: (token) => http.post(`/public/pay/${token}/start`, {}),
+  publicApplication: (token) => http.get(`/public/application/${token}`),
+  answerOffer: (token, response, signedBy) => http.post(`/public/application/${token}/offer`, { response, signedBy }),
 };
 
 export const servicesApi = {
@@ -45,11 +153,12 @@ export const servicesApi = {
 };
 
 export const followUpsApi = {
-  buckets: (owner) => http.get("/followups/buckets" + qs({ owner })),
+  buckets: (params) => http.get("/followups/buckets" + qs(typeof params === "string" ? { owner: params } : params)),
   list: (params) => http.get("/followups" + qs(params)),
   create: (body) => http.post("/followups", body),
-  complete: (id, outcome) => http.post(`/followups/${id}/complete`, { outcome }),
-  reschedule: (id, due) => http.post(`/followups/${id}/reschedule`, { due }),
+  complete: (id, body) => http.post(`/followups/${id}/complete`, typeof body === "string" ? { outcome: body } : body || {}),
+  reschedule: (id, body) => http.post(`/followups/${id}/reschedule`, typeof body === "string" ? { due: body } : body),
+  remove: (id) => http.del(`/followups/${id}`),
   getWorkload: (counsellor) => http.get("/followups/workload" + qs({ counsellor })),
 };
 
@@ -93,6 +202,197 @@ export const usersApi = {
   removeCategory: (id) => http.del(`/user-categories/${id}`),
   passwordPolicy: () => http.get("/password-policy"),
   savePasswordPolicy: (kind, b) => http.put(`/password-policy/${kind}`, b),
+};
+
+/* ---- Project Management ---- */
+export const pmApi = {
+  meta: () => http.get("/pm/meta"),
+  departments: () => http.get("/pm/departments"),
+  employees: (activeOnly) => http.get(`/pm/employees${activeOnly ? "?active=1" : ""}`),
+  hierarchy: () => http.get("/pm/hierarchy"),
+  uploadPhoto: (id, file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return http.postForm(`/pm/employees/${id}/photo`, fd);
+  },
+  removePhoto: (id) => http.del(`/pm/employees/${id}/photo`),
+
+  // setup: masters, holidays, settings
+  masterTypes: () => http.get("/pm/master-types"),
+  masters: () => http.get("/pm/masters"),
+  masterList: (type) => http.get(`/pm/masters/${type}`),
+  createMaster: (type, b) => http.post(`/pm/masters/${type}`, b),
+  updateMaster: (type, id, b) => http.patch(`/pm/masters/${type}/${id}`, b),
+  removeMaster: (type, id) => http.del(`/pm/masters/${type}/${id}`),
+  orderMasters: (type, ids) => http.put(`/pm/masters/${type}/order`, { ids }),
+  holidays: (year) => http.get(`/pm/holidays${year ? `?year=${year}` : ""}`),
+  createHoliday: (b) => http.post("/pm/holidays", b),
+  importHolidays: (rows) => http.post("/pm/holidays/import", { rows }),
+  updateHoliday: (id, b) => http.patch(`/pm/holidays/${id}`, b),
+  removeHoliday: (id) => http.del(`/pm/holidays/${id}`),
+  settings: () => http.get("/pm/settings"),
+  saveSettings: (b) => http.put("/pm/settings", b),
+
+  // product templates
+  products: () => http.get("/pm/products"),
+  createProduct: (b) => http.post("/pm/products", b),
+  updateProduct: (id, b) => http.patch(`/pm/products/${id}`, b),
+  removeProduct: (id) => http.del(`/pm/products/${id}`),
+  copyProduct: (id, b) => http.post(`/pm/products/${id}/copy`, b),
+  productFull: (id) => http.get(`/pm/products/${id}/full`),
+  createModule: (productId, b) => http.post(`/pm/products/${productId}/modules`, b),
+  updateModule: (id, b) => http.patch(`/pm/modules/${id}`, b),
+  removeModule: (id) => http.del(`/pm/modules/${id}`),
+  copyModule: (id, b) => http.post(`/pm/modules/${id}/copy`, b || {}),
+  orderModules: (productId, ids) => http.put(`/pm/products/${productId}/modules/order`, { ids }),
+  createTaskTemplate: (productId, b) => http.post(`/pm/products/${productId}/tasks`, b),
+  updateTaskTemplate: (id, b) => http.patch(`/pm/task-templates/${id}`, b),
+  removeTaskTemplate: (id) => http.del(`/pm/task-templates/${id}`),
+  orderTaskTemplates: (moduleId, ids) => http.put(`/pm/modules/${moduleId}/tasks/order`, { ids }),
+  importTaskTemplates: (productId, rows, dryRun = false) => http.post(`/pm/products/${productId}/import`, { rows, dryRun }),
+
+  // communication templates + auto-message rules
+  templateMeta: () => http.get("/pm/template-meta"),
+  templates: () => http.get("/pm/templates"),
+  createTemplate: (b) => http.post("/pm/templates", b),
+  updateTemplate: (id, b) => http.patch(`/pm/templates/${id}`, b),
+  removeTemplate: (id) => http.del(`/pm/templates/${id}`),
+  previewTemplate: (b) => http.post("/pm/templates/preview", b),
+  testTemplate: (id, b) => http.post(`/pm/templates/${id}/test`, b),
+  submitTemplate: (id) => http.post(`/pm/templates/${id}/submit`),
+  templateWaStatus: () => http.post("/pm/templates/wa-status"),
+  uploadWaMedia: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return http.postForm("/pm/templates/wa-media", fd);
+  },
+
+  // projects
+  projects: (query = "") => http.get(`/pm/projects?perPage=200${query ? `&${query}` : ""}`),
+  project: (id) => http.get(`/pm/projects/${id}`),
+  previewProject: (b) => http.post("/pm/projects/preview", b),
+  createProject: (b) => http.post("/pm/projects", b),
+  updateProject: (id, b) => http.patch(`/pm/projects/${id}`, b),
+  removeProject: (id) => http.del(`/pm/projects/${id}`),
+  addProjectModule: (id, b) => http.post(`/pm/projects/${id}/modules`, b),
+  saveProjectAsTemplate: (id, b) => http.post(`/pm/projects/${id}/save-as-template`, b),
+  reassignProject: (id, b) => http.post(`/pm/projects/${id}/reassign`, b),
+  reassignModule: (id, b) => http.post(`/pm/project-modules/${id}/reassign`, b),
+  projectTeam: (id) => http.get(`/pm/projects/${id}/team`),
+  projectFiles: (id) => http.get(`/pm/projects/${id}/files`),
+  projectActivity: (id) => http.get(`/pm/projects/${id}/activity`),
+  transferWork: (b) => http.post("/pm/transfer", b),
+
+  // tasks
+  tasks: (query = "") => http.get(`/pm/tasks?${query}`),
+  task: (id) => http.get(`/pm/tasks/${id}`),
+  createTask: (b) => http.post("/pm/tasks", b),
+  updateTask: (id, b) => http.patch(`/pm/tasks/${id}`, b),
+  removeTask: (id) => http.del(`/pm/tasks/${id}`),
+  setTaskStatus: (id, status) => http.post(`/pm/tasks/${id}/status`, { status }),
+  tickChecklist: (id, itemId, done) => http.post(`/pm/tasks/${id}/checklist/${itemId}`, { done }),
+  reassignTask: (id, b) => http.post(`/pm/tasks/${id}/reassign`, b),
+  bulkReassign: (b) => http.post("/pm/tasks/bulk-reassign", b),
+  addComment: (id, b) => http.post(`/pm/tasks/${id}/comments`, b),
+  removeComment: (id) => http.del(`/pm/comments/${id}`),
+  uploadAttachment: (id, file, opts = {}) => {
+    const fd = new FormData();
+    fd.append("file", file, file.name || "pasted.png");
+    if (opts.pasted) fd.append("pasted", "1");
+    if (opts.clientVisible) fd.append("clientVisible", "1");
+    return http.postForm(`/pm/tasks/${id}/attachments`, fd);
+  },
+  attachmentBlob: (taskId, attId, download) => http.blob(`/pm/tasks/${taskId}/attachments/${attId}${download ? "?download=1" : ""}`),
+  updateAttachment: (taskId, attId, b) => http.patch(`/pm/tasks/${taskId}/attachments/${attId}`, b),
+  removeAttachment: (taskId, attId) => http.del(`/pm/tasks/${taskId}/attachments/${attId}`),
+  myWork: () => http.get("/pm/my-work"),
+
+  // daily plan + team calendar
+  plans: (from, to, employee) => http.get(`/pm/plans?from=${from}&to=${to}${employee ? `&employee=${employee}` : ""}`),
+  savePlan: (b) => http.put("/pm/plans", b),
+  updatePlanEntry: (planId, entryId, b) => http.patch(`/pm/plans/${planId}/entries/${entryId}`, b),
+  copyPlan: (from, to) => http.post("/pm/plans/copy", { from, to }),
+  removePlan: (id) => http.del(`/pm/plans/${id}`),
+  teamCalendar: (query) => http.get(`/pm/team-calendar?${query}`),
+
+  // sending settings, message log, notifications
+  mailSettings: () => http.get("/pm/mail-settings"),
+  saveMailSettings: (b) => http.put("/pm/mail-settings", b),
+  testEmail: (to) => http.post("/pm/mail-settings/test-email", { to }),
+  testWhatsapp: (to) => http.post("/pm/mail-settings/test-whatsapp", { to }),
+  messages: (query = "") => http.get(`/pm/messages?${query}`),
+  resendMessage: (id) => http.post(`/pm/messages/${id}/resend`, {}),
+  notifications: (query = "") => http.get(`/pm/notifications?${query}`),
+  readNotification: (id) => http.post(`/pm/notifications/${id}/read`, {}),
+  readAllNotifications: () => http.post("/pm/notifications/read-all", {}),
+  notifyPrefs: () => http.get("/pm/notify-prefs"),
+  saveNotifyPrefs: (b) => http.put("/pm/notify-prefs", b),
+
+  // meetings & trainings
+  meetings: (query = "") => http.get(`/pm/meetings?${query}`),
+  meeting: (id) => http.get(`/pm/meetings/${id}`),
+  createMeeting: (b) => http.post("/pm/meetings", b),
+  updateMeeting: (id, b) => http.patch(`/pm/meetings/${id}`, b),
+  cancelMeeting: (id) => http.post(`/pm/meetings/${id}/cancel`, {}),
+  respondMeeting: (id, response) => http.post(`/pm/meetings/${id}/respond`, { response }),
+  saveMinutes: (id, b) => http.put(`/pm/meetings/${id}/minutes`, b),
+  actionToTask: (id, actionId) => http.post(`/pm/meetings/${id}/actions/${actionId}/task`, {}),
+  trainingReport: (query = "") => http.get(`/pm/meetings-report/training?${query}`),
+  // links opened without a login
+  publicGet: (path) => http.get(`/pm-public/${path}`),
+  publicPost: (path, b) => http.post(`/pm-public/${path}`, b),
+
+  // tickets (internal)
+  tickets: (query = "") => http.get(`/pm/tickets?${query}`),
+  ticket: (id) => http.get(`/pm/tickets/${id}`),
+  createTicket: (b) => http.post("/pm/tickets", b),
+  updateTicket: (id, b) => http.patch(`/pm/tickets/${id}`, b),
+  assignTicket: (id, b) => http.post(`/pm/tickets/${id}/assign`, b),
+  replyTicket: (id, b) => http.post(`/pm/tickets/${id}/replies`, b),
+  ticketToTask: (id, b) => http.post(`/pm/tickets/${id}/task`, b || {}),
+  mergeTicket: (id, into) => http.post(`/pm/tickets/${id}/merge`, { into }),
+  ticketFile: (id, fileId) => http.blob(`/pm/tickets/${id}/files/${fileId}`),
+
+  // client portal users, verification, sign-off
+  portalUsers: () => http.get("/pm/portal-users"),
+  createPortalUser: (clientId, contactId) => http.post(`/pm/clients/${clientId}/contacts/${contactId}/portal-user`, {}),
+  updatePortalUser: (id, b) => http.patch(`/pm/portal-users/${id}`, b),
+  taskVerifications: (taskId) => http.get(`/pm/tasks/${taskId}/verifications`),
+  resendVerification: (taskId) => http.post(`/pm/tasks/${taskId}/verifications`, {}),
+  signoffs: (projectId) => http.get(`/pm/projects/${projectId}/signoffs`),
+  requestSignoff: (projectId, module) => http.post(`/pm/projects/${projectId}/signoffs`, { module }),
+
+  // dashboards, reports, power features
+  dashboard: (query = "") => http.get(`/pm/dashboard?${query}`),
+  projectOverview: (id) => http.get(`/pm/projects/${id}/overview`),
+  performance: (id) => http.get(`/pm/people/${id}/performance`),
+  personLoad: (id, date) => http.get(`/pm/people/${id}/load${date ? `?date=${date}` : ""}`),
+  reports: () => http.get("/pm/reports"),
+  report: (key, query = "") => http.get(`/pm/reports/${key}?${query}`),
+  reportFile: (key, query = "") => http.blob(`/pm/reports/${key}/export?${query}`),
+  views: (screen) => http.get(`/pm/views?screen=${encodeURIComponent(screen)}`),
+  saveView: (b) => http.post("/pm/views", b),
+  removeView: (id) => http.del(`/pm/views/${id}`),
+  search: (q) => http.get(`/pm/search?q=${encodeURIComponent(q)}`),
+  bulkTasks: (b) => http.post("/pm/tasks/bulk", b),
+  labels: () => http.get("/pm/labels"),
+  watchTask: (id, on) => http.post(`/pm/tasks/${id}/watch`, { on }),
+  checklistToTask: (id, itemId) => http.post(`/pm/tasks/${id}/checklist/${itemId}/to-task`, {}),
+  taskTime: (id) => http.get(`/pm/tasks/${id}/time`),
+  logTime: (id, b) => http.post(`/pm/tasks/${id}/time`, b),
+  removeTime: (id) => http.del(`/pm/time/${id}`),
+  timesheet: (query) => http.get(`/pm/timesheet?${query}`),
+  activity: (query = "") => http.get(`/pm/activity?${query}`),
+  recurring: () => http.get("/pm/recurring"),
+  createRecurring: (b) => http.post("/pm/recurring", b),
+  updateRecurring: (id, b) => http.patch(`/pm/recurring/${id}`, b),
+  removeRecurring: (id) => http.del(`/pm/recurring/${id}`),
+
+  // clients
+  clients: (query = "") => http.get(`/pm/clients?perPage=200${query ? `&${query}` : ""}`),
+  createClient: (b) => http.post("/pm/clients", b),
+  updateClient: (id, b) => http.patch(`/pm/clients/${id}`, b),
+  removeClient: (id) => http.del(`/pm/clients/${id}`),
 };
 
 export const integrationsApi = {
@@ -155,10 +455,18 @@ export const campaignsApi = {
   pause: (id, statusVal) => http.post(`/campaigns/${id}/pause`, { status: statusVal }),
 };
 
+// Campaign tags on the page's own address (?utm_source=…) travel with the enquiry.
+const utmFromUrl = () => {
+  if (typeof window === "undefined") return {};
+  const q = new URLSearchParams(window.location.search);
+  return Object.fromEntries(["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "ref"].filter((k) => q.get(k)).map((k) => [k, q.get(k)]));
+};
+
 export const publicApi = {
   getEnquiryForm: (formId) => http.get(`/public/enquiry-form/${formId}`),
-  submitEnquiryForm: (formId, payload) => http.post(`/public/enquiry-form/${formId}`, payload),
+  submitEnquiryForm: (formId, payload) => http.post(`/public/enquiry-form/${formId}`, { ...utmFromUrl(), ...payload }),
   getLandingPage: (pageId) => http.get(`/public/landing-page/${pageId}`),
+  submitLandingEnquiry: (pageId, payload) => http.post(`/public/landing-page/${pageId}/enquiry`, { ...utmFromUrl(), ...payload }),
 };
 
 export const messagesApi = {
@@ -175,7 +483,7 @@ export const conversationsApi = {
 };
 
 export const conversionApi = {
-  stats: () => http.get("/conversion/stats"),
+  stats: (params) => http.get("/conversion/stats" + qs(params)),
 };
 
 export const auditApi = {
@@ -194,6 +502,20 @@ export const gradesApi = {
   create: (b) => http.post("/grades", b),
   update: (id, b) => http.patch(`/grades/${id}`, b),
   remove: (id) => http.del(`/grades/${id}`),
+};
+
+export const feeHeadsApi = {
+  list: () => http.get("/fee-heads?perPage=200&sort=order"),
+  create: (b) => http.post("/fee-heads", b),
+  update: (id, b) => http.patch(`/fee-heads/${id}`, b),
+  remove: (id) => http.del(`/fee-heads/${id}`),
+};
+
+export const documentTypesApi = {
+  list: () => http.get("/document-types?perPage=200&sort=order"),
+  create: (b) => http.post("/document-types", b),
+  update: (id, b) => http.patch(`/document-types/${id}`, b),
+  remove: (id) => http.del(`/document-types/${id}`),
 };
 
 export const designationsApi = {
@@ -255,3 +577,28 @@ export const aiApi = {
   executeCommand: (payload) => http.post("/ai/execute", payload),
 };
 
+
+/* ---- Client portal: what a client's own user may see and do ---- */
+export const portalApi = {
+  home: () => http.get("/pm/portal/home"),
+  project: (id) => http.get(`/pm/portal/projects/${id}`),
+  verifications: () => http.get("/pm/portal/verifications"),
+  answerVerification: (id, b) => http.post(`/pm/portal/verifications/${id}`, b),
+  documents: () => http.get("/pm/portal/documents"),
+  file: (taskId, attId) => http.blob(`/pm/portal/files/${taskId}/${attId}`),
+  answerSignoff: (id, b) => http.post(`/pm/portal/signoffs/${id}`, b),
+  meetings: () => http.get("/pm/portal/meetings"),
+  ticketOptions: () => http.get("/pm/portal/ticket-options"),
+  tickets: () => http.get("/pm/portal/tickets"),
+  ticket: (id) => http.get(`/pm/portal/tickets/${id}`),
+  createTicket: (b) => http.post("/pm/portal/tickets", b),
+  replyTicket: (id, text) => http.post(`/pm/portal/tickets/${id}/replies`, { text }),
+  reopenTicket: (id, reason) => http.post(`/pm/portal/tickets/${id}/reopen`, { reason }),
+  rateTicket: (id, b) => http.post(`/pm/portal/tickets/${id}/rating`, b),
+  uploadTicketFile: (id, file) => {
+    const fd = new FormData();
+    fd.append("file", file, file.name || "image.png");
+    return http.postForm(`/pm/portal/tickets/${id}/files`, fd);
+  },
+  ticketFile: (id, fileId) => http.blob(`/pm/portal/tickets/${id}/files/${fileId}`),
+};

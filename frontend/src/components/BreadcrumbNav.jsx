@@ -105,6 +105,10 @@ const MODULE_PAGES = {
       "visitors/upcoming": "Upcoming Visitors",
     },
   },
+  projects: {
+    label: "Project Management",
+    pages: { "": "Planner", dashboard: "Dashboard", reports: "Reports", "people/me": "My Performance", "my-work": "Planner", list: "Projects", new: "New Project", tasks: "Planner", "daily-plan": "Planner", "team-calendar": "Planner", meetings: "Meetings & Trainings", tickets: "Tickets", clients: "Clients", team: "Team Hierarchy", templates: "Templates", messages: "Message Log", notifications: "Notifications", setup: "Setup", products: "Product Template" },
+  },
   website: { label: "Website Builder", pages: { "": "Overview" } },
   communication: {
     label: "Communication",
@@ -305,6 +309,12 @@ export default function BreadcrumbNav() {
           const sub = restSegs[1];
           if (!sub) crumbs.push({ label: "Setup" });
           else crumbs.push({ label: "Setup", to: `${base}/setup` }, { label: SLUG_LABELS[sub] || titleCase(sub) });
+        } else if (slug === "projects" && restSegs[0] === "people" && restSegs[1] !== "me") {
+          crumbs.push({ label: "Team Hierarchy", to: `${base}/team` }, { label: "Performance" });
+        } else if (slug === "projects" && restSegs[0] === "p") {
+          crumbs.push({ label: "Projects", to: `${base}/list` }, { label: "Project" });
+        } else if (slug === "projects" && restSegs[0] === "products") {
+          crumbs.push({ label: "Setup", to: `${base}/setup` }, { label: "Products", to: `${base}/setup/products` }, { label: "Template" });
         } else if (mod.pages[rest] !== undefined) {
           crumbs.push({ label: mod.pages[rest] });
         } else if (slug === "events") {

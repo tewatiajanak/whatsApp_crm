@@ -22,6 +22,7 @@ export default function Conversations() {
   const templates = useApi(() => templatesApi.list({ status: "Approved" }), []);
   const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState("");
+  const [templateMenu, setTemplateMenu] = useState(false);
   const [search, setSearch] = useState("");
   const [interactiveMode, setInteractiveMode] = useState(false);
   const [interactiveBtns, setInteractiveBtns] = useState([
@@ -325,24 +326,23 @@ export default function Conversations() {
                 <i className="bi bi-paperclip"></i>
               </button>
 
-              <div className="dropdown">
-                <button
-                  className="btn btn-outline-secondary dropdown-toggle"
-                  type="button"
-                  data-bs-toggle="dropdown"
-                  title="Send template"
-                >
+              <div style={{ position: "relative" }}>
+                <button className="btn btn-outline-secondary" type="button" title="Send template" onClick={() => setTemplateMenu((v) => !v)}>
                   <i className="bi bi-file-text"></i>
                 </button>
-                <ul className="dropdown-menu dropdown-menu-end">
-                  {(templates.data || []).map((t) => (
-                    <li key={t._id}>
-                      <button type="button" className="dropdown-item small" onClick={() => sendTemplate(t.name)}>
-                        {t.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                {templateMenu && (
+                  <>
+                    <div style={{ position: "fixed", inset: 0, zIndex: 30 }} onClick={() => setTemplateMenu(false)} />
+                    <div className="rounded-lg border bg-card shadow-lg" style={{ position: "absolute", right: 0, bottom: "calc(100% + 6px)", zIndex: 40, minWidth: 220, maxHeight: 280, overflowY: "auto", padding: 4 }}>
+                      {!(templates.data || []).length && <div className="px-2 py-2 text-xs text-muted-foreground">No approved templates.</div>}
+                      {(templates.data || []).map((t) => (
+                        <button key={t._id} type="button" className="block w-full text-left px-2 py-1.5 text-sm text-foreground rounded border-0 bg-transparent hover:bg-accent/40" onClick={() => { setTemplateMenu(false); sendTemplate(t.name); }}>
+                          {t.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               <button className="btn btn-wa wa-send-btn" type="button" disabled={!windowOpen} onClick={send}>

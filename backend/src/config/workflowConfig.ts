@@ -4,6 +4,10 @@ export const WORKFLOW_EVENTS = [
   { key: "lead.assigned", label: "Lead Assigned" },
   { key: "followup.due", label: "Follow-up Due" },
   { key: "lead.note_added", label: "Note Added" },
+  { key: "lead.sla_breached", label: "First Response Overdue" },
+  { key: "lead.won", label: "Lead Won" },
+  { key: "lead.lost", label: "Lead Lost" },
+  { key: "payment.received", label: "Payment Received" },
 ];
 
 export const CONDITION_FIELDS = [
@@ -19,6 +23,10 @@ export const CONDITION_FIELDS = [
   { key: "subStatus", label: "Sub Status", type: "ref:SubStatus" },
   { key: "tags", label: "Tags", type: "tags" },
   { key: "owner", label: "Assigned To", type: "ref:User" },
+  { key: "course", label: "Course", type: "text" },
+  { key: "grade", label: "Grade", type: "text" },
+  { key: "priority", label: "Priority", type: "text" },
+  { key: "value", label: "Value", type: "number" },
 ];
 
 export const CONDITION_OPERATORS = [
@@ -34,12 +42,15 @@ export const CONDITION_OPERATORS = [
 ];
 
 export const ACTION_TYPES = [
-  { key: "whatsapp", label: "Send WhatsApp", params: ["template"] },
-  { key: "email", label: "Send Email", params: ["template", "subject"] },
+  { key: "whatsapp", label: "Send WhatsApp", params: ["template", "message"] },
+  { key: "email", label: "Send Email", params: ["subject", "template"] },
   { key: "sms", label: "Send SMS", params: ["message"] },
+  { key: "notify", label: "Notify the owner", params: ["message", "alsoManager"] },
   { key: "followup", label: "Create Follow-up", params: ["type", "note", "daysFromNow"] },
   { key: "status", label: "Change Status", params: ["statusId", "subStatusId"] },
   { key: "assign_lead", label: "Assign Lead", params: ["userId"] },
+  { key: "tag", label: "Add Tag", params: ["tag"] },
+  { key: "priority", label: "Set Priority", params: ["priority"] },
 ];
 
 export const ASSIGNMENT_STRATEGIES = [

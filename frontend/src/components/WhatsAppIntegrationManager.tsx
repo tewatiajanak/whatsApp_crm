@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { waStore, useWaIntegrations, type Integration } from "@/lib/wa-store";
 import { waAccountsApi } from "../api";
 
+import { askConfirm } from "../utils/dialog";
 const VENDORS = ["Pinnacle", "AI Sensy", "Interakt", "Gupshup", "WATI"];
 
 const looksMaskedSecret = (value?: string) => {
@@ -231,7 +232,7 @@ export default function WhatsAppIntegrationManager({ showHeader = true, backLink
   };
 
   const onDelete = async (item: Integration & { backendId?: string }) => {
-    if (confirm(`Are you sure you want to delete integration for ${item.phoneNumber}?`)) {
+    if (await askConfirm(`Are you sure you want to delete integration for ${item.phoneNumber}?`)) {
       waStore.remove(item.id);
       if (item.backendId) {
         try {

@@ -1,0 +1,466 @@
+/* Project Management — org chart (Team Hierarchy). Lines are plain CSS borders. */
+.pm-tree ul {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin: 0;
+  padding: 20px 0 0;
+}
+.pm-tree > ul {
+  padding-top: 0;
+}
+.pm-tree li {
+  list-style: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 6px 0;
+}
+.pm-tree > ul > li {
+  padding-top: 0;
+}
+/* horizontal connector to the siblings, and the drop to this node */
+.pm-tree li::before,
+.pm-tree li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 20px;
+  border-top: 1px solid var(--border);
+}
+.pm-tree li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid var(--border);
+}
+.pm-tree li:first-child::before,
+.pm-tree li:last-child::after {
+  border: 0 none;
+}
+.pm-tree li:last-child::before {
+  border-right: 1px solid var(--border);
+  border-radius: 0 6px 0 0;
+}
+.pm-tree li:first-child::after {
+  border-radius: 6px 0 0 0;
+}
+.pm-tree li:only-child::before {
+  border-top: 0 none;
+  border-radius: 0;
+}
+.pm-tree > ul > li::before,
+.pm-tree > ul > li::after {
+  display: none;
+}
+/* the drop from a parent to its children row */
+.pm-tree ul ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 20px;
+  border-left: 1px solid var(--border);
+}
+
+.pm-node {
+  width: 168px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 10px 8px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pm-node:hover {
+  border-color: var(--primary);
+}
+.pm-node.is-hit {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.pm-node.is-dim {
+  opacity: 0.45;
+}
+.pm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted-background);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.pm-row.is-hit {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+/* A link with its own colour. The app has a global rule that paints every <a>
+   in the primary colour; this class lets a PM link say what colour it is. */
+.crm-theme a.pm-link,
+a.pm-link,
+a.pm-link:hover {
+  color: var(--pm-link-color, var(--foreground)) !important;
+  text-decoration: none !important;
+}
+
+/* Top bar: search box + add-task button (the bar is 48px tall) */
+.pm-head-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  min-width: 32px;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+.pm-head-search:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  color: var(--foreground);
+}
+@media (min-width: 768px) {
+  .pm-head-search {
+    min-width: 190px;
+    justify-content: flex-start;
+    padding: 0 6px 0 10px;
+  }
+}
+/* Bootstrap paints <kbd> black; keep the shortcut chip quiet */
+.pm-head-search kbd {
+  margin-left: auto;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--muted-background);
+  color: var(--muted-foreground);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 18px;
+  box-shadow: none;
+}
+.pm-head-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  transition: filter 0.15s;
+}
+.pm-head-add:hover {
+  filter: brightness(0.92);
+}
+
+/* Number tiles (StatTile) — colours come from the theme tokens */
+.pm-tile {
+  --tile: var(--primary);
+  --tile-bg: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pm-tile.is-link:hover {
+  border-color: color-mix(in srgb, var(--tile) 45%, var(--border));
+  box-shadow: var(--shadow-lift);
+}
+.pm-tile.is-success { --tile: var(--success); --tile-bg: var(--success-bg); }
+.pm-tile.is-danger { --tile: var(--destructive); --tile-bg: var(--destructive-bg); }
+.pm-tile.is-info { --tile: var(--info); --tile-bg: var(--info-bg); }
+.pm-tile.is-warning { --tile: var(--warning); --tile-bg: var(--warning-bg); }
+.pm-tile.is-neutral { --tile: var(--foreground); --tile-bg: var(--muted-background); }
+.pm-tile.is-zero { --tile: var(--muted-foreground); --tile-bg: var(--muted-background); }
+/* the chosen filter (My Work) */
+.pm-tile.is-active {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+}
+.pm-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  background: var(--tile-bg);
+  color: var(--tile);
+}
+.pm-tile-value {
+  display: block;
+  color: var(--foreground);
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pm-tile:not(.is-zero).is-danger .pm-tile-value,
+.pm-tile:not(.is-zero).is-warning .pm-tile-value {
+  color: var(--tile);
+}
+.pm-tile.is-zero .pm-tile-value {
+  color: var(--muted-foreground);
+}
+.pm-tile-label {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* small centred tile inside a card or a drawer: no icon, the number carries the colour */
+.pm-tile.is-compact {
+  justify-content: center;
+  padding: 10px 8px;
+  border-radius: var(--radius);
+  box-shadow: none;
+  text-align: center;
+}
+.pm-tile.is-compact .pm-tile-value {
+  font-size: 19px;
+}
+.pm-tile.is-compact:not(.is-zero) .pm-tile-value {
+  color: var(--tile);
+}
+.pm-tile.is-compact .pm-tile-label {
+  font-size: 10.5px;
+}
+
+/* Import wizard: the two choices of the first step */
+.pm-import-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 132px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--muted-foreground);
+  transition: border-color 0.15s, background 0.15s;
+}
+.pm-import-card.is-primary {
+  color: var(--primary);
+}
+.pm-import-card:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+}
+
+/* Settings: working days — seven equal chips in one row */
+.pm-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 420px;
+}
+.pm-days button {
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pm-days button:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.pm-days button.is-on {
+  border-color: var(--primary);
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 600;
+}
+
+/* Choice chips (work location, …): --chip carries the master colour */
+.pm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pm-chips button {
+  --chip: var(--primary);
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pm-chips button:hover:not(:disabled) {
+  border-color: var(--chip);
+  color: var(--chip);
+}
+.pm-chips button.is-on {
+  border-color: var(--chip);
+  background: color-mix(in srgb, var(--chip) 14%, var(--card));
+  color: var(--chip);
+  font-weight: 600;
+}
+.pm-chips.is-sm button {
+  height: 30px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+/* Segmented switch (result of the day, …) */
+.pm-seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.pm-seg button,
+.pm-seg a {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+.pm-seg button.is-on,
+.pm-seg a.is-on {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Tabs that are links (Planner: My Task · Team Task) */
+.pm-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  align-items: center;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+/* the view switch of the open tab sits at the end of the tab row */
+.pm-tabs .pm-seg {
+  flex-shrink: 0;
+  margin: 0 0 6px auto;
+}
+.pm-tabs .pm-seg a {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.pm-tabs > a {
+  padding: 9px 12px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.pm-tabs > a:hover {
+  color: var(--foreground);
+}
+.pm-tabs > a.is-on {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+}
+
+/* WhatsApp template preview (the chat colours are WhatsApp's own) */
+.pm-wa-preview {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #efeae2;
+}
+.pm-wa-bubble,
+.pm-wa-button {
+  max-width: 320px;
+  border-radius: 8px;
+  background: #fff;
+  color: #111b21;
+  font-size: 13px;
+  box-shadow: 0 1px 1px rgba(11, 20, 26, 0.13);
+}
+.pm-wa-bubble {
+  padding: 8px 10px;
+  line-height: 1.4;
+}
+.pm-wa-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 7px 10px;
+  color: #027eb5;
+  font-weight: 500;
+}
+.pm-wa-media {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 96px;
+  margin-bottom: 6px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #e9edef;
+  color: #667781;
+}
+
+/* Bootstrap's button reset (radius 0, inherited font size) beats Tailwind's layered utilities:
+   give raw buttons the radius and size their classes ask for */
+button.rounded-md { border-radius: calc(var(--radius) - 2px); }
+button.rounded-lg { border-radius: var(--radius); }
+button.rounded-full { border-radius: 9999px; }
+button.text-\[11px\] { font-size: 11px; }
+button.text-\[11\.5px\] { font-size: 11.5px; }
+button.text-\[12px\] { font-size: 12px; }
+button.text-\[12\.5px\] { font-size: 12.5px; }
+button.text-\[13px\] { font-size: 13px; }

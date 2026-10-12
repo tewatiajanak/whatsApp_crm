@@ -12,6 +12,13 @@ export interface IRegistration extends Document {
   interaction?: any;
   payment?: any;
   data?: any;
+  /** where the application stands (Submitted → … → Enrolled) */
+  stage: string;
+  appNo: string;
+  /** unguessable id in the applicant's status link */
+  token: string;
+  stageHistory: Array<{ stage: string; by: string; at: Date; note?: string }>;
+  offer?: { text?: string; amount?: number; validTill?: Date | null; sentAt?: Date | null; respondedAt?: Date | null; response?: string };
 }
 
 const registrationSchema = new Schema<IRegistration>(
@@ -27,6 +34,11 @@ const registrationSchema = new Schema<IRegistration>(
     interaction: { type: Schema.Types.Mixed, default: {} },
     payment: { type: Schema.Types.Mixed, default: {} },
     data: { type: Schema.Types.Mixed, default: {} },
+    stage: { type: String, default: "Submitted" },
+    appNo: { type: String, default: "" },
+    token: { type: String, default: "", index: true },
+    stageHistory: { type: [{ _id: false, stage: String, by: String, at: Date, note: String }], default: [] },
+    offer: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );

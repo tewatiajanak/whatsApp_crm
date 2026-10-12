@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { mastersApi, servicesApi, sessionsApi, gradesApi, teamsApi, workflowsApi, workflowConfigApi, usersApi, templatesApi, integrationsApi, waAccountsApi, designationsApi } from "../api";
+import { mastersApi, servicesApi, sessionsApi, gradesApi, feeHeadsApi, documentTypesApi, teamsApi, workflowsApi, workflowConfigApi, usersApi, templatesApi, integrationsApi, waAccountsApi, designationsApi } from "../api";
 import { useApi } from "../hooks/useApi";
 import { useToast } from "../context/ToastContext";
 import { PageHeader, Spinner, ErrorBox, EmptyState, Tabs, Modal, IconBtn } from "../components/ui";
@@ -16,6 +16,7 @@ import ModuleWhatsAppTemplates from "../knowvato-main/routes/modules.templates-w
 import ModuleSmsTemplates from "../knowvato-main/routes/modules.templates-sms";
 import ModuleEmailTemplates from "../knowvato-main/routes/modules.templates-email";
 
+import { askConfirm } from "../utils/dialog";
 const DEFAULT_LANDING_PAGE_CONFIG = {
   brandName: "Your Institution",
   heroTitle: "Welcome to a better admissions experience",
@@ -79,7 +80,9 @@ const CATEGORIES = [
     color: "#0f172a",
     items: [
       { id: "sessions", label: "Academic Sessions" },
-      { id: "grades", label: "Grades" }
+      { id: "grades", label: "Grades" },
+      { id: "fee-heads", label: "Fee Heads" },
+      { id: "document-types", label: "Document Types" }
     ]
   },
   {
@@ -258,6 +261,8 @@ export default function Setup() {
           {selected === "ui-theme" && <ThemeSwitcher />}
           {selected === "sessions" && <AcademicSessions />}
           {selected === "grades" && <Grades />}
+          {selected === "fee-heads" && <FeeHeads />}
+          {selected === "document-types" && <DocumentTypes />}
           {selected === "teams" && <Teams />}
           {selected === "workflows" && <WorkflowsTab />}
           {selected === "comm-templates" && <CommunicationTemplatesConfig />}
@@ -287,7 +292,7 @@ function ServicesMaster() {
       toast("Saved"); setEdit(null); list.reload();
     } catch (e) { toast(e.message, "error"); }
   }
-  async function remove(id) { if (confirm("Delete this offering?")) { try { await servicesApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+  async function remove(id) { if (await askConfirm("Delete this offering?")) { try { await servicesApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
   return (
     <div className="card" style={{ borderRadius: "var(--radius)" }}>
       <div className="card-header d-flex justify-content-between align-items-center">
@@ -349,7 +354,7 @@ function CombinedStatusMaster() {
     } catch (e) { toast(e.message, "error"); }
   }
 
-  async function removeStatus(id) { if (confirm("Delete status?")) { try { await mastersApi.removeStatus(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+  async function removeStatus(id) { if (await askConfirm("Delete status?")) { try { await mastersApi.removeStatus(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
 
   return (
     <div className="card" style={{ borderRadius: "var(--radius)" }}>
@@ -648,7 +653,7 @@ function WhatsAppAccounts() {
   const list = useApi(() => waAccountsApi.list(), []);
   const [edit, setEdit] = useState(null);
   async function activate(id) { try { await waAccountsApi.activate(id); toast("Activated"); list.reload(); } catch (e) { toast(e.message, "error"); } }
-  async function remove(id) { if (confirm("Delete this account?")) { try { await waAccountsApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+  async function remove(id) { if (await askConfirm("Delete this account?")) { try { await waAccountsApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
   async function save(f) {
     try { if (f._id) await waAccountsApi.update(f._id, f); else await waAccountsApi.create(f); toast("Saved"); setEdit(null); list.reload(); }
     catch (e) { toast(e.message, "error"); }
@@ -790,7 +795,7 @@ function AcademicSessions() {
     } catch (e) { toast(e.message, "error"); }
   }
 
-  async function remove(id) { if (confirm("Delete?")) { try { await sessionsApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+  async function remove(id) { if (await askConfirm("Delete?")) { try { await sessionsApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
 
   return (
     <div className="card" style={{ borderRadius: "var(--radius)" }}>
@@ -827,7 +832,7 @@ function Grades() {
   const list = useApi(() => gradesApi.list(), []);
   const [form, setForm] = useState({ name: "" });
   async function add() { if (!form.name) return; try { await gradesApi.create(form); toast("Added"); setForm({ name: "" }); list.reload(); } catch (e) { toast(e.message, "error"); } }
-  async function remove(id) { if (confirm("Delete?")) { try { await gradesApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+  async function remove(id) { if (await askConfirm("Delete?")) { try { await gradesApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
   return (
     <div className="card" style={{ marginBottom: 0, borderRadius: "var(--radius)" }}>
       <div className="card-header bg-white fw-semibold" style={{ fontSize: "14px" }}>Grades</div>
@@ -855,7 +860,7 @@ function Teams() {
   const [edit, setEdit] = useState(null);
   const [viewMembers, setViewMembers] = useState(null);
   async function save(f) { try { if (f._id) await teamsApi.update(f._id, f); else await teamsApi.create(f); toast("Saved"); setEdit(null); list.reload(); } catch (e) { toast(e.message, "error"); } }
-  async function remove(id) { if (confirm("Delete?")) { try { await teamsApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+  async function remove(id) { if (await askConfirm("Delete?")) { try { await teamsApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
   return (
     <div className="card" style={{ borderRadius: "var(--radius)" }}>
       <div className="card-header d-flex justify-content-between align-items-center">
@@ -868,7 +873,7 @@ function Teams() {
           <tbody>{(list.data || []).map((t) => <tr key={t._id}><td style={{ fontSize: "12px", fontWeight: 400 }}>{t.name}</td><td style={{ fontSize: "12px" }} className="text-secondary">{t.manager?.name || "—"}</td><td style={{ fontSize: "12px" }}><button style={{ background: "none", border: "none", color: "var(--accent-ink)", cursor: "pointer", padding: 0, textDecoration: "underline", fontSize: "12px" }} onClick={() => setViewMembers(t)}>{t.members?.length || 0} members</button></td><td className="text-end"><div className="d-flex justify-content-end gap-1"><button className="btn btn-sm border-0 text-secondary hover-primary p-1" style={{ fontSize: "12px" }} onClick={() => setEdit(t)}><i className="bi bi-pencil" style={{ fontSize: "13px" }}></i></button><button className="btn btn-sm border-0 text-secondary hover-danger p-1" style={{ fontSize: "12px" }} onClick={() => remove(t._id)}><i className="bi bi-trash" style={{ fontSize: "13px" }}></i></button></div></td></tr>)}</tbody>
         </table>
       </div>
-      {edit && <TeamModal team={edit} users={users.data || []} sources={sources.data || []} onClose={() => setEdit(null)} onSave={save} />}
+      {edit && <TeamModal team={edit} teams={list.data || []} users={users.data || []} sources={sources.data || []} onClose={() => setEdit(null)} onSave={save} />}
       {viewMembers && <MembersModal team={viewMembers} onClose={() => setViewMembers(null)} />}
     </div>
   );
@@ -957,8 +962,8 @@ function MultiSelectDropdown({ options, selected, onChange, label, isRequired })
   );
 }
 
-function TeamModal({ team, users, sources, onClose, onSave }) {
-  const [f, setF] = useState({ _id: team._id, name: team.name || "", manager: team.manager?._id || "", members: (team.members || []).map(m => m._id || m), sources: (team.sources || []).map(s => s._id || s) });
+function TeamModal({ team, teams = [], users, sources, onClose, onSave }) {
+  const [f, setF] = useState({ _id: team._id, name: team.name || "", manager: team.manager?._id || "", members: (team.members || []).map(m => m.user?._id || m.user || m._id || m), sources: (team.sources || []).map(s => s._id || s), parent: team.parent?._id || team.parent || "" });
   const [membersOpen, setMembersOpen] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
 
@@ -981,6 +986,7 @@ function TeamModal({ team, users, sources, onClose, onSave }) {
         <div className="col-12"><label className="form-label small">Manager <span style={{ color: "#dc2626" }}>*</span></label><select className="form-select" value={f.manager} onChange={(e) => setF({ ...f, manager: e.target.value })}><option value="">— Select Manager —</option>{users.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}</select></div>
         <div className="col-6"><label className="form-label small">Team Members <span style={{ color: "#dc2626" }}>*</span></label><MultiSelectDropdown options={users} selected={f.members} onChange={(members) => setF({ ...f, members })} isRequired={!f.members.length} />{!f.members.length && <div style={{ color: "#dc2626", fontSize: "12px", marginTop: "4px" }}>At least one team member is required</div>}</div>
         <div className="col-6"><label className="form-label small">Mapped sources</label><MultiSelectDropdown options={sources} selected={f.sources} onChange={(sources) => setF({ ...f, sources })} isRequired={false} /></div>
+        <div className="col-12"><label className="form-label small">Parent team</label><select className="form-select" value={f.parent} onChange={(e) => setF({ ...f, parent: e.target.value })}><option value="">— None —</option>{teams.filter((t) => t._id !== team._id).map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}</select></div>
       </div></div>
       <div className="modal-footer"><button className="btn btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-wa" disabled={!canSave} onClick={handleSave}>Save</button></div>
     </div></div></div></>
@@ -1029,6 +1035,199 @@ function LeadAssignment() {
   );
 }
 
+const idOf = (v) => String(v?._id || v || "");
+
+/* Fee heads — each head lists the classes it applies to, with the amount for that class */
+function FeeHeads() {
+  const toast = useToast();
+  const list = useApi(() => feeHeadsApi.list(), []);
+  const grades = useApi(() => gradesApi.list(), []);
+  const [edit, setEdit] = useState(null);
+  const gradeList = grades.data || [];
+  const gradeName = (id) => gradeList.find((g) => g._id === idOf(id))?.name;
+
+  async function save(f) {
+    try {
+      const body = { name: f.name.trim(), isActive: f.isActive, classFees: f.classFees };
+      if (f._id) await feeHeadsApi.update(f._id, body); else await feeHeadsApi.create(body);
+      toast("Saved"); setEdit(null); list.reload();
+    } catch (e) { toast(e.message, "error"); }
+  }
+  async function remove(id) { if (await askConfirm("Delete?")) { try { await feeHeadsApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+
+  return (
+    <div className="card" style={{ marginBottom: 0, borderRadius: "var(--radius)" }}>
+      <div className="card-header bg-white d-flex justify-content-between align-items-center">
+        <span className="fw-semibold" style={{ fontSize: "14px" }}>Fee Heads</span>
+        <button className="btn btn-sm btn-wa" style={{ padding: "5px 12px", fontSize: "12px" }} onClick={() => setEdit({ name: "", isActive: true, classFees: [] })}><i className="bi bi-plus-lg me-1"></i>Add Fee Head</button>
+      </div>
+      <div className="card-body" style={{ fontSize: "12px" }}>
+        {(list.data || []).length === 0 ? (
+          <div className="text-center text-secondary py-4">No fee heads</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="table table-hover mb-0 align-middle" style={{ fontSize: "12px" }}>
+              <thead><tr className="table-light"><th style={{ width: 60, fontWeight: 600 }}>Sr No</th><th style={{ fontWeight: 600 }}>Fee Head</th><th style={{ fontWeight: 600 }}>Classes</th><th style={{ fontWeight: 600 }}>Status</th><th className="text-end" style={{ fontWeight: 600 }}>Action</th></tr></thead>
+              <tbody>{(list.data || []).map((h, i) => (
+                <tr key={h._id}>
+                  <td>{i + 1}</td>
+                  <td className="fw-semibold">{h.name}</td>
+                  <td>
+                    <div className="d-flex flex-wrap gap-1">
+                      {(h.classFees || []).filter((c) => gradeName(c.grade)).map((c) => (
+                        <span key={idOf(c.grade)} className="badge rounded-pill text-bg-light border fw-normal">{gradeName(c.grade)} · ₹{Number(c.amount || 0).toLocaleString("en-IN")}</span>
+                      ))}
+                      {(h.classFees || []).length === 0 && <span className="text-secondary">—</span>}
+                    </div>
+                  </td>
+                  <td><span className={`badge ${h.isActive !== false ? "text-bg-success" : "text-bg-secondary"}`}>{h.isActive !== false ? "Active" : "Inactive"}</span></td>
+                  <td className="text-end text-nowrap">
+                    <button className="btn btn-sm border-0 text-secondary p-1" title="Edit" onClick={() => setEdit({ _id: h._id, name: h.name, isActive: h.isActive !== false, classFees: (h.classFees || []).map((c) => ({ grade: idOf(c.grade), amount: c.amount || 0 })) })}><i className="bi bi-pencil" style={{ fontSize: "13px" }}></i></button>
+                    <button className="btn btn-sm border-0 text-secondary hover-danger p-1" title="Delete" onClick={() => remove(h._id)}><i className="bi bi-trash" style={{ fontSize: "13px" }}></i></button>
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {edit && <FeeHeadModal head={edit} grades={gradeList} onClose={() => setEdit(null)} onSave={save} />}
+    </div>
+  );
+}
+
+function FeeHeadModal({ head, grades, onClose, onSave }) {
+  const [f, setF] = useState(head);
+  const [bulk, setBulk] = useState("");
+  const row = (gid) => f.classFees.find((c) => c.grade === gid);
+  const toggle = (gid) => setF({ ...f, classFees: row(gid) ? f.classFees.filter((c) => c.grade !== gid) : [...f.classFees, { grade: gid, amount: Number(bulk) || 0 }] });
+  const setAmount = (gid, v) => setF({ ...f, classFees: f.classFees.map((c) => (c.grade === gid ? { ...c, amount: Math.max(0, Number(v) || 0) } : c)) });
+  const allOn = grades.length > 0 && grades.every((g) => row(g._id));
+  const toggleAll = () => setF({ ...f, classFees: allOn ? [] : grades.map((g) => row(g._id) || { grade: g._id, amount: Number(bulk) || 0 }) });
+  const applyBulk = () => setF({ ...f, classFees: f.classFees.map((c) => ({ ...c, amount: Math.max(0, Number(bulk) || 0) })) });
+  return (
+    <><div className="modal-backdrop fade show"></div>
+      <div className="modal d-block"><div className="modal-dialog modal-dialog-scrollable"><div className="modal-content">
+        <div className="modal-header"><h5 className="modal-title">{f._id ? "Edit" : "Add"} fee head</h5><button className="btn-close" onClick={onClose}></button></div>
+        <div className="modal-body"><div className="row g-3">
+          <div className="col-8"><label className="form-label small">Fee Head *</label><input className="form-control" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoFocus /></div>
+          <div className="col-4"><label className="form-label small">Status</label><select className="form-select" value={f.isActive ? "1" : "0"} onChange={(e) => setF({ ...f, isActive: e.target.value === "1" })}><option value="1">Active</option><option value="0">Inactive</option></select></div>
+          <div className="col-12">
+            <div className="d-flex justify-content-between align-items-end gap-2 mb-2 flex-wrap">
+              <label className="form-label small mb-0">Classes</label>
+              <div className="d-flex gap-2">
+                <input className="form-control form-control-sm" type="number" min="0" style={{ width: 120 }} value={bulk} onChange={(e) => setBulk(e.target.value)} aria-label="Amount for all" />
+                <button className="btn btn-sm btn-outline-secondary text-nowrap" onClick={applyBulk} disabled={bulk === "" || f.classFees.length === 0}>Apply to all</button>
+              </div>
+            </div>
+            {grades.length === 0 ? <div className="text-secondary small">No grades</div> : (
+              <table className="table table-sm align-middle mb-0" style={{ fontSize: "12.5px" }}>
+                <thead><tr className="table-light"><th style={{ width: 36 }}><input type="checkbox" className="form-check-input" checked={allOn} onChange={toggleAll} aria-label="All classes" /></th><th>Class</th><th style={{ width: 150 }}>Amount (₹)</th></tr></thead>
+                <tbody>{grades.map((g) => { const r = row(g._id); return (
+                  <tr key={g._id}>
+                    <td><input type="checkbox" className="form-check-input" checked={!!r} onChange={() => toggle(g._id)} aria-label={g.name} /></td>
+                    <td>{g.name}</td>
+                    <td><input className="form-control form-control-sm" type="number" min="0" disabled={!r} value={r ? r.amount : ""} onChange={(e) => setAmount(g._id, e.target.value)} /></td>
+                  </tr>); })}</tbody>
+              </table>
+            )}
+          </div>
+        </div></div>
+        <div className="modal-footer"><button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-sm btn-wa" disabled={!f.name.trim()} onClick={() => onSave(f)}>Save</button></div>
+      </div></div></div></>
+  );
+}
+
+/* Document types — each type lists the classes it is asked for */
+function DocumentTypes() {
+  const toast = useToast();
+  const list = useApi(() => documentTypesApi.list(), []);
+  const grades = useApi(() => gradesApi.list(), []);
+  const [edit, setEdit] = useState(null);
+  const gradeList = grades.data || [];
+  const gradeName = (id) => gradeList.find((g) => g._id === idOf(id))?.name;
+
+  async function save(f) {
+    try {
+      const body = { name: f.name.trim(), isActive: f.isActive, mandatory: f.mandatory, grades: f.grades };
+      if (f._id) await documentTypesApi.update(f._id, body); else await documentTypesApi.create(body);
+      toast("Saved"); setEdit(null); list.reload();
+    } catch (e) { toast(e.message, "error"); }
+  }
+  async function remove(id) { if (await askConfirm("Delete?")) { try { await documentTypesApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+
+  return (
+    <div className="card" style={{ marginBottom: 0, borderRadius: "var(--radius)" }}>
+      <div className="card-header bg-white d-flex justify-content-between align-items-center">
+        <span className="fw-semibold" style={{ fontSize: "14px" }}>Document Types</span>
+        <button className="btn btn-sm btn-wa" style={{ padding: "5px 12px", fontSize: "12px" }} onClick={() => setEdit({ name: "", isActive: true, mandatory: true, grades: gradeList.map((g) => g._id) })}><i className="bi bi-plus-lg me-1"></i>Add Document Type</button>
+      </div>
+      <div className="card-body" style={{ fontSize: "12px" }}>
+        {(list.data || []).length === 0 ? (
+          <div className="text-center text-secondary py-4">No document types</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="table table-hover mb-0 align-middle" style={{ fontSize: "12px" }}>
+              <thead><tr className="table-light"><th style={{ width: 60, fontWeight: 600 }}>Sr No</th><th style={{ fontWeight: 600 }}>Document</th><th style={{ fontWeight: 600 }}>Classes</th><th style={{ fontWeight: 600 }}>Required</th><th style={{ fontWeight: 600 }}>Status</th><th className="text-end" style={{ fontWeight: 600 }}>Action</th></tr></thead>
+              <tbody>{(list.data || []).map((d, i) => (
+                <tr key={d._id}>
+                  <td>{i + 1}</td>
+                  <td className="fw-semibold">{d.name}</td>
+                  <td>
+                    <div className="d-flex flex-wrap gap-1">
+                      {(d.grades || []).filter((g) => gradeName(g)).map((g) => <span key={idOf(g)} className="badge rounded-pill text-bg-light border fw-normal">{gradeName(g)}</span>)}
+                      {(d.grades || []).length === 0 && <span className="text-secondary">—</span>}
+                    </div>
+                  </td>
+                  <td><span className={`badge ${d.mandatory ? "text-bg-warning" : "text-bg-light border"}`}>{d.mandatory ? "Required" : "Optional"}</span></td>
+                  <td><span className={`badge ${d.isActive !== false ? "text-bg-success" : "text-bg-secondary"}`}>{d.isActive !== false ? "Active" : "Inactive"}</span></td>
+                  <td className="text-end text-nowrap">
+                    <button className="btn btn-sm border-0 text-secondary p-1" title="Edit" onClick={() => setEdit({ _id: d._id, name: d.name, isActive: d.isActive !== false, mandatory: !!d.mandatory, grades: (d.grades || []).map(idOf) })}><i className="bi bi-pencil" style={{ fontSize: "13px" }}></i></button>
+                    <button className="btn btn-sm border-0 text-secondary hover-danger p-1" title="Delete" onClick={() => remove(d._id)}><i className="bi bi-trash" style={{ fontSize: "13px" }}></i></button>
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {edit && <DocumentTypeModal doc={edit} grades={gradeList} onClose={() => setEdit(null)} onSave={save} />}
+    </div>
+  );
+}
+
+function DocumentTypeModal({ doc, grades, onClose, onSave }) {
+  const [f, setF] = useState(doc);
+  const has = (gid) => f.grades.includes(gid);
+  const toggle = (gid) => setF({ ...f, grades: has(gid) ? f.grades.filter((g) => g !== gid) : [...f.grades, gid] });
+  const allOn = grades.length > 0 && grades.every((g) => has(g._id));
+  return (
+    <><div className="modal-backdrop fade show"></div>
+      <div className="modal d-block"><div className="modal-dialog modal-dialog-scrollable"><div className="modal-content">
+        <div className="modal-header"><h5 className="modal-title">{f._id ? "Edit" : "Add"} document type</h5><button className="btn-close" onClick={onClose}></button></div>
+        <div className="modal-body"><div className="row g-3">
+          <div className="col-12"><label className="form-label small">Document *</label><input className="form-control" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoFocus /></div>
+          <div className="col-6"><label className="form-label small">Required</label><select className="form-select" value={f.mandatory ? "1" : "0"} onChange={(e) => setF({ ...f, mandatory: e.target.value === "1" })}><option value="1">Required</option><option value="0">Optional</option></select></div>
+          <div className="col-6"><label className="form-label small">Status</label><select className="form-select" value={f.isActive ? "1" : "0"} onChange={(e) => setF({ ...f, isActive: e.target.value === "1" })}><option value="1">Active</option><option value="0">Inactive</option></select></div>
+          <div className="col-12">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <label className="form-label small mb-0">Classes</label>
+              <button className="btn btn-sm btn-link p-0" onClick={() => setF({ ...f, grades: allOn ? [] : grades.map((g) => g._id) })}>{allOn ? "Clear all" : "Select all"}</button>
+            </div>
+            {grades.length === 0 ? <div className="text-secondary small">No grades</div> : (
+              <div className="d-flex flex-wrap gap-2">
+                {grades.map((g) => (
+                  <button type="button" key={g._id} className={`btn btn-sm ${has(g._id) ? "btn-wa" : "btn-outline-secondary"}`} style={{ borderRadius: 20, fontSize: 12 }} onClick={() => toggle(g._id)}>{has(g._id) && <i className="bi bi-check2 me-1"></i>}{g.name}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div></div>
+        <div className="modal-footer"><button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-sm btn-wa" disabled={!f.name.trim()} onClick={() => onSave(f)}>Save</button></div>
+      </div></div></div></>
+  );
+}
+
 function RegistrationFormConfig() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1036,6 +1235,10 @@ function RegistrationFormConfig() {
   const config = useApi(() => workflowConfigApi.get("registrationForms"), []);
   const statuses = useApi(() => mastersApi.statuses(), []);
   const templates = useApi(() => templatesApi.list({ perPage: 100 }), []);
+  const grades = useApi(() => gradesApi.list(), []);
+  const feeHeads = useApi(() => feeHeadsApi.list(), []);
+  const documentTypes = useApi(() => documentTypesApi.list(), []);
+  const mastersReady = !grades.loading && !feeHeads.loading && !documentTypes.loading;
   const [forms, setForms] = useState([]);
   const [filter, setFilter] = useState("");
   const [activeForm, setActiveForm] = useState(null);
@@ -1139,7 +1342,7 @@ function RegistrationFormConfig() {
   };
 
   const deleteForm = async (formId) => {
-    if (!confirm("Delete this registration form?")) return;
+    if (!(await askConfirm("Delete this registration form?"))) return;
     const nextForms = forms.filter((f) => f._id !== formId);
     await saveConfig(nextForms);
   };
@@ -1160,6 +1363,7 @@ function RegistrationFormConfig() {
   const currentForm = activeForm || location.state?.form;
   const isEditorMode = currentForm && new URLSearchParams(location.search).get("mode") === "editor";
 
+  if (isEditorMode && !mastersReady) return <Spinner />;
   if (isEditorMode) {
     const startScreen = new URLSearchParams(location.search).get("startScreen");
     if (startScreen === "preview_only") {
@@ -1171,6 +1375,9 @@ function RegistrationFormConfig() {
           onCancel={closeEditor}
           statuses={statuses.data || []}
           templates={templates.data || []}
+          grades={grades.data || []}
+          feeHeads={feeHeads.data || []}
+          documentTypes={documentTypes.data || []}
           startScreen={startScreen}
         />
       );
@@ -1194,6 +1401,9 @@ function RegistrationFormConfig() {
             onCancel={closeEditor}
             statuses={statuses.data || []}
             templates={templates.data || []}
+            grades={grades.data || []}
+            feeHeads={feeHeads.data || []}
+            documentTypes={documentTypes.data || []}
             startScreen={startScreen || "setup"}
           />
         </div>
@@ -1805,7 +2015,7 @@ function EnquiryFormConfig() {
   };
 
   const deleteForm = async (formId) => {
-    if (!confirm("Delete this enquiry form?")) return;
+    if (!(await askConfirm("Delete this enquiry form?"))) return;
     const nextForms = forms.filter((form) => form._id !== formId);
     await saveConfig(nextForms);
   };
@@ -2167,7 +2377,7 @@ function CommunicationTemplatesConfig() {
   );
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this template?")) return;
+    if (!(await askConfirm("Are you sure you want to delete this template?"))) return;
     try {
       await templatesApi.remove(id);
       toast("Template deleted successfully");
@@ -2515,7 +2725,7 @@ function WhatsAppTemplatesSetup() {
   };
 
   const handleDelete = async (name) => {
-    if (!confirm(`Delete template '${name}'?`)) return;
+    if (!(await askConfirm(`Delete template '${name}'?`))) return;
     try {
       await templatesApi.deleteMeta(name);
       toast("Template deleted");

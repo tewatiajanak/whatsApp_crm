@@ -10,7 +10,7 @@ const BASE = import.meta.env.VITE_API_BASE || "";
 const WRITE_DELAY_MS = 400;
 
 // Personal preferences — saved per user. Everything else is shared by the tenant.
-const USER_KEYS = new Set(["knowvato_theme_id", "knowvato_custom_themes", "app_theme", "orbitops.bookmarks"]);
+const USER_KEYS = new Set(["knowvato_theme_id", "knowvato_custom_themes", "app_theme", "orbitops.bookmarks", "crm.leadViews"]);
 // "cols.<table>" = which columns this user shows in a table
 const scopeOf = (key) => (USER_KEYS.has(key) || key.startsWith("cols.") ? "user" : "tenant");
 

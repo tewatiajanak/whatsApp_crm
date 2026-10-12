@@ -5,6 +5,7 @@ import { leadsApi, registrationsApi, workflowConfigApi, mastersApi } from "../ap
 import { useApi } from "../hooks/useApi";
 import { useToast } from "../context/ToastContext";
 import { PageHeader, Spinner, ErrorBox, Field } from "../components/ui";
+import { sanitizeHtml } from "../utils/sanitizeHtml";
 
 function compareStepsAndGroups(a, b) {
   const aName = (a.name || '').toLowerCase().trim();
@@ -107,6 +108,26 @@ export default function Registration() {
 
   const formsList = formsConfig.data?.forms || [];
   const activeForm = formsList.find(f => f.isActive) || formsList[0];
+
+  // Fees and documents set on the form are class-wise; the lead's class picks the rows
+  const [classId, setClassId] = useState("");
+  const [instAnswers, setInstAnswers] = useState({});
+  const formClasses = activeForm?.classes || [];
+  const leadGrade = String(lead.data?.grade || "").trim().toLowerCase();
+  const activeClassId = classId || formClasses.find((c) => String(c.name).trim().toLowerCase() === leadGrade)?.id || "";
+  const feeHeadsCfg = activeForm?.feeConfig?.heads || [];
+  const classFees = feeHeadsCfg
+    .filter((h) => h.classes && Object.prototype.hasOwnProperty.call(h.classes, activeClassId))
+    .map((h) => ({ id: h.id, name: h.name, amount: Number(h.classes[activeClassId]) || 0 }));
+  const feeTotal = classFees.reduce((sum, f) => sum + f.amount, 0);
+  const formDocs = activeForm?.docConfig?.docs || [];
+  const classDocs = formDocs.filter((d) => (d.grades || []).includes(activeClassId));
+  const needsClass = formClasses.length > 0 && (feeHeadsCfg.length > 0 || formDocs.length > 0);
+
+  useEffect(() => {
+    if (!feeHeadsCfg.length) return;
+    setPayment((p) => ({ ...p, amount: feeTotal ? String(feeTotal) : "", feeHeads: classFees }));
+  }, [activeClassId, feeTotal, feeHeadsCfg.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const DEFAULT_THEME = {
     fontFamily: 'Default',
@@ -438,6 +459,7 @@ export default function Registration() {
             hasPayment = true;
           }
           s.groups.forEach((g) => {
+            if (feeHeadsCfg.length && /payment|fee/i.test(g.name || "")) hasPayment = true;
             formStepGroups.push(g);
             if (g.fields) {
               g.fields.forEach((f) => {
@@ -453,14 +475,17 @@ export default function Registration() {
       {
         title: "Instructions",
         type: "instructions",
-        text: activeForm.instructions || "Please read the instructions carefully before filling out the form."
+        text: activeForm.instructions || "Please read the instructions carefully before filling out the form.",
+        html: activeForm.instructionsHtml || "",
+        fields: activeForm.instructionFields || []
       },
       {
         title: "Registration Form",
         type: "form",
         fieldNames: formStepFieldNames,
         groups: formStepGroups,
-        hasPayment: hasPayment,
+        hasPayment: hasPayment || (activeForm.formCategory === "payment" && feeHeadsCfg.length > 0),
+        declarationHtml: activeForm.declarationHtml || "",
         declarationPoints: activeForm.declarationPoints || [],
         declarationText: activeForm.declarationText || "I hereby declare that all the information provided in this form is true and correct to the best of my knowledge."
       }
@@ -541,6 +566,8 @@ export default function Registration() {
     }
   }, [lead.data, fields]);
 
+  if (formDocs.length) documentTypes = classDocs.map((d) => ({ _id: d.id, name: d.name, mandatory: !!d.mandatory }));
+
   const currentStep = steps[activeStep] || {};
   const currentStepName = currentStep.title || "Step";
 
@@ -576,6 +603,13 @@ export default function Registration() {
 
   const validateStep = () => {
     if (currentStep.type === "instructions") {
+      for (const f of currentStep.fields || []) {
+        const v = instAnswers[f.id];
+        if (f.required && !(f.type === "checkbox" ? v === true : String(v || "").trim())) {
+          toast(`${f.label} is required`, "error");
+          return false;
+        }
+      }
       return true;
     }
     if (currentStep.type === "form") {
@@ -592,6 +626,16 @@ export default function Registration() {
           toast(`${field.label} is required`, "error");
           return false;
         }
+      }
+
+      if (needsClass && !activeClassId) {
+        toast("Class is required", "error");
+        return false;
+      }
+      const missingDoc = formDocs.length ? documentTypes.find((d) => d.mandatory && !documents.includes(d._id)) : null;
+      if (missingDoc) {
+        toast(`${missingDoc.name} is required`, "error");
+        return false;
       }
 
       // 2. Validate payment if hasPayment is true
@@ -726,14 +770,39 @@ export default function Registration() {
                   {currentStep.type === "instructions" && (
                     <div style={{ flex: 1 }}>
                       <h6 style={getGroupHeaderStyles()}>{currentStep.title}</h6>
-                      <p style={getInstStyles()}>
-                        {currentStep.text || "No instructions provided."}
-                      </p>
+                      {currentStep.html ? (
+                        <div style={{ ...getInstStyles(), whiteSpace: "normal" }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentStep.html) }} />
+                      ) : (
+                        <p style={getInstStyles()}>
+                          {currentStep.text || "No instructions provided."}
+                        </p>
+                      )}
+                      {(currentStep.fields || []).map((f) => f.type === "checkbox" ? (
+                        <div className="form-check text-start mb-2" key={f.id}>
+                          <input type="checkbox" className="form-check-input" id={`inst-${f.id}`} checked={instAnswers[f.id] === true} onChange={(e) => setInstAnswers({ ...instAnswers, [f.id]: e.target.checked })} />
+                          <label className="form-check-label fw-medium" htmlFor={`inst-${f.id}`} style={{ cursor: "pointer" }}>{f.label}{f.required && <span className="text-danger"> *</span>}</label>
+                        </div>
+                      ) : (
+                        <div className="text-start mb-3" style={{ maxWidth: 360 }} key={f.id}>
+                          <label className="form-label small fw-semibold" htmlFor={`inst-${f.id}`}>{f.label}{f.required && <span className="text-danger"> *</span>}</label>
+                          <input className="form-control" id={`inst-${f.id}`} value={instAnswers[f.id] || ""} onChange={(e) => setInstAnswers({ ...instAnswers, [f.id]: e.target.value })} />
+                        </div>
+                      ))}
                     </div>
                   )}
 
                   {currentStep.type === "form" && (
                     <>
+                      {needsClass && (
+                        <div className="mb-4 text-start" style={{ maxWidth: 280 }}>
+                          <Field label="Class *">
+                            <select className="form-select" value={activeClassId} onChange={(e) => setClassId(e.target.value)}>
+                              <option value="">Select</option>
+                              {formClasses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                          </Field>
+                        </div>
+                      )}
                       {currentStep.groups ? (
                         currentStep.groups.map((g) => {
                           const groupFieldNames = (g.fields || []).map((f) => {
@@ -751,13 +820,45 @@ export default function Registration() {
                         renderFormFields(currentStep.fieldNames || fields.map((f) => f.fieldName))
                       )}
 
+                      {formDocs.length > 0 && (
+                        <div className="mb-4 text-start">
+                          <h6 style={getGroupHeaderStyles()}>Documents</h6>
+                          {documentTypes.length === 0 ? (
+                            <div className="text-secondary small">No documents for this class</div>
+                          ) : (
+                            <div className="row g-2">
+                              {documentTypes.map((d) => (
+                                <div className="col-md-6" key={d._id}>
+                                  <div className="form-check">
+                                    <input type="checkbox" className="form-check-input" id={`doc-${d._id}`} checked={documents.includes(d._id)} onChange={() => toggleDocument(d._id)} />
+                                    <label className="form-check-label" htmlFor={`doc-${d._id}`} style={{ cursor: "pointer" }}>{d.name}{d.mandatory && <span className="text-danger"> *</span>}</label>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {currentStep.hasPayment && (
                         <div className="mb-4 text-start">
                           <h6 style={getGroupHeaderStyles()}>Payment Details</h6>
+                          {feeHeadsCfg.length > 0 && (
+                            <div className="table-responsive mb-3">
+                              <table className="table table-sm align-middle mb-0">
+                                <thead><tr className="table-light"><th>Fee Head</th><th className="text-end">Amount</th></tr></thead>
+                                <tbody>
+                                  {classFees.map((f) => <tr key={f.id}><td>{f.name}</td><td className="text-end">₹{f.amount.toLocaleString("en-IN")}</td></tr>)}
+                                  {classFees.length === 0 && <tr><td colSpan={2} className="text-center text-secondary">No fees for this class</td></tr>}
+                                  {classFees.length > 0 && <tr><td className="fw-semibold">Total</td><td className="text-end fw-semibold">₹{feeTotal.toLocaleString("en-IN")}</td></tr>}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                           <div className="row g-3">
                             <div className="col-md-4">
                               <Field label="Amount">
-                                <input className="form-control" type="number" value={payment.amount} onChange={(e) => setPayment({ ...payment, amount: e.target.value })} />
+                                <input className="form-control" type="number" value={payment.amount} readOnly={feeHeadsCfg.length > 0} onChange={(e) => setPayment({ ...payment, amount: e.target.value })} />
                               </Field>
                             </div>
                             <div className="col-md-4">
@@ -777,6 +878,9 @@ export default function Registration() {
                       <div className="mb-4 pt-3 border-top text-start">
                         <h6 style={getGroupHeaderStyles()}>Declaration</h6>
                         <div style={getDeclBoxStyles()}>
+                          {currentStep.declarationHtml && (
+                            <div className="text-start mb-3" style={getDeclTextStyles()} dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentStep.declarationHtml) }} />
+                          )}
                           {currentStep.declarationPoints && currentStep.declarationPoints.length > 0 ? (
                             currentStep.declarationPoints.map((p) => (
                               <div key={p.id} className="mb-3">

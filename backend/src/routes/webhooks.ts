@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as msgC from "../controllers/messagingController";
 import * as fbC from "../controllers/facebookController";
 import paymentWebhookRoutes from "./paymentWebhooks";
+import crmWebhookRoutes from "./crmWebhooks";
 
 const r = Router();
 
@@ -28,5 +29,12 @@ r.post("/facebook/:tenantId", fbC.fbWebhookReceive);
  *   POST /webhooks/payments/:provider/:gatewayId
  */
 r.use("/payments", paymentWebhookRoutes);
+
+/**
+ * Lead CRM: leads pushed in by other systems, and call results from telephony
+ *   POST /webhooks/leads/:key
+ *   POST /webhooks/telephony/:tenantId
+ */
+r.use(crmWebhookRoutes);
 
 export default r;

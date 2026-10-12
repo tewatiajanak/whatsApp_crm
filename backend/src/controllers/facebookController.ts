@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Integration } from "../models/System";
-import { Lead } from "../models/Lead";
+import { convertToLead } from "../services/leadService";
 import { LeadSource } from "../models/Masters";
 import { asyncHandler, ok, ApiError, audit } from "../utils/http";
 
@@ -239,18 +239,36 @@ export const fbWebhookReceive = asyncHandler(async (req: Request, res: Response)
                     if (["email", "email_address"].includes(f.name)) email = f.values?.[0] || email;
                   }
 
-                  if (phone || email) {
+                  let city = "";
+                  let state = "";
+                  let course = "";
+                  for (const f of (leadData.field_data as any[])) {
+                    if (f.name === "city") city = f.values?.[0] || "";
+                    if (["state", "province"].includes(f.name)) state = f.values?.[0] || "";
+                    if (["course", "program", "class", "grade"].includes(f.name)) course = f.values?.[0] || "";
+                  }
+
+                  // a lead needs a phone number; email-only submissions cannot be followed up by call or WhatsApp
+                  if (phone) {
                     let source = await LeadSource.findOne({ tenant: tenantId, name: /facebook/i });
                     if (!source) source = await LeadSource.create({ tenant: tenantId, name: "Facebook Ads" });
 
-                    await Lead.create({
+                    await convertToLead({
                       tenant: tenantId,
                       name,
-                      phone: phone.replace(/[^0-9+]/g, ""),
+                      phone,
                       email,
-                      source: source._id,
-                      notes: `Auto-captured from Facebook Lead Ad #${leadgenId}`,
+                      city,
+                      state,
+                      course,
+                      sourceKeyOrId: String(source._id),
+                      capturedFrom: "Facebook Lead Ad",
+                      utm: { source: "facebook", medium: "paid", campaign: String(leadData.campaign_name || leadData.ad_name || "") },
+                      note: `Captured from Facebook Lead Ad #${leadgenId}`,
+                      user: "Facebook",
                     });
+                  } else {
+                    console.warn(`[facebook] lead ${leadgenId} has no phone number — not saved`);
                   }
                 }
               } catch (e) {

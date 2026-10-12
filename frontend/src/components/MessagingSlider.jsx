@@ -2,42 +2,36 @@ import { useState } from "react";
 import { useApi } from "../hooks/useApi";
 import { useToast } from "../context/ToastContext";
 import { templatesApi, messagesApi } from "../api";
-import { Spinner } from "./ui";
+import { Modal, Spinner, EmptyState, Chip } from "./ui";
+import { formatDateTime } from "../utils/dateFormat";
+import { labelCls } from "./lead/leadUtils";
 
-export default function MessagingSlider({ lead, onClose }) {
+const CHANNELS = [["whatsapp", "whatsapp", "WhatsApp"], ["sms", "chat-left-text", "SMS"], ["email", "envelope", "Email"]];
+
+// Send a WhatsApp message, an SMS or an email to one lead and see what was sent before.
+export default function MessagingSlider({ lead, canSms, onClose }) {
   const toast = useToast();
   const templates = useApi(() => templatesApi.list({ status: "Approved" }), []);
+  const history = useApi(() => messagesApi.list({ phone: lead.phone, perPage: 20 }), [lead.phone]);
   const [channel, setChannel] = useState("whatsapp");
-  const [selectedTemplate, setSelectedTemplate] = useState("");
-  const [customText, setCustomText] = useState("");
+  const [template, setTemplate] = useState("");
+  const [subject, setSubject] = useState("");
+  const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
 
-  const handleClose = () => {
-    setIsClosing(true);
-  };
+  const options = (templates.data || []).filter((t) => (t.channel || "whatsapp") === channel);
+  const picked = options.find((t) => t.name === template);
+  const body = template ? picked?.body || "" : text;
+  const to = channel === "email" ? lead.email : lead.phone;
 
-  const channelTemplates = (templates.data || []).filter((t) => (t.channel || "whatsapp") === channel);
-
-  const selectedTpl = channelTemplates.find((t) => t.name === selectedTemplate);
-  const messageContent = selectedTemplate ? (selectedTpl?.body || "") : customText;
-
-  async function sendMessage() {
+  async function send() {
     setSending(true);
     try {
-      const to = channel === "email" ? lead.email : lead.phone;
-      if (!to) throw new Error(`Lead has no ${channel === "email" ? "email" : "phone"}`);
-      
-      await messagesApi.send({
-        channel,
-        to,
-        template: selectedTemplate || undefined,
-        text: customText || undefined
-      });
-      
-      toast(`${channel === "email" ? "Email" : channel === "sms" ? "SMS" : "WhatsApp"} sent successfully`);
-      setSelectedTemplate("");
-      setCustomText("");
+      await messagesApi.send({ channel, to, template: template || undefined, text: template ? undefined : text, subject: channel === "email" ? subject || undefined : undefined });
+      toast("Message sent");
+      setTemplate("");
+      setText("");
+      history.reload();
     } catch (e) {
       toast(e.message, "error");
     } finally {
@@ -46,112 +40,59 @@ export default function MessagingSlider({ lead, onClose }) {
   }
 
   return (
-    <>
-      <div className="offcanvas-backdrop fade show" onClick={handleClose}></div>
-      <div
-        className="offcanvas offcanvas-end show"
-        style={{
-          visibility: "visible",
-          width: 550,
-          animation: isClosing ? "slideOutRight 0.5s ease-out forwards" : "slideInRight 0.5s ease-out"
-        }}
-        onAnimationEnd={() => isClosing && onClose()}
-      >
-        <div className="offcanvas-header border-bottom">
-          <h5 className="offcanvas-title">Send Message</h5>
-          <button className="btn-close" onClick={handleClose}></button>
+    <Modal
+      title={<div><div>Send message</div><div className="text-xs font-normal text-muted-foreground">{lead.name} · {to || `no ${channel === "email" ? "email" : "phone"}`}</div></div>}
+      onClose={onClose}
+      footer={<>
+        <button type="button" className="ui-btn ui-btn-outline" onClick={onClose}>Close</button>
+        <button type="button" className="ui-btn ui-btn-primary" disabled={sending || !to || !body.trim()} onClick={send}><i className="bi bi-send"></i>{sending ? "Sending…" : "Send"}</button>
+      </>}
+    >
+      <div className="space-y-3">
+        <div className="flex gap-1.5">
+          {CHANNELS.filter(([v]) => v !== "sms" || canSms).map(([v, icon, label]) => (
+            <button key={v} type="button" className={"ui-btn ui-btn-sm flex-1 " + (channel === v ? "ui-btn-primary" : "ui-btn-outline")} onClick={() => { setChannel(v); setTemplate(""); }}>
+              <i className={`bi bi-${icon}`}></i>{label}
+            </button>
+          ))}
+        </div>
+        <div>
+          <label className={labelCls}>Template</label>
+          <select className="ui-input w-full" value={template} onChange={(e) => setTemplate(e.target.value)}>
+            <option value="">Custom message</option>
+            {options.map((t) => <option key={t._id} value={t.name}>{t.name}</option>)}
+          </select>
+        </div>
+        {channel === "email" && (
+          <div><label className={labelCls}>Subject</label><input className="ui-input w-full" value={subject} onChange={(e) => setSubject(e.target.value)} /></div>
+        )}
+        <div>
+          <label className={labelCls}>Message</label>
+          {template ? (
+            <div className="rounded-lg border p-3 text-sm whitespace-pre-wrap" style={{ background: "var(--muted-background)", minHeight: 96 }}>{body}</div>
+          ) : (
+            <textarea className="ui-input w-full" style={{ height: "auto", padding: "8px 12px" }} rows={5} value={text} onChange={(e) => setText(e.target.value)} />
+          )}
         </div>
 
-        <div className="offcanvas-body d-flex flex-column" style={{ height: "calc(100vh - 100px)" }}>
-          {/* Lead Info */}
-          <div className="mb-3 pb-3 border-bottom">
-            <div style={{ fontSize: 12, color: "var(--text-2)", textTransform: "uppercase", marginBottom: 8 }}>To</div>
-            <div className="fw-semibold">{lead.name}</div>
-            <div className="text-muted small">{lead.phone}{lead.email ? " · " + lead.email : ""}</div>
-          </div>
-
-          {/* Channel Selector */}
-          <div className="mb-3">
-            <div style={{ fontSize: 12, color: "var(--text-2)", textTransform: "uppercase", marginBottom: 8 }}>Channel</div>
-            <div className="btn-group w-100" role="group">
-              <input type="radio" className="btn-check" name="channel" id="ch-wa" value="whatsapp" checked={channel === "whatsapp"} onChange={(e) => { setChannel(e.target.value); setSelectedTemplate(""); }} />
-              <label className="btn btn-outline-secondary btn-sm" htmlFor="ch-wa">
-                <i className="bi bi-chat-dots me-1"></i>WhatsApp
-              </label>
-
-              <input type="radio" className="btn-check" name="channel" id="ch-sms" value="sms" checked={channel === "sms"} onChange={(e) => { setChannel(e.target.value); setSelectedTemplate(""); }} />
-              <label className="btn btn-outline-secondary btn-sm" htmlFor="ch-sms">
-                <i className="bi bi-chat-left-text me-1"></i>SMS
-              </label>
-
-              <input type="radio" className="btn-check" name="channel" id="ch-email" value="email" checked={channel === "email"} onChange={(e) => { setChannel(e.target.value); setSelectedTemplate(""); }} />
-              <label className="btn btn-outline-secondary btn-sm" htmlFor="ch-email">
-                <i className="bi bi-envelope me-1"></i>Email
-              </label>
-            </div>
-          </div>
-
-          {/* Template Selector */}
-          <div className="mb-3">
-            <div style={{ fontSize: 12, color: "var(--text-2)", textTransform: "uppercase", marginBottom: 8 }}>Template</div>
-            <select
-              className="form-select form-select-sm"
-              value={selectedTemplate}
-              onChange={(e) => {
-                setSelectedTemplate(e.target.value);
-                if (e.target.value) setCustomText("");
-              }}
-            >
-              <option value="">Custom message</option>
-              {channelTemplates.map((t) => (
-                <option key={t._id} value={t.name}>{t.name}</option>
+        <div className="border-t pt-3">
+          <div className={labelCls}>Sent before</div>
+          {history.loading ? <Spinner /> : !(history.data || []).length ? <EmptyState icon="chat-dots" text="Nothing sent yet." /> : (
+            <ul className="list-none m-0 p-0 space-y-2">
+              {history.data.map((m) => (
+                <li key={m._id} className="rounded-lg border p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-foreground truncate">{m.template || m.channel || "Message"}</span>
+                    <Chip color={m.status === "failed" ? "var(--destructive)" : "var(--success)"}>{m.status || "sent"}</Chip>
+                  </div>
+                  {(m.body || m.text) && <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{m.body || m.text}</div>}
+                  <div className="text-[11px] text-muted-foreground mt-1">{formatDateTime(m.createdAt)}</div>
+                </li>
               ))}
-            </select>
-          </div>
-
-          {/* Message Content */}
-          <div className="mb-3 flex-grow-1">
-            <div style={{ fontSize: 12, color: "var(--text-2)", textTransform: "uppercase", marginBottom: 8 }}>Message</div>
-            {selectedTemplate ? (
-              <div className="p-3 border rounded" style={{ background: "var(--surface-2)", minHeight: 100, whiteSpace: "pre-wrap", fontSize: 13 }}>
-                {messageContent}
-              </div>
-            ) : (
-              <textarea
-                className="form-control"
-                rows={5}
-                placeholder="Type your message..."
-                value={customText}
-                onChange={(e) => setCustomText(e.target.value)}
-                style={{ fontSize: 13 }}
-              />
-            )}
-          </div>
-
-          {/* Send Button */}
-          <div className="mb-3">
-            <button
-              className="btn btn-primary w-100"
-              disabled={sending || !messageContent.trim()}
-              onClick={sendMessage}
-            >
-              {sending && <span className="spinner-border spinner-border-sm me-2" />}
-              <i className="bi bi-send me-1"></i>
-              Send
-            </button>
-          </div>
-
-          {/* Message History */}
-          <div className="border-top pt-3">
-            <div style={{ fontSize: 12, color: "var(--text-2)", textTransform: "uppercase", marginBottom: 12 }}>History</div>
-            <div style={{ maxHeight: 200, overflowY: "auto" }}>
-              <div className="text-muted small text-center py-3">
-                <i className="bi bi-inbox me-1"></i>No messages sent yet
-              </div>
-            </div>
-          </div>
+            </ul>
+          )}
         </div>
       </div>
-    </>
+    </Modal>
   );
 }

@@ -23,6 +23,7 @@ import {
 import { facebookApi } from "../api";
 import { useToast } from "../context/ToastContext";
 
+import { askConfirm } from "../utils/dialog";
 // Standard CRM Lead target fields for mapping
 const CRM_LEAD_FIELDS = [
   { key: "name", label: "Lead Name" },
@@ -275,7 +276,7 @@ export default function FacebookIntegrationManager({ showHeader = true, backLink
   };
 
   const onDelete = async (item) => {
-    if (confirm(`Are you sure you want to delete Facebook integration for ${item.pageName}?`)) {
+    if (await askConfirm(`Are you sure you want to delete Facebook integration for ${item.pageName}?`)) {
       try {
         await facebookApi.remove(item.backendId || item.id);
         toast("Facebook integration deleted!");

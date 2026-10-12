@@ -1,3 +1,4 @@
+import { pmInbound } from "../services/pm/messages";
 import { Request, Response } from "express";
 import { Campaign, Message, Conversation, Template } from "../models/Messaging";
 import { Lead } from "../models/Lead";
@@ -29,7 +30,8 @@ import { activateAccount, invalidateProvider } from "../services/providers/regis
 import { config } from "../config";
 import { WhatsAppAccount } from "../models/WhatsAppAccount";
 import { sendEmail, renderTemplate } from "../services/email";
-import { convertToLead } from "../services/leadService";
+import { convertToLead, noteLeadMessaged } from "../services/leadService";
+import { sendSms } from "../services/crmChannels";
 import fs from "fs/promises";
 function toLocalTemplateStatus(metaStatus: any): "Approved" | "Pending" | "Rejected" {
   const normalized = String(metaStatus || "").trim().toUpperCase();
@@ -141,9 +143,21 @@ export const sharedSend = asyncHandler(async (req: Request, res: Response) => {
       entity: to,
       next: `email: ${template || "text"}`,
     });
+    await noteLeadMessaged(req.tenantId, to, "email", req.auth?.name, subj);
     return ok(res, { messageId: result.messageId, simulated: result.simulated, channel: "email" });
   }
 
+  if (channel === "sms") {
+    const smsBody = template ? renderTemplate((await Template.findOne({ tenant: req.tenantId, name: template }))?.body || "", params) : text;
+    if (!smsBody) throw new ApiError(400, "Provide `template` or `text` for the SMS");
+    const sent = await sendSms(req.tenantId, to, smsBody, str(meta?.dltTemplateId, 60)).catch((e) => recordFailure(e, smsBody));
+    await Message.create({
+      tenant: req.tenantId, direction: "outbound", type: template ? "template" : "text", body: smsBody, phone: to,
+      status: "sent", agent: req.auth?.name || "system", ...info, channel: "sms",
+    }).catch(() => undefined);
+    await noteLeadMessaged(req.tenantId, to, "sms", req.auth?.name, smsBody);
+    return ok(res, { messageId: (sent as any)?.id, channel: "sms" });
+  }
   if (channel !== "whatsapp") throw new ApiError(400, `Channel '${channel}' not supported yet`);
 
   let result: any;
@@ -197,6 +211,7 @@ export const sharedSend = asyncHandler(async (req: Request, res: Response) => {
     entity: to,
     next: template || text || type,
   });
+  await noteLeadMessaged(req.tenantId, to, "whatsapp", req.auth?.name, template ? `Template: ${template}` : text);
   ok(res, { waMessageId: result.waMessageId, simulated: result.simulated, channel });
 });
 
@@ -566,54 +581,6 @@ export const markRead = asyncHandler(async (req: Request, res: Response) => {
   ok(res, conv);
 });
 
-/* ───────── Conversion analytics ───────── */
-export const conversionStats = asyncHandler(async (req: Request, res: Response) => {
-  const tenant = req.tenantId;
-  const [statuses, sources, leads] = await Promise.all([
-    LeadStatus.find({ tenant }).sort({ order: 1 }),
-    LeadSource.find({ tenant }),
-    Lead.find({ tenant }),
-  ]);
-  const statusMap: any = Object.fromEntries(statuses.map((s) => [String(s._id), s]));
-
-  const won = leads.filter((l) => statusMap[String(l.status)]?.isWon).length;
-  const lost = leads.filter((l) => statusMap[String(l.status)]?.isLost).length;
-  const open = leads.length - won - lost;
-
-  const funnel = statuses
-    .filter((s) => !s.isLost)
-    .map((st) => ({
-      status: st.name,
-      color: st.color,
-      count: leads.filter((l) => (statusMap[String(l.status)]?.order || 0) >= st.order && !statusMap[String(l.status)]?.isLost).length,
-    }));
-
-  const bySource = sources
-    .map((src) => {
-      const set = leads.filter((l) => String(l.source) === String(src._id));
-      const w = set.filter((l) => statusMap[String(l.status)]?.isWon).length;
-      return { source: src.name, color: src.color, total: set.length, won: w, rate: set.length ? Math.round((w / set.length) * 100) : 0 };
-    })
-    .filter((r) => r.total > 0)
-    .sort((a, b) => b.total - a.total);
-
-  const owners = [...new Set(leads.map((l) => l.owner))];
-  const byOwner = owners
-    .map((o) => {
-      const set = leads.filter((l) => l.owner === o);
-      const w = set.filter((l) => statusMap[String(l.status)]?.isWon).length;
-      return { owner: o, total: set.length, won: w, rate: set.length ? Math.round((w / set.length) * 100) : 0 };
-    })
-    .sort((a, b) => b.won - a.won);
-
-  ok(res, {
-    totals: { leads: leads.length, won, lost, open, convRate: leads.length ? +((won / leads.length) * 100).toFixed(1) : 0 },
-    funnel,
-    bySource,
-    byOwner,
-  });
-});
-
 /* ───────── WhatsApp webhook (vendor → us) ───────── */
 
 export const webhookVerify = asyncHandler(async (req: Request, res: Response) => {
@@ -641,6 +608,8 @@ export const webhookReceive = asyncHandler(async (req: Request, res: Response) =
   try {
     const events = await parseInbound(tenantId, req.body);
     for (const ev of events) {
+      // Project Management messages (delivery receipts, verification replies)
+      await pmInbound(tenantId, ev).catch(() => {});
       if (ev.kind === "status" && ev.waMessageId) {
         const patch: any = { status: ev.status };
         if (ev.status === "delivered") patch.deliveredAt = ev.timestamp || new Date();

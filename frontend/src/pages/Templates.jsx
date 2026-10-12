@@ -8,6 +8,7 @@ import { useToast } from "../context/ToastContext";
 import { PageHeader, ErrorBox, DataTable, Modal, Tabs } from "../components/ui";
 import WhatsAppTemplateBuilder from "../components/WhatsAppTemplateBuilder";
 
+import { askConfirm } from "../utils/dialog";
 const TONE = {
   Approved: { background: "var(--ok-bg)", color: "var(--ok)" },
   Pending: { background: "var(--warn-bg)", color: "var(--warn)" },
@@ -88,7 +89,7 @@ export default function Templates() {
   }
 
   async function handleDeleteLocal(templateId, templateName) {
-    if (!confirm(`Delete template '${templateName}' from CRM? (Meta template will remain unchanged)`)) return;
+    if (!(await askConfirm(`Delete template '${templateName}' from CRM? (Meta template will remain unchanged)`))) return;
     try {
       await templatesApi.remove(templateId);
       toast("Template deleted from CRM");

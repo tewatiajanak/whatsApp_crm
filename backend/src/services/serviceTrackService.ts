@@ -2,14 +2,17 @@ import { Lead } from "../models/Lead";
 import { FollowUp } from "../models/FollowUp";
 import { LeadStatus } from "../models/Masters";
 import { Service } from "../models/Service";
-import { audit } from "../utils/http";
+import { ApiError, audit } from "../utils/http";
+import { daysFromNow } from "../utils/dates";
+import { logActivity, refreshLead } from "./leadService";
 
-function addDays(days: number, hour = 10): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(hour, 0, 0, 0);
-  return d;
-}
+const addDays = daysFromNow;
+
+/** Statuses a service uses: the ones offered for it, plus those open to every service. */
+const statusesFor = (tenant: any, serviceId: any) => ({
+  tenant,
+  $or: [{ offerings: serviceId }, { offerings: { $size: 0 } }, { offerings: { $exists: false } }],
+});
 
 /**
  * Add a service track to a lead (engage the lead in a service), or return the
@@ -23,17 +26,17 @@ export async function addServiceTrack(opts: {
   user?: string;
 }) {
   const lead = await Lead.findOne({ _id: opts.leadId, tenant: opts.tenant });
-  if (!lead) throw new Error("Lead not found");
+  if (!lead) throw new ApiError(404, "Lead not found");
   const service = await Service.findOne({ _id: opts.serviceId, tenant: opts.tenant });
-  if (!service) throw new Error("Service not found");
+  if (!service) throw new ApiError(404, "Service not found");
 
   const existing = lead.serviceTracks.find((t) => String(t.service) === String(service._id));
   if (existing) return { lead, track: existing, created: false };
 
   // first status available to this service (its own, else a shared one)
   const firstStatus =
-    (await LeadStatus.findOne({ tenant: opts.tenant, service: service._id }).sort({ order: 1 })) ||
-    (await LeadStatus.findOne({ tenant: opts.tenant, service: null }).sort({ order: 1 }));
+    (await LeadStatus.findOne({ tenant: opts.tenant, offerings: service._id }).sort({ order: 1 })) ||
+    (await LeadStatus.findOne(statusesFor(opts.tenant, service._id)).sort({ order: 1 }));
 
   lead.serviceTracks.push({
     service: service._id as any,
@@ -47,6 +50,7 @@ export async function addServiceTrack(opts: {
   lead.lastActivity = new Date();
   await lead.save();
 
+  await logActivity({ tenant: opts.tenant, lead: lead._id, type: "service", by: opts.user, title: `Added to ${service.name}`, detail: firstStatus?.name });
   await audit({ tenant: opts.tenant, user: opts.user, action: "ADD_SERVICE", module: "Leads", entity: lead.name, next: service.name });
   return { lead, track: lead.serviceTracks[lead.serviceTracks.length - 1], created: true };
 }
@@ -65,7 +69,10 @@ export async function setServiceStatus(opts: {
   user?: string;
 }) {
   const lead = await Lead.findOne({ _id: opts.leadId, tenant: opts.tenant });
-  if (!lead) throw new Error("Lead not found");
+  if (!lead) throw new ApiError(404, "Lead not found");
+
+  const service = await Service.findOne({ _id: opts.serviceId, tenant: opts.tenant });
+  if (!service) throw new ApiError(404, "Service not found");
 
   let track = lead.serviceTracks.find((t) => String(t.service) === String(opts.serviceId));
   if (!track) {
@@ -74,9 +81,8 @@ export async function setServiceStatus(opts: {
     track = lead.serviceTracks[lead.serviceTracks.length - 1];
   }
 
-  const service = await Service.findById(opts.serviceId);
   const nextStatus = await LeadStatus.findOne({ _id: opts.statusId, tenant: opts.tenant });
-  if (!nextStatus) throw new Error("Status not found");
+  if (!nextStatus) throw new ApiError(404, "Status not found");
   const prevStatus = track.status ? await LeadStatus.findById(track.status) : null;
 
   track.status = nextStatus._id as any;
@@ -90,11 +96,12 @@ export async function setServiceStatus(opts: {
     // clear THIS service's open follow-ups only
     await FollowUp.updateMany(
       { tenant: opts.tenant, lead: lead._id, service: opts.serviceId, done: false },
-      { $set: { done: true, outcome: nextStatus.isWon ? "Won" : "Closed" } }
+      { $set: { done: true, completedAt: new Date(), outcome: nextStatus.isWon ? "Won" : "Closed" } }
     );
   } else {
     track.isClosed = false;
-    if (nextStatus.followUpRequired === "Yes") {
+    const hasOpen = await FollowUp.exists({ tenant: opts.tenant, lead: lead._id, service: opts.serviceId, done: false });
+    if (nextStatus.followUpRequired === "Yes" && !hasOpen) {
       const due = addDays(2, 11);
       track.nextFollowUp = due;
       await FollowUp.create({
@@ -106,13 +113,20 @@ export async function setServiceStatus(opts: {
         due,
         type: "Call",
         note: `${service?.name || "Service"} — follow-up for ${nextStatus.name}`,
+        dueDate: due,
         owner: track.owner || lead.owner,
+        assignedTo: track.owner || lead.owner,
         status: nextStatus._id,
       });
     }
   }
 
   await lead.save();
+  await logActivity({
+    tenant: opts.tenant, lead: lead._id, type: "status", by: opts.user,
+    title: `${service.name}: ${prevStatus?.name || "—"} → ${nextStatus.name}`,
+  });
+  await refreshLead(lead);
   await audit({
     tenant: opts.tenant, user: opts.user, action: "SERVICE_STATUS", module: "Leads",
     entity: `${lead.name} · ${service?.name || ""}`,
@@ -124,9 +138,10 @@ export async function setServiceStatus(opts: {
 /** Remove a service track from a lead (and its open follow-ups). */
 export async function removeServiceTrack(opts: { tenant: any; leadId: string; serviceId: string; user?: string }) {
   const lead = await Lead.findOne({ _id: opts.leadId, tenant: opts.tenant });
-  if (!lead) throw new Error("Lead not found");
+  if (!lead) throw new ApiError(404, "Lead not found");
   lead.serviceTracks = lead.serviceTracks.filter((t) => String(t.service) !== String(opts.serviceId)) as any;
   await lead.save();
-  await FollowUp.updateMany({ tenant: opts.tenant, lead: lead._id, service: opts.serviceId, done: false }, { $set: { done: true, outcome: "Service removed" } });
+  await FollowUp.updateMany({ tenant: opts.tenant, lead: lead._id, service: opts.serviceId, done: false }, { $set: { done: true, completedAt: new Date(), outcome: "Service removed" } });
+  await refreshLead(lead);
   return lead;
 }

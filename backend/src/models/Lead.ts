@@ -44,7 +44,38 @@ export interface ILead extends Document {
   nextFollowUpDate?: Date | null;
   nextFollowUpType?: string;
   followUpCount: number;
+  // last-10-digit phone, used to spot the same person entered in different formats
+  phoneKey?: string;
+  altPhone?: string;
+  country?: string;
+  priority: LeadPriority;
+  /** true once someone picks the priority by hand; scoring then leaves it alone */
+  priorityManual: boolean;
+  lostReason?: string;
+  currentRemark?: string;
+  nextRemark?: string;
+  firstContactedAt?: Date | null;
+  lastContactedAt?: Date | null;
+  statusChangedAt?: Date | null;
+  enquiryCount: number;
+  /** set when the first-response time limit passed without contact */
+  slaBreachedAt?: Date | null;
+  branch?: string;
+  partner?: Types.ObjectId | null;
+  /** channels this person asked not to be contacted on */
+  doNotContact: { whatsapp: boolean; sms: boolean; email: boolean; call: boolean };
+  /** id from the website tracking script, linking earlier page visits to this lead */
+  visitorId?: string;
+  utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string };
+  capturedFrom?: string;
+  customFields?: Record<string, any>;
 }
+
+export const LEAD_PRIORITIES = ["hot", "warm", "cold"] as const;
+export type LeadPriority = (typeof LEAD_PRIORITIES)[number];
+
+/** Last 10 digits — "+91 98765 43210" and "09876543210" are the same person. */
+export const phoneKeyOf = (phone: unknown) => String(phone || "").replace(/\D/g, "").slice(-10);
 
 const noteSchema = new Schema<ILeadNote>(
   {
@@ -96,6 +127,37 @@ const leadSchema = new Schema<ILead>(
     nextFollowUpDate: { type: Date, default: null },
     nextFollowUpType: String,
     followUpCount: { type: Number, default: 0 },
+    phoneKey: { type: String, default: "" },
+    altPhone: { type: String, default: "" },
+    country: { type: String, default: "" },
+    priority: { type: String, enum: LEAD_PRIORITIES, default: "warm" },
+    priorityManual: { type: Boolean, default: false },
+    lostReason: { type: String, default: "" },
+    currentRemark: { type: String, default: "" },
+    nextRemark: { type: String, default: "" },
+    firstContactedAt: { type: Date, default: null },
+    lastContactedAt: { type: Date, default: null },
+    statusChangedAt: { type: Date, default: null },
+    enquiryCount: { type: Number, default: 1 },
+    slaBreachedAt: { type: Date, default: null },
+    branch: { type: String, default: "" },
+    partner: { type: Schema.Types.ObjectId, ref: "CrmPartner", default: null },
+    doNotContact: {
+      whatsapp: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
+      email: { type: Boolean, default: false },
+      call: { type: Boolean, default: false },
+    },
+    visitorId: { type: String, default: "" },
+    utm: {
+      source: { type: String, default: "" },
+      medium: { type: String, default: "" },
+      campaign: { type: String, default: "" },
+      term: { type: String, default: "" },
+      content: { type: String, default: "" },
+    },
+    capturedFrom: { type: String, default: "" },
+    customFields: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );
@@ -103,5 +165,13 @@ const leadSchema = new Schema<ILead>(
 leadSchema.index({ tenant: 1, phone: 1 });
 leadSchema.index({ tenant: 1, status: 1 });
 leadSchema.index({ tenant: 1, owner: 1 });
+leadSchema.index({ tenant: 1, phoneKey: 1 });
+leadSchema.index({ tenant: 1, createdAt: -1 });
+leadSchema.index({ tenant: 1, nextFollowUp: 1 });
+
+leadSchema.pre("save", function (next) {
+  if (this.isModified("phone") || !this.phoneKey) this.phoneKey = phoneKeyOf(this.phone);
+  next();
+});
 
 export const Lead = model<ILead>("Lead", leadSchema);

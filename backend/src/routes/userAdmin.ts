@@ -3,7 +3,9 @@ import { Types } from "mongoose";
 import bcrypt from "bcryptjs";
 import { ok, asyncHandler, ApiError, paginated, audit } from "../utils/http";
 import { require_ } from "../middleware/auth";
-import { MODULES, PASSWORD_PARTS, PasswordPolicy, User, UserCategory, UserType } from "../models/User";
+import { MODULES, PASSWORD_PARTS, PERM_ACTIONS, PasswordPolicy, User, UserCategory, UserType } from "../models/User";
+import { PmDepartment } from "../models/pm/Department";
+import { managerLoop } from "../services/pm/visibility";
 import { defaultPassword, describeRule, otpAvailable, policyFor } from "../services/userAccess";
 import { decryptSecret, encryptSecret, maskSecret } from "../services/payments/crypto";
 
@@ -21,7 +23,11 @@ const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 const cleanPerms = (list: unknown) =>
   (Array.isArray(list) ? list : [])
     .filter((p: any) => p && MODULES.includes(p.module))
-    .map((p: any) => ({ module: p.module, view: !!p.view, create: !!p.create, edit: !!p.edit, del: !!p.del }));
+    .map((p: any) => {
+      const row: any = { module: p.module };
+      for (const a of PERM_ACTIONS) row[a] = !!p[a];
+      return row;
+    });
 
 /* ---- what the screens need to know up front ---- */
 r.get(
@@ -123,6 +129,32 @@ const readUser = async (req: any, body: any, existing?: any) => {
     out.category = cat;
   }
   if (has("designation")) out.designation = body.designation || null;
+  if (has("code")) {
+    out.code = String(body.code || "").trim();
+    if (out.code) {
+      const clash = await User.findOne({ tenant: req.tenantId, code: out.code, _id: { $ne: existing?._id } }).select("_id").lean();
+      if (clash) throw new ApiError(409, "Another user already has this employee code");
+    }
+  }
+  if (has("department")) {
+    const dep = body.department?._id || body.department || null;
+    if (dep && !(await PmDepartment.exists({ _id: dep, tenant: req.tenantId }))) throw new ApiError(400, "Choose a department");
+    out.department = dep;
+  }
+  if (has("reportingManager")) {
+    const mgr = body.reportingManager?._id || body.reportingManager || null;
+    if (mgr) {
+      if (!(await User.exists({ _id: mgr, tenant: req.tenantId }))) throw new ApiError(400, "Choose a reporting manager");
+      if (existing && (await managerLoop(req.tenantId, String(existing._id), String(mgr)))) {
+        throw new ApiError(400, "This person reports to the user already, so they cannot be the user's manager");
+      }
+    }
+    out.reportingManager = mgr;
+  }
+  if (has("joiningDate")) {
+    out.joiningDate = String(body.joiningDate || "");
+    if (out.joiningDate && !/^\d{4}-\d{2}-\d{2}$/.test(out.joiningDate)) throw new ApiError(400, "Enter a valid joining date");
+  }
   if (has("status")) out.status = ["Active", "Inactive", "Pending"].includes(body.status) ? body.status : "Active";
   return out;
 };
@@ -139,7 +171,7 @@ r.get(
       filter.$or = [{ name: rx }, { email: rx }, { mobile: rx }];
     }
     const [items, total] = await Promise.all([
-      User.find(filter).sort({ createdAt: -1 }).skip((page - 1) * perPage).limit(perPage).populate("userType category"),
+      User.find(filter).sort({ createdAt: -1 }).skip((page - 1) * perPage).limit(perPage).populate("userType category").populate("department", "name").populate("reportingManager", "name"),
       User.countDocuments(filter),
     ]);
     paginated(res, items, total, page, perPage);
@@ -175,9 +207,21 @@ r.patch(
     if (String(existing._id) === String(req.auth.uid) && data.status && data.status !== "Active") {
       throw new ApiError(400, "You cannot deactivate your own account");
     }
+    // role and manager changes are recorded on their own, with the old and new value
+    const changes: { what: string; prev: string; next: string }[] = [];
+    const nameOf = async (M: any, id: any) => (id ? ((await M.findById(id).select("name").lean()) as any)?.name || "—" : "—");
+    if (data.userType !== undefined && String(data.userType) !== String(existing.userType)) {
+      changes.push({ what: "Role", prev: await nameOf(UserType, existing.userType), next: await nameOf(UserType, data.userType) });
+    }
+    if (data.reportingManager !== undefined && String(data.reportingManager || "") !== String(existing.reportingManager || "")) {
+      changes.push({ what: "Reporting manager", prev: await nameOf(User, existing.reportingManager), next: await nameOf(User, data.reportingManager) });
+    }
     Object.assign(existing, data);
     await existing.save();
     await audit({ tenant: req.tenantId, user: req.auth?.name, action: "UPDATE", module: "User Management", entity: existing.email });
+    for (const c of changes) {
+      await audit({ tenant: req.tenantId, user: req.auth?.name, action: "UPDATE", module: "User Management", entity: `${c.what} of ${existing.email}`, prev: c.prev, next: c.next });
+    }
     ok(res, await existing.populate("userType category"));
   })
 );

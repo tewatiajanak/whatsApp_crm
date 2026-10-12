@@ -7,12 +7,35 @@ export interface IPermission {
   create: boolean;
   edit: boolean;
   del: boolean;
+  /* Project Management actions — only meaningful on the pm_* modules. */
+  assign?: boolean;
+  reassign?: boolean;
+  approve?: boolean;
+  export?: boolean;
+  configure?: boolean;
 }
+
+/** Project Management screens (rights are granted per screen, like every other module). */
+export const PM_MODULES = [
+  "pm_dashboard", "pm_projects", "pm_tasks", "pm_my_tasks", "pm_daily_plan",
+  "pm_team_calendar", "pm_team", "pm_meetings", "pm_tickets", "pm_clients",
+  "pm_portal_users", "pm_reports", "pm_setup", "pm_templates", "pm_notification_rules",
+];
 
 export const MODULES = [
   "dashboard", "leads", "followups", "chat", "blast",
   "contacts", "conversion", "setup", "reports", "workflows",
+  ...PM_MODULES,
 ];
+
+export const BASE_ACTIONS = ["view", "create", "edit", "del"] as const;
+export const PM_ACTIONS = ["assign", "reassign", "approve", "export", "configure"] as const;
+export const PERM_ACTIONS = [...BASE_ACTIONS, ...PM_ACTIONS] as const;
+export type PermAction = (typeof PERM_ACTIONS)[number];
+
+/** Whose Project Management data a role sees: own · team (reports + led teams) · all. */
+export const VISIBILITY = ["own", "team", "all"] as const;
+export type Visibility = (typeof VISIBILITY)[number];
 
 /* ---- UserType = ROLE ----
    The collection is called "usertypes" for historical reasons, but it is the
@@ -23,6 +46,13 @@ export interface IUserType extends Document {
   name: string;
   desc?: string;
   perms: IPermission[];
+  dataVisibility: Visibility;
+  /** whose leads and follow-ups this role sees in the CRM */
+  leadVisibility: Visibility;
+  /** hide lead phone numbers and emails from this role (they call and message through the CRM) */
+  maskContacts: boolean;
+  /** lead fields this role cannot see, and fields it can see but not change */
+  leadFieldRules: { hidden: string[]; readOnly: string[] };
 }
 
 const permSchema = new Schema<IPermission>(
@@ -32,6 +62,11 @@ const permSchema = new Schema<IPermission>(
     create: { type: Boolean, default: false },
     edit: { type: Boolean, default: false },
     del: { type: Boolean, default: false },
+    assign: { type: Boolean, default: false },
+    reassign: { type: Boolean, default: false },
+    approve: { type: Boolean, default: false },
+    export: { type: Boolean, default: false },
+    configure: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -42,6 +77,10 @@ const userTypeSchema = new Schema<IUserType>(
     name: { type: String, required: true },
     desc: String,
     perms: { type: [permSchema], default: [] },
+    dataVisibility: { type: String, enum: VISIBILITY, default: "own" },
+    leadVisibility: { type: String, enum: VISIBILITY, default: "all" },
+    maskContacts: { type: Boolean, default: false },
+    leadFieldRules: { hidden: { type: [String], default: [] }, readOnly: { type: [String], default: [] } },
   },
   { timestamps: true }
 );
@@ -111,10 +150,11 @@ export const PasswordPolicy = model<IPasswordPolicy>("PasswordPolicy", passwordP
 export function effectivePerms(role: IPermission[] = [], overrides: IPermission[] = [], cap: IPermission[] = []): IPermission[] {
   const pick = (list: IPermission[], m: string) => list.find((x) => x.module === m);
   return MODULES.map((module) => {
-    const base = pick(overrides, module) || pick(role, module) || { module, view: false, create: false, edit: false, del: false };
-    const limit = cap.length ? pick(cap, module) || { module, view: false, create: false, edit: false, del: false } : null;
-    const allow = (k: "view" | "create" | "edit" | "del") => !!base[k] && (!limit || !!limit[k]);
-    return { module, view: allow("view"), create: allow("create"), edit: allow("edit"), del: allow("del") };
+    const base: any = pick(overrides, module) || pick(role, module) || { module };
+    const limit: any = cap.length ? pick(cap, module) || { module } : null;
+    const out: any = { module };
+    for (const k of PERM_ACTIONS) out[k] = !!base[k] && (!limit || !!limit[k]);
+    return out as IPermission;
   });
 }
 
@@ -136,6 +176,24 @@ export interface IUser extends Document {
   mustChangePassword: boolean;
   otp?: { hash: string; expires: Date; attempts: number } | null;
   designation?: Types.ObjectId | null;
+  /** employee code, e.g. EMP-014 */
+  code?: string;
+  department?: Types.ObjectId | null;
+  reportingManager?: Types.ObjectId | null;
+  /** YYYY-MM-DD */
+  joiningDate?: string;
+  /** URL under /uploads/user-photos */
+  photo?: string;
+  /** client portal user: the client company this login belongs to */
+  pmClient?: Types.ObjectId | null;
+  /** on leave: new leads are not assigned to this person */
+  crmAway?: boolean;
+  /** unguessable id in this person's calendar feed and booking link */
+  crmToken?: string;
+  /** branches whose leads this person may see; empty = every branch */
+  crmBranches?: string[];
+  /** Google Calendar link: follow-ups are kept in step with this account's calendar */
+  google?: { refreshToken?: string; email?: string; syncToken?: string; connectedAt?: Date | null } | null;
   status: "Active" | "Inactive" | "Pending";
   lastLogin?: Date;
 }
@@ -154,6 +212,16 @@ const userSchema = new Schema<IUser>(
     mustChangePassword: { type: Boolean, default: false },
     otp: { type: new Schema({ hash: String, expires: Date, attempts: { type: Number, default: 0 } }, { _id: false }), default: null },
     designation: { type: Schema.Types.ObjectId, ref: "Designation", default: null },
+    code: { type: String, default: "", trim: true },
+    department: { type: Schema.Types.ObjectId, ref: "PmDepartment", default: null },
+    reportingManager: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    joiningDate: { type: String, default: "" },
+    photo: { type: String, default: "" },
+    pmClient: { type: Schema.Types.ObjectId, ref: "PmClient", default: null },
+    crmAway: { type: Boolean, default: false },
+    crmToken: { type: String, default: "", index: true },
+    crmBranches: { type: [String], default: [] },
+    google: { type: new Schema({ refreshToken: String, email: String, syncToken: String, connectedAt: Date }, { _id: false }), default: null },
     status: { type: String, enum: ["Active", "Inactive", "Pending"], default: "Active" },
     lastLogin: Date,
   },
@@ -161,6 +229,7 @@ const userSchema = new Schema<IUser>(
 );
 
 userSchema.index({ tenant: 1, email: 1 }, { unique: true });
+userSchema.index({ tenant: 1, reportingManager: 1 });
 
 // never leak the hash
 userSchema.set("toJSON", {

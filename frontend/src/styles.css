@@ -37,6 +37,15 @@
   --text-2: #2C5655;
   --muted: var(--muted-foreground);
   --muted-2: #66797D;
+  /* names the older CRM pages use — pointed at the theme's own colours */
+  --ok: var(--success);
+  --ok-bg: var(--success-bg);
+  --err: var(--destructive);
+  --err-bg: var(--destructive-bg);
+  --warn: var(--warning);
+  --warn-bg: var(--warning-bg);
+  --accent-soft: var(--accent);
+  --accent-ink: var(--accent-foreground);
   --pill-bg: var(--muted-background);
   --pill-ink: var(--foreground);
 
@@ -1050,6 +1059,11 @@ a { color: var(--primary); }
   .crm-theme.app-shell {
     flex-direction: column !important;
     min-height: 100vh;
+  }
+  /* The desktop sidebar is not shown on a phone (the menu button opens the
+     drawer instead), so it must not take up a screen of empty space either. */
+  .crm-theme.app-shell > aside.sidebar.hidden {
+    display: none !important;
   }
   .topbar {
     padding: 0 12px !important;

@@ -1,13 +1,15 @@
 {
   "name": "whatsapp-crm-frontend",
   "version": "1.0.0",
-  "description": "WhatsApp Business Suite + Admissions CRM — React + Bootstrap frontend (connected to the API)",
+  "description": "WhatsApp Business Suite + Admissions CRM \u2014 React + Bootstrap frontend (connected to the API)",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --force",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "vite build && vite build --config vite.ssr.config.js",
+    "preview": "vite preview",
+    "test:website": "node src/website-builder/expressions.test.mjs",
+    "build:ssr": "vite build --config vite.ssr.config.js"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",

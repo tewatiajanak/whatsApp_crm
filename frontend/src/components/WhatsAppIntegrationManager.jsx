@@ -21,6 +21,7 @@ import {
 import { waStore, useWaIntegrations } from "../knowvato-main/lib/wa-store";
 import { waAccountsApi } from "../api";
 
+import { askConfirm } from "../utils/dialog";
 const VENDORS = [
   { id: "pinnacle", name: "Pinnacle" },
   { id: "aisensy", name: "AI Sensy" },
@@ -226,7 +227,7 @@ export default function WhatsAppIntegrationManager({ showHeader = true, backLink
   };
 
   const onDelete = async (item) => {
-    if (confirm(`Are you sure you want to delete WhatsApp integration for ${item.phoneNumber}?`)) {
+    if (await askConfirm(`Are you sure you want to delete WhatsApp integration for ${item.phoneNumber}?`)) {
       waStore.remove(item.id);
       if (item.backendId) {
         try {

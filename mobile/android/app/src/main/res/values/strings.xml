@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Knowvato CRM</string>
+    <string name="title_activity_main">Knowvato CRM</string>
+    <string name="package_name">com.knowvato.crm</string>
+    <string name="custom_url_scheme">com.knowvato.crm</string>
+</resources>

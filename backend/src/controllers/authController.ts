@@ -29,6 +29,9 @@ async function completeLogin(user: any, res: Response) {
       userType: { _id: user.userType?._id, name: user.userType?.name, perms },
       tenant: user.tenant,
       mustChangePassword: !!user.mustChangePassword,
+      // set for a client portal user: the app sends them to the portal
+      pmClient: user.pmClient || null,
+      photo: user.photo || "",
     },
   });
 }

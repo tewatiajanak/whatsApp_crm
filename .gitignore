@@ -16,3 +16,7 @@ Desktop/
 backend/uploads/*
 !backend/uploads/.gitkeep
 
+backend/pm-files/
+
+# website renderer built for the API server
+frontend/dist-ssr/

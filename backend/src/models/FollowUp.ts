@@ -19,6 +19,11 @@ export interface IFollowUp extends Document {
   outcome?: string;
   completedAt?: Date; // NEW
   completionNote?: string; // NEW
+  /** when the owner was reminded that this is due */
+  remindedAt?: Date | null;
+  /** the matching event in the owner's Google Calendar */
+  gcalEventId?: string;
+  gcalSyncedAt?: Date | null;
 }
 
 const followUpSchema = new Schema<IFollowUp>(
@@ -41,8 +46,13 @@ const followUpSchema = new Schema<IFollowUp>(
     outcome: String,
     completedAt: Date,
     completionNote: String,
+    remindedAt: { type: Date, default: null },
+    gcalEventId: { type: String, default: "" },
+    gcalSyncedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
+
+followUpSchema.index({ tenant: 1, done: 1, due: 1 });
 
 export const FollowUp = model<IFollowUp>("FollowUp", followUpSchema);

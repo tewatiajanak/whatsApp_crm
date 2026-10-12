@@ -1,0 +1,8 @@
+{
+  "appId": "com.knowvato.crm",
+  "appName": "Knowvato CRM",
+  "webDir": "../frontend/dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

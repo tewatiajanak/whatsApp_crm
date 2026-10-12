@@ -7,6 +7,7 @@ import { Spinner, Modal } from "./ui";
 import { COMPONENT_TYPES } from "./BuilderComponentTypes";
 
 
+import { showNotice } from "../utils/dialog";
 export default function LandingPageBuilder({ initialPage, formsList, onSave, onCancel }) {
   const toast = useToast();
   const [page, setPage] = useState(() => ({
@@ -809,7 +810,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
       setShowJsonModal(false);
       toast("Schema imported!");
     } catch (e) {
-      alert(`Invalid JSON:\n${e.message}`);
+      showNotice(`Invalid JSON:\n${e.message}`);
     }
   };
   const handleAddCustomHtml = () => {

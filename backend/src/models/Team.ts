@@ -10,6 +10,8 @@ export interface ITeam extends Document {
   manager: Types.ObjectId;
   members: ITeamMember[];
   sources: Types.ObjectId[];
+  /** the team this one sits under, if any */
+  parent?: Types.ObjectId | null;
   active: boolean;
 }
 
@@ -27,6 +29,7 @@ const teamSchema = new Schema<ITeam>(
     manager: { type: Schema.Types.ObjectId, ref: "User", required: true },
     members: { type: [teamMemberSchema], required: true, validate: { validator: (v: any[]) => v && v.length > 0, message: "At least one team member is required" } },
     sources: { type: [Schema.Types.ObjectId], ref: "LeadSource", default: [] },
+    parent: { type: Schema.Types.ObjectId, ref: "Team", default: null },
     active: { type: Boolean, default: true },
   },
   { timestamps: true }

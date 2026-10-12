@@ -1,291 +1,125 @@
-import { useMemo } from "react";
-import { conversionApi, leadsApi, followUpsApi } from "../api";
+import { Link } from "react-router-dom";
+import { leadsApi, followUpsApi } from "../api";
 import { useApi } from "../hooks/useApi";
+import { useAuth } from "../context/AuthContext";
+import { PageHeader, Spinner, ErrorBox, StatCard, Panel, EmptyState, Chip, Avatar } from "../components/ui";
+import { MyCrmPanel } from "../components/lead/MyCrm";
+import { PRIORITY, fuIcon, dueInfo, timeAgo, compactMoney, isoDay, idOf } from "../components/lead/leadUtils";
 
-const numberFmt = new Intl.NumberFormat("en-IN");
+const num = new Intl.NumberFormat("en-IN");
+const none = () => Promise.resolve({ data: null });
 
-const formatMoney = (value) => {
-  const num = Number(value || 0);
-  if (num >= 100000) return `₹${(num / 100000).toFixed(1)}L`;
-  if (num >= 1000) return `₹${(num / 1000).toFixed(1)}K`;
-  return `₹${num}`;
-};
-
-const toSafeArray = (value) => (Array.isArray(value) ? value : []);
-
+// CRM home: what needs doing today, then how the pipeline is doing.
 export default function Dashboard() {
-  const conversionStats = useApi(() => conversionApi.stats(), []);
-  const leadsList = useApi(() => leadsApi.list({ page: 1, perPage: 200 }), []);
-  const followups = useApi(() => followUpsApi.buckets({ owner: "All" }), []);
+  const { can, user } = useAuth();
+  const seeLeads = can("leads", "view");
+  const seeFollowUps = can("followups", "view");
+  const counts = useApi(() => (seeLeads ? leadsApi.viewCounts() : none()), []);
+  const stats = useApi(() => (seeLeads ? leadsApi.analytics({ createdFrom: isoDay(-29), createdTo: isoDay(0) }) : none()), []);
+  const recent = useApi(() => (seeLeads ? leadsApi.list({ perPage: 6, sort: "-createdAt" }) : none()), []);
+  const mine = useApi(() => (seeFollowUps ? followUpsApi.buckets({ owner: "me" }) : none()), []);
 
-  const leadItems = toSafeArray(leadsList.data?.items || leadsList.data);
-  const funnel = toSafeArray(conversionStats.data?.funnel);
-  const totals = conversionStats.data?.totals || {};
-  const followupCounts = followups.data?.counts || {};
-
-  const metrics = useMemo(() => {
-    const totalLeads = Number(totals.leads ?? leadItems.length ?? 0);
-    const won = Number(totals.won ?? 0);
-    const lost = Number(totals.lost ?? 0);
-    const open = Number(totals.open ?? Math.max(0, totalLeads - won - lost));
-    const followUpCount = Number(followupCounts.today ?? 0) + Number(followupCounts.overdue ?? 0) + Number(followupCounts.upcoming ?? 0);
-    const collected = leadItems.reduce((sum, lead) => sum + (Number(lead.value) || 0), 0);
-
-    return [
-      { label: "Leads", value: numberFmt.format(totalLeads), icon: "bi-search" },
-      { label: "Registrations", value: numberFmt.format(Math.max(0, won)), icon: "bi-file-earmark-text" },
-      { label: "Conversions", value: numberFmt.format(Math.max(0, won)), icon: "bi-check-circle" },
-      { label: "Follow-ups", value: numberFmt.format(followUpCount || open), icon: "bi-telephone" },
-      { label: "Collected amount", value: formatMoney(collected), icon: "bi-currency-rupee", dark: true },
-    ];
-  }, [leadItems, followupCounts, totals]);
-
-  const stageRows = useMemo(() => {
-    const rows = funnel.length ? funnel : [
-      { status: "Leads", count: Number(totals.leads ?? leadItems.length ?? 0) },
-      { status: "Registrations", count: Number(totals.won ?? 0) },
-      { status: "Follow-ups", count: Number(followupCounts.today ?? 0) },
-      { status: "Conversions", count: Number(totals.won ?? 0) },
-    ];
-
-    const maxCount = Math.max(1, ...rows.map((r) => Number(r.count || 0)));
-
-    return rows.map((row) => ({
-      stage: row.status,
-      today: Number(row.count || 0),
-      total: Number(row.count || 0),
-      pct: Math.round((Number(row.count || 0) / maxCount) * 100),
-      date: "Today",
-    }));
-  }, [funnel, followupCounts, leadItems.length, totals]);
-
-  const sourceRows = useMemo(() => {
-    const sourceData = Array.isArray(conversionStats.data?.bySource) ? conversionStats.data.bySource : [];
-    if (!sourceData.length && leadItems.length) {
-      const map = {};
-      for (const lead of leadItems) {
-        const sourceName = lead.source?.name || "Direct";
-        map[sourceName] = (map[sourceName] || 0) + 1;
-      }
-      return Object.entries(map).map(([name, total]) => ({ channel: name, total, pct: Math.min(100, Math.round((total / Math.max(1, leadItems.length)) * 100)) }));
-    }
-    return sourceData.slice(0, 4).map((item) => ({
-      channel: item.source || "Source",
-      total: Number(item.total || 0),
-      pct: Math.min(100, Math.max(10, Number(item.rate || 0))),
-    }));
-  }, [conversionStats.data, leadItems]);
-
-  const integrationRows = useMemo(() => {
-    const sourceData = Array.isArray(conversionStats.data?.bySource) ? conversionStats.data.bySource : [];
-    const rows = sourceData.length ? sourceData.slice(0, 3) : [
-      { source: "Website", total: Number(totals.leads || leadItems.length || 0), rate: 62 },
-      { source: "WhatsApp", total: Number(followupCounts.today || 0), rate: 44 },
-      { source: "Instagram", total: Number(totals.won || 0), rate: 31 },
-    ];
-
-    return [
-      {
-        group: "Lead sources",
-        items: rows.map((item) => ({
-          name: item.source || "Lead source",
-          status: "Active",
-          today: Number(item.total || 0),
-          week: Number(item.total || 0),
-          last: "Today",
-        })),
-      },
-      {
-        group: "Operations",
-        items: [
-          {
-            name: "WhatsApp follow-ups",
-            status: followupCounts.today ? "Active" : "Idle",
-            today: Number(followupCounts.today || 0),
-            week: Number(followupCounts.overdue || 0) + Number(followupCounts.upcoming || 0),
-            last: "Today",
-          },
-          {
-            name: "Lead conversion",
-            status: Number(totals.convRate || 0) > 0 ? "Active" : "Monitoring",
-            today: Number(totals.won || 0),
-            week: Number(totals.leads || 0),
-            last: `${Number(totals.convRate || 0)}%`,
-          },
-        ],
-      },
-    ];
-  }, [conversionStats.data, followupCounts, leadItems.length, totals]);
+  const c = counts.data || {};
+  const t = stats.data?.totals || {};
+  const due = [...(mine.data?.overdue || []), ...(mine.data?.today || [])].slice(0, 7);
+  const funnel = stats.data?.funnel || [];
+  const funnelMax = Math.max(1, ...funnel.map((f) => f.count));
+  const tiles = [
+    ["New today", c.new, "new", "stars", "info"],
+    ["Not contacted", c.untouched, "untouched", "person-exclamation", "warning"],
+    ["Overdue follow-ups", c.overdue, "overdue", "alarm", "destructive"],
+    ["Due today", c.today, "today", "bell", "warning"],
+    ["Hot leads", c.hot, "hot", "fire", "destructive"],
+    ["Unassigned", c.unassigned, "unassigned", "person-dash", "info"],
+  ];
 
   return (
-    <div style={{ color: "var(--foreground)", fontSize: 13 }}>
-      <main style={{ maxWidth: 1280, width: "100%", margin: "0 auto" }}>
-        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", padding: "12px 0 18px", borderBottom: "1px solid var(--border)" }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1f2a2c", letterSpacing: "-0.04em", lineHeight: 1.2 }}>CRM dashboard</h1>
-          <button className="ui-btn ui-btn-primary">
-            <i className="bi bi-download" style={{ fontSize: 12.5, lineHeight: 1 }} /> Export
-          </button>
-        </header>
+    <div>
+      <PageHeader title="CRM dashboard" subtitle={user?.name ? `Signed in as ${user.name}` : undefined}
+        actions={seeLeads && <Link to="/crm/leads" className="ui-btn ui-btn-primary no-underline"><i className="bi bi-flag"></i>Open leads</Link>} />
+      <ErrorBox error={counts.error || stats.error} />
 
-        <div style={{ marginTop: 18, marginBottom: 16, color: "#6d787a", fontSize: 12.5, lineHeight: 1.5 }}>
-          Live admissions pipeline for the current tenant. Updated from the existing CRM data.
-        </div>
-
-        <section style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 16, marginBottom: 22 }}>
-          {metrics.map((metric) => (
-            <div
-              key={metric.label}
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                padding: "14px 14px 12px",
-                minHeight: 100,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, color: "#4b5a5b", fontWeight: 500, marginBottom: 6 }}>{metric.label}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.1, color: "#1e2d2d" }}>{metric.value}</div>
-              </div>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  background: "var(--accent)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--accent-foreground)",
-                  fontSize: 14,
-                  marginLeft: 10,
-                  flexShrink: 0,
-                }}
-              >
-                <i className={`bi ${metric.icon}`} />
-              </div>
-            </div>
+      {seeLeads && (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-3">
+          {tiles.map(([label, value, view, icon, tone]) => (
+            <Link key={view} to={`/crm/leads?view=${view}`} className="no-underline">
+              <StatCard label={label} value={counts.loading && !counts.data ? "…" : num.format(value || 0)} icon={icon} tone={tone} />
+            </Link>
           ))}
-        </section>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 20, marginBottom: 20 }}>
-          <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: "16px 18px 12px" }}>
-              <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1f2d2b" }}>Lead pipeline</h2>
-              <p style={{ margin: "2px 0 0", color: "#6d787a", fontSize: 11 }}>Stage-wise totals from your current lead and conversion data.</p>
-            </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
-                <thead>
-                  <tr>
-                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Stage</th>
-                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "right" }}>Total</th>
-                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left", width: "34%" }}>Progress</th>
-                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stageRows.map((row) => (
-                    <tr key={row.stage}>
-                      <th scope="row" style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", fontWeight: 500, textAlign: "left" }}>{row.stage}</th>
-                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", textAlign: "right" }}>{row.total}</td>
-                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <span style={{ flex: 1, height: 6, background: "var(--accent)", borderRadius: 3, overflow: "hidden", display: "inline-block" }}>
-                            <i style={{ display: "block", borderRadius: 3, width: `${row.pct}%`, height: "100%", background: "var(--primary)" }} />
-                          </span>
-                          <b style={{ fontWeight: 600, minWidth: 44, textAlign: "right" }}>{row.pct}%</b>
-                        </div>
-                      </td>
-                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", color: "#6d787a" }}>{row.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: "16px 18px 12px" }}>
-              <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1f2d2b" }}>Source performance</h2>
-              <p style={{ margin: "2px 0 0", color: "#6d787a", fontSize: 11 }}>Lead generation by source from your live dataset.</p>
-            </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
-                <thead>
-                  <tr>
-                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Channel</th>
-                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "right" }}>Count</th>
-                    <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left", width: "34%" }}>Share</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sourceRows.map((row) => (
-                    <tr key={row.channel}>
-                      <th scope="row" style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", fontWeight: 500, textAlign: "left" }}>{row.channel}</th>
-                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", textAlign: "right" }}>{row.total}</td>
-                      <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <span style={{ flex: 1, height: 6, background: "var(--accent)", borderRadius: 3, overflow: "hidden", display: "inline-block" }}>
-                            <i style={{ display: "block", borderRadius: 3, width: `${row.pct}%`, height: "100%", background: "var(--primary)" }} />
-                          </span>
-                          <b style={{ fontWeight: 600, minWidth: 44, textAlign: "right" }}>{row.pct}%</b>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
         </div>
+      )}
 
-        <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", marginBottom: 20 }}>
-          <div style={{ padding: "16px 18px 12px" }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1f2d2b" }}>Operations snapshot</h2>
-            <p style={{ margin: "2px 0 0", color: "#6d787a", fontSize: 11 }}>Current activity across lead sources and follow-up operations.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
+        {seeFollowUps && (
+          <Panel title="My follow-ups" bodyClass="p-0" actions={<Link to="/crm/followups" className="text-xs no-underline" style={{ color: "var(--primary)" }}>All follow-ups</Link>}>
+            {mine.loading && !mine.data ? <Spinner /> : !due.length ? <EmptyState icon="check2-circle" text="Nothing due today." /> : due.map((f) => {
+              const d = dueInfo(f.due);
+              const leadId = idOf(f.lead);
+              return (
+                <Link key={f._id} to={seeLeads && leadId ? `/crm/leads?lead=${leadId}` : "/crm/followups"} className="flex items-center gap-2.5 px-3 py-2 border-b last:border-b-0 hover:bg-accent/30 no-underline">
+                  <i className={`bi bi-${fuIcon(f.type)}`} style={{ color: "var(--primary)" }}></i>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-foreground truncate">{f.leadName}</span>
+                    <span className="block text-xs text-muted-foreground truncate">{f.note || f.type}</span>
+                  </span>
+                  <Chip color={`var(--${d.tone})`}>{d.text}</Chip>
+                </Link>
+              );
+            })}
+          </Panel>
+        )}
+
+        {seeLeads && (
+          <Panel title="Newest leads" bodyClass="p-0" actions={<Link to="/crm/leads" className="text-xs no-underline" style={{ color: "var(--primary)" }}>All leads</Link>}>
+            {recent.loading && !recent.data ? <Spinner /> : !(recent.data || []).length ? <EmptyState icon="flag" text="No leads yet." /> : recent.data.map((l) => {
+              const pr = PRIORITY[l.priority] || PRIORITY.warm;
+              return (
+                <Link key={l._id} to={`/crm/leads?lead=${l._id}`} className="flex items-center gap-2.5 px-3 py-2 border-b last:border-b-0 hover:bg-accent/30 no-underline">
+                  <Avatar name={l.name} size={28} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5"><span className="text-sm font-medium text-foreground truncate">{l.name}</span><i className={`bi bi-${pr.icon}`} style={{ color: pr.color, fontSize: 11 }}></i></span>
+                    <span className="block text-xs text-muted-foreground truncate">{l.source?.name || "No source"} · {l.owner || "Unassigned"}</span>
+                  </span>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">{timeAgo(l.createdAt)}</span>
+                </Link>
+              );
+            })}
+          </Panel>
+        )}
+      </div>
+
+      <div className="mb-3" style={{ maxWidth: 520 }}><MyCrmPanel /></div>
+
+      {seeLeads && (
+        <>
+          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Last 30 days</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <StatCard label="Leads" value={num.format(t.leads || 0)} icon="flag" hint={`${num.format(t.open || 0)} open`} />
+            <StatCard label="Won" value={num.format(t.won || 0)} icon="trophy" tone="success" hint={`${t.convRate || 0}% conversion`} />
+            <StatCard label="Pipeline value" value={compactMoney(t.pipelineValue)} icon="currency-rupee" tone="info" />
+            <StatCard label="First response" value={t.avgResponseHours == null ? "—" : `${t.avgResponseHours} h`} icon="stopwatch" tone="warning" />
           </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
-              <thead>
-                <tr>
-                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Service</th>
-                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Status</th>
-                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "right" }}>Today</th>
-                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "right" }}>Week</th>
-                  <th style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--surface-2)", color: "#5d6d6d", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "left" }}>Last sync</th>
-                </tr>
-              </thead>
-              <tbody>
-                {integrationRows.map((group) => (
-                  <div key={group.group} style={{ display: "contents" }}>
-                    <tr>
-                      <th colSpan="5" style={{ background: "var(--surface-2)", color: "#5d6d6d", padding: "8px 18px", fontSize: 12, fontWeight: 700, borderTop: "1px solid var(--border)" }}>{group.group}</th>
-                    </tr>
-                    {group.items.map((item) => (
-                      <tr key={`${group.group}-${item.name}`}>
-                        <th scope="row" style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", fontWeight: 500 }}>{item.name}</th>
-                        <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 11px 3px 9px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, background: item.status === "Active" ? "var(--success-bg)" : "var(--destructive-bg)", color: item.status === "Active" ? "var(--success)" : "var(--destructive)" }}>
-                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
-                            {item.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", textAlign: "right" }}>{item.today}</td>
-                        <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", textAlign: "right" }}>{item.week}</td>
-                        <td style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", color: "#6d787a" }}>{item.last}</td>
-                      </tr>
-                    ))}
-                  </div>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <Panel title="Pipeline" actions={can("conversion", "view") && <Link to="/crm/conversion" className="text-xs no-underline" style={{ color: "var(--primary)" }}>Full report</Link>}>
+              {stats.loading && !stats.data ? <Spinner /> : !funnel.some((f) => f.count) ? <EmptyState icon="funnel" text="No leads in the last 30 days." /> : funnel.filter((f) => f.count).map((f, i) => (
+                <div key={f.status + i} className="grid grid-cols-[minmax(90px,35%)_1fr_32px] items-center gap-2 mb-1.5 last:mb-0">
+                  <span className="text-xs text-foreground truncate">{f.status}</span>
+                  <span className="h-2 rounded-full overflow-hidden" style={{ background: "var(--muted-background)" }}><span className="block h-full rounded-full" style={{ width: `${(f.count / funnelMax) * 100}%`, background: f.color || "var(--primary)" }} /></span>
+                  <span className="text-xs text-right font-medium text-foreground">{f.count}</span>
+                </div>
+              ))}
+            </Panel>
+            <Panel title="Top sources" bodyClass="p-0">
+              {!(stats.data?.bySource || []).length ? <EmptyState icon="broadcast" text="No leads in the last 30 days." /> : stats.data.bySource.slice(0, 6).map((s) => (
+                <div key={s.source} className="flex items-center justify-between gap-2 px-3 py-2 border-b last:border-b-0">
+                  <span className="flex items-center gap-2 text-sm text-foreground min-w-0"><span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: s.color }} /><span className="truncate">{s.source}</span></span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap"><span className="font-semibold text-foreground">{s.total}</span> leads · {s.won} won · {s.rate}%</span>
+                </div>
+              ))}
+            </Panel>
           </div>
-        </section>
-      </main>
+        </>
+      )}
     </div>
   );
 }

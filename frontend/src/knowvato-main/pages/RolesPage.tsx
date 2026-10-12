@@ -12,28 +12,21 @@ import {
   Check,
 } from "lucide-react";
 import { UIButton, SearchInput } from "../components/UIKit";
+import { ACTIONS, ACTION_LABELS, MODULE_KEYS, MODULE_LABELS, VISIBILITY_OPTIONS, LEAD_VISIBILITY_OPTIONS, LEAD_FIELD_OPTIONS, hasAction } from "../user-management/shared";
 
 type Role = {
   _id: string;
   name: string;
   desc?: string;
-  perms: { module: string; view: boolean; create: boolean; edit: boolean; del: boolean }[];
+  perms: { module: string; view: boolean; create: boolean; edit: boolean; del: boolean; [action: string]: any }[];
+  dataVisibility?: string;
+  leadVisibility?: string;
+  maskContacts?: boolean;
+  leadFieldRules?: { hidden?: string[]; readOnly?: string[] };
 };
 
-const MODULES = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "leads", label: "Leads" },
-  { key: "followups", label: "Follow-ups" },
-  { key: "chat", label: "Chat" },
-  { key: "blast", label: "Campaigns" },
-  { key: "contacts", label: "Contacts" },
-  { key: "conversion", label: "Conversion" },
-  { key: "setup", label: "Setup / Configuration" },
-  { key: "reports", label: "Reports" },
-  { key: "workflows", label: "Workflows" },
-];
-
-const ACTIONS = ["view", "create", "edit", "del"] as const;
+const MODULES = MODULE_KEYS.map((key) => ({ key, label: MODULE_LABELS[key] }));
+const blankRow = (key: string) => Object.fromEntries(ACTIONS.filter((a) => hasAction(key, a)).map((a) => [a, false]));
 
 export default function RolesPage() {
   const toast = useToast() as any;
@@ -42,10 +35,15 @@ export default function RolesPage() {
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<Role | null>(null);
-  const [form, setForm] = useState<{ name: string; desc: string; perms: any }>({
+  const [form, setForm] = useState<{ name: string; desc: string; perms: any; dataVisibility: string; leadVisibility: string; maskContacts: boolean; hidden: string[]; readOnly: string[] }>({
     name: "",
     desc: "",
     perms: {},
+    dataVisibility: "own",
+    leadVisibility: "all",
+    maskContacts: false,
+    hidden: [],
+    readOnly: [],
   });
   const [saving, setSaving] = useState(false);
 
@@ -65,13 +63,13 @@ export default function RolesPage() {
 
   const emptyPerms = () => {
     const p: any = {};
-    MODULES.forEach((m) => { p[m.key] = { view: false, create: false, edit: false, del: false }; });
+    MODULES.forEach((m) => { p[m.key] = blankRow(m.key); });
     return p;
   };
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", desc: "", perms: emptyPerms() });
+    setForm({ name: "", desc: "", perms: emptyPerms(), dataVisibility: "own", leadVisibility: "all", maskContacts: false, hidden: [], readOnly: [] });
     setDrawerOpen(true);
   };
 
@@ -80,18 +78,17 @@ export default function RolesPage() {
     const perms: any = {};
     MODULES.forEach((m) => {
       const existing = r.perms?.find((p) => p.module === m.key);
-      perms[m.key] = existing
-        ? { view: existing.view, create: existing.create, edit: existing.edit, del: existing.del }
-        : { view: false, create: false, edit: false, del: false };
+      perms[m.key] = blankRow(m.key);
+      if (existing) Object.keys(perms[m.key]).forEach((a) => { perms[m.key][a] = !!existing[a]; });
     });
-    setForm({ name: r.name, desc: r.desc || "", perms });
+    setForm({ name: r.name, desc: r.desc || "", perms, dataVisibility: r.dataVisibility || "own", leadVisibility: r.leadVisibility || "all", maskContacts: !!r.maskContacts, hidden: r.leadFieldRules?.hidden || [], readOnly: r.leadFieldRules?.readOnly || [] });
     setDrawerOpen(true);
   };
 
   const closeDrawer = () => {
     setDrawerOpen(false);
     setEditing(null);
-    setForm({ name: "", desc: "", perms: {} });
+    setForm({ name: "", desc: "", perms: {}, dataVisibility: "own", leadVisibility: "all", maskContacts: false, hidden: [], readOnly: [] });
   };
 
   const toggle = (mod: string, action: string) => {
@@ -107,13 +104,13 @@ export default function RolesPage() {
   const toggleRow = (mod: string, on: boolean) => {
     setForm({
       ...form,
-      perms: { ...form.perms, [mod]: { view: on, create: on, edit: on, del: on } },
+      perms: { ...form.perms, [mod]: Object.fromEntries(Object.keys(blankRow(mod)).map((a) => [a, on])) },
     });
   };
 
   const toggleCol = (action: string, on: boolean) => {
     const p: any = { ...form.perms };
-    MODULES.forEach((m) => { p[m.key] = { ...p[m.key], [action]: on }; });
+    MODULES.forEach((m) => { if (hasAction(m.key, action as any)) p[m.key] = { ...p[m.key], [action]: on }; });
     setForm({ ...form, perms: p });
   };
 
@@ -122,7 +119,7 @@ export default function RolesPage() {
     setSaving(true);
     try {
       const perms = MODULES.map((m) => ({ module: m.key, ...form.perms[m.key] }));
-      const payload = { name: form.name.trim(), desc: form.desc.trim(), perms };
+      const payload = { name: form.name.trim(), desc: form.desc.trim(), perms, dataVisibility: form.dataVisibility, leadVisibility: form.leadVisibility, maskContacts: form.maskContacts, leadFieldRules: { hidden: form.hidden, readOnly: form.readOnly.filter((f) => !form.hidden.includes(f)) } };
       if (editing) {
         await http.patch(`/usertypes/${editing._id}`, payload);
         toast?.("Role updated");
@@ -253,7 +250,7 @@ export default function RolesPage() {
         <div className="fixed inset-0 z-50 flex" onClick={closeDrawer}>
           <div className="flex-1 bg-black/40 backdrop-blur-sm" />
           <div
-            className="w-full max-w-3xl bg-card border-l shadow-2xl flex flex-col"
+            className="w-full max-w-5xl bg-card border-l shadow-2xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sticky header */}
@@ -285,6 +282,45 @@ export default function RolesPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ maxWidth: 540 }}>
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Project data visibility</label>
+                  <select value={form.dataVisibility} onChange={(e) => setForm({ ...form, dataVisibility: e.target.value })} className="ui-input w-full mt-1">
+                    {VISIBILITY_OPTIONS.map((v) => (
+                      <option key={v.value} value={v.value}>{v.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Lead visibility</label>
+                  <select value={form.leadVisibility} onChange={(e) => setForm({ ...form, leadVisibility: e.target.value })} className="ui-input w-full mt-1" title="Whose leads and follow-ups this role sees in the CRM">
+                    {LEAD_VISIBILITY_OPTIONS.map((v) => (
+                      <option key={v.value} value={v.value}>{v.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input type="checkbox" checked={form.maskContacts} onChange={(e) => setForm({ ...form, maskContacts: e.target.checked })} />
+                Hide lead phone numbers and emails from this role
+              </label>
+              {(["hidden", "readOnly"] as const).map((kind) => (
+                <div key={kind}>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{kind === "hidden" ? "Lead fields this role cannot see" : "Lead fields this role can see but not change"}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {LEAD_FIELD_OPTIONS.map((f) => {
+                      const on = form[kind].includes(f.value);
+                      return (
+                        <button key={f.value} type="button" className={"ui-btn ui-btn-sm " + (on ? "ui-btn-primary" : "ui-btn-outline")}
+                          onClick={() => setForm({ ...form, [kind]: on ? form[kind].filter((x) => x !== f.value) : [...form[kind], f.value] })}>
+                          {f.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
               {/* Matrix */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -293,15 +329,15 @@ export default function RolesPage() {
                     Click cells or use row/column shortcuts
                   </div>
                 </div>
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="rounded-lg border overflow-x-auto">
+                  <table className="w-full text-sm" style={{ minWidth: 820 }}>
                     <thead style={{ background: "var(--muted-background)" }}>
                       <tr>
                         <th className="px-3 py-2 text-left text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Module</th>
                         {ACTIONS.map((a) => (
                           <th key={a} className="px-2 py-2 text-center text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
                             <div className="flex flex-col items-center">
-                              <span>{a === "del" ? "delete" : a}</span>
+                              <span>{ACTION_LABELS[a]}</span>
                               <div className="inline-flex items-center gap-1 mt-0.5">
                                 <button onClick={() => toggleCol(a, true)} className="text-[9px] text-primary hover:underline">all</button>
                                 <span className="text-muted-foreground">·</span>
@@ -315,14 +351,14 @@ export default function RolesPage() {
                     </thead>
                     <tbody>
                       {MODULES.map((m) => {
-                        const rowAll = ACTIONS.every((a) => form.perms[m.key]?.[a]);
+                        const rowAll = ACTIONS.every((a) => !hasAction(m.key, a) || form.perms[m.key]?.[a]);
                         return (
                           <tr key={m.key} className="border-t hover:bg-accent/20">
                             <td className="px-3 py-1.5 text-sm">
                               <div className="text-foreground">{m.label}</div>
                               <div className="text-[10px] font-mono text-muted-foreground">{m.key}</div>
                             </td>
-                            {ACTIONS.map((a) => (
+                            {ACTIONS.map((a) => !hasAction(m.key, a) ? <td key={a} /> : (
                               <td key={a} className="px-2 py-1.5 text-center">
                                 <button
                                   type="button"

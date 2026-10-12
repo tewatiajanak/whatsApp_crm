@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { authenticate, require_ } from "../middleware/auth";
 import { crud } from "../controllers/crudFactory";
-import { ok, asyncHandler, ApiError } from "../utils/http";
+import { ok, asyncHandler, ApiError, audit } from "../utils/http";
 import { WORKFLOW_EVENTS, CONDITION_FIELDS, CONDITION_OPERATORS, ACTION_TYPES, ASSIGNMENT_STRATEGIES } from "../config/workflowConfig";
 
 import * as authC from "../controllers/authController";
 import * as leadC from "../controllers/leadController";
+import * as leadToolsC from "../controllers/leadToolsController";
+import { analytics as leadAnalytics } from "../controllers/leadAnalyticsController";
 import * as trackC from "../controllers/serviceTrackController";
 import * as fuC from "../controllers/followUpController";
 import * as msgC from "../controllers/messagingController";
@@ -33,7 +35,7 @@ if (ffmpegBinary) {
 import { Lead } from "../models/Lead";
 import { FollowUp } from "../models/FollowUp";
 import { Contact } from "../models/Contact";
-import { LeadStatus, SubStatus, LeadSource, AcademicSession, Grade, Designation } from "../models/Masters";
+import { LeadStatus, SubStatus, LeadSource, AcademicSession, Grade, Designation, FeeHead, DocumentType } from "../models/Masters";
 import { Service } from "../models/Service";
 import { User, UserType } from "../models/User";
 import { Campaign, Template, Conversation, Message } from "../models/Messaging";
@@ -51,8 +53,20 @@ import eventManagerRoutes from "./eventManager";
 import paymentRoutes from "./payments";
 import publicEventRoutes from "./publicEvents";
 import userAdminRoutes from "./userAdmin";
+import pmRoutes from "./pm";
+import pmPublicRoutes from "./pm/public";
+import { teamLoop } from "../services/pm/visibility";
 import { EVENT_TYPE_DEFAULTS } from "../data/eventTypeDefaults";
-import { convertToLead } from "../services/leadService";
+import { convertToLead, changeLeadStatus, logActivity, refreshLead } from "../services/leadService";
+import { guardLead, guardFollowUp, canSeeLead, scopeFollowUpFilter } from "../services/leadAccess";
+import { captureEnquiry } from "../services/leadCapture";
+import crmRoutes from "./crm";
+import { newToken } from "../services/leadFees";
+import crmPublicRoutes from "./crmPublic";
+import crm2Routes from "./crm2";
+import websiteRoutes, { websitePublicRoutes } from "./website";
+import websiteDataRoutes, { websiteDataPublicRoutes } from "./websiteData";
+import { leadOwnerScope } from "../services/leadAccess";
 
 const r = Router();
 
@@ -63,6 +77,107 @@ if (!fs.existsSync(uploadDir)) {
 }
 const upload = multer({ dest: uploadDir });
 
+/* ---- public ---- */
+r.post("/auth/login", authC.login);
+r.post("/auth/verify-otp", authC.verifyOtp);
+
+// A public link carries only the form / page id, so look it up in every tenant's saved config.
+const findInConfigs = async (key: string, listKey: string, id: string) => {
+  const configs = await WorkflowConfig.find({ key }).lean();
+  for (const config of configs) {
+    const list = Array.isArray((config as any)?.data?.[listKey]) ? (config as any).data[listKey] : [];
+    const item = list.find((x: any) => String(x._id) === String(id));
+    if (item) return { config, item, tenant: (config as any).tenant || (await Tenant.findOne({}).lean())?._id };
+  }
+  return { config: null, item: null, tenant: null };
+};
+
+const getEnquiryFormById = async (formId: string) => {
+  const { config, item, tenant } = await findInConfigs("enquiryForms", "forms", formId);
+  return { config, form: item, tenant };
+};
+
+r.get(
+  "/public/enquiry-form/:formId",
+  asyncHandler(async (req, res) => {
+    const { form } = await getEnquiryFormById(req.params.formId);
+    if (!form) throw new ApiError(404, "Enquiry form not found");
+    if (form.isActive === false) throw new ApiError(403, "This enquiry form is not live");
+    ok(res, { form });
+  })
+);
+
+r.post(
+  "/public/enquiry-form/:formId",
+  asyncHandler(async (req, res) => {
+    const { form, tenant } = await getEnquiryFormById(req.params.formId);
+    if (!form) throw new ApiError(404, "Enquiry form not found");
+    if (form.isActive === false) throw new ApiError(403, "This enquiry form is not live");
+    ok(res, await captureEnquiry(tenant, req.body, `Enquiry form: ${form.name || form.title || "Website"}`));
+  })
+);
+
+const getLandingPageById = async (pageId: string) => {
+  const { config, item, tenant } = await findInConfigs("landingPages", "pages", pageId);
+  return { config, page: item, tenant };
+};
+
+r.get(
+  "/public/landing-page/:pageId",
+  asyncHandler(async (req, res) => {
+    const { page } = await getLandingPageById(req.params.pageId);
+    if (!page) throw new ApiError(404, "Landing page not found");
+    if (page.isActive === false) throw new ApiError(403, "This landing page is not live");
+    ok(res, { page });
+  })
+);
+
+// the quick enquiry box on a landing page
+r.post(
+  "/public/landing-page/:pageId/enquiry",
+  asyncHandler(async (req, res) => {
+    const { page, tenant } = await getLandingPageById(req.params.pageId);
+    if (!page) throw new ApiError(404, "Landing page not found");
+    if (page.isActive === false) throw new ApiError(403, "This landing page is not live");
+    ok(res, await captureEnquiry(tenant, req.body, `Landing page: ${page.name || page.title || "Website"}`));
+  })
+);
+
+/* ---- Organization Details - GET is PUBLIC ---- */
+r.get("/organization-details", asyncHandler(async (req: any, res: any) => {
+  try {
+    console.log("GET /organization-details called - public endpoint");
+    let orgDetails;
+
+    // If authenticated, get tenant-specific org details
+    if ((req as any).tenantId) {
+      orgDetails = await OrganizationDetails.findOne({ tenant: (req as any).tenantId });
+    } else {
+      // If not authenticated, get the first organization details (for login page)
+      orgDetails = await OrganizationDetails.findOne();
+    }
+
+    ok(res, orgDetails || {});
+  } catch (error) {
+    console.error("Error fetching organization details:", error);
+    ok(res, {});
+  }
+}));
+
+/* ---- Public event registration forms (no sign-in) ---- */
+r.use(publicEventRoutes);
+// Project Management links opened without a login (meeting replies, client verification, sign-off)
+r.use(pmPublicRoutes);
+// Lead CRM links opened without a login (fee payment, application status)
+r.use(crmPublicRoutes);
+r.use(websitePublicRoutes);
+r.use(websiteDataPublicRoutes);
+
+/* ---- everything below requires auth ---- */
+r.use(authenticate);
+r.get("/auth/me", authC.me);
+
+/* ---- Media conversion (video editor): signed-in users only ---- */
 r.post(
   "/media/process",
   upload.single("file"),
@@ -240,112 +355,7 @@ r.post(
   })
 );
 
-/* ---- public ---- */
-r.post("/auth/login", authC.login);
-r.post("/auth/verify-otp", authC.verifyOtp);
 
-const getEnquiryFormById = async (formId: string) => {
-  const config = await WorkflowConfig.findOne({ key: "enquiryForms" }).lean();
-  const forms = Array.isArray((config as any)?.data?.forms) ? (config as any).data.forms : [];
-  const form = forms.find((item: any) => String(item._id) === String(formId));
-  const tenant = (config as any)?.tenant || (await Tenant.findOne({}).lean())?._id;
-  return { config, form, tenant };
-};
-
-r.get(
-  "/public/enquiry-form/:formId",
-  asyncHandler(async (req, res) => {
-    const { form } = await getEnquiryFormById(req.params.formId);
-    if (!form) throw new ApiError(404, "Enquiry form not found");
-    if (form.isActive === false) throw new ApiError(403, "This enquiry form is not live");
-    ok(res, { form });
-  })
-);
-
-r.post(
-  "/public/enquiry-form/:formId",
-  asyncHandler(async (req, res) => {
-    const { config, form, tenant } = await getEnquiryFormById(req.params.formId);
-    if (!form) throw new ApiError(404, "Enquiry form not found");
-    if (form.isActive === false) throw new ApiError(403, "This enquiry form is not live");
-
-    const values = req.body || {};
-    const pickValue = (...keys: string[]) => {
-      for (const key of keys) {
-        const val = values[key];
-        if (typeof val === "string" && val.trim()) return val.trim();
-        if (typeof val === "number") return String(val);
-      }
-      return "";
-    };
-
-    const name = pickValue("studentName", "name", "fullName", "student_name");
-    const phone = pickValue("mobileNumber", "phone", "mobile", "contactNumber");
-    const email = pickValue("emailId", "email");
-    const course = pickValue("courseInterested", "course", "courseName");
-    const source = pickValue("enquirySource", "source", "leadSource");
-
-    if (!name || !phone) throw new ApiError(400, "Name and phone are required");
-
-    const result = await convertToLead({
-      tenant: tenant,
-      name,
-      phone,
-      email: email || undefined,
-      sourceKeyOrId: source || undefined,
-      course: course || undefined,
-      user: "Public Enquiry Form",
-    });
-
-    ok(res, { lead: result.lead, created: result.created });
-  })
-);
-
-const getLandingPageById = async (pageId: string) => {
-  const config = await WorkflowConfig.findOne({ key: "landingPages" }).lean();
-  const pages = Array.isArray((config as any)?.data?.pages) ? (config as any).data.pages : [];
-  const page = pages.find((item: any) => String(item._id) === String(pageId));
-  const tenant = (config as any)?.tenant || (await Tenant.findOne({}).lean())?._id;
-  return { config, page, tenant };
-};
-
-r.get(
-  "/public/landing-page/:pageId",
-  asyncHandler(async (req, res) => {
-    const { page } = await getLandingPageById(req.params.pageId);
-    if (!page) throw new ApiError(404, "Landing page not found");
-    if (page.isActive === false) throw new ApiError(403, "This landing page is not live");
-    ok(res, { page });
-  })
-);
-
-/* ---- Organization Details - GET is PUBLIC ---- */
-r.get("/organization-details", asyncHandler(async (req: any, res: any) => {
-  try {
-    console.log("GET /organization-details called - public endpoint");
-    let orgDetails;
-
-    // If authenticated, get tenant-specific org details
-    if ((req as any).tenant) {
-      orgDetails = await OrganizationDetails.findOne({ tenant: (req as any).tenant });
-    } else {
-      // If not authenticated, get the first organization details (for login page)
-      orgDetails = await OrganizationDetails.findOne();
-    }
-
-    ok(res, orgDetails || {});
-  } catch (error) {
-    console.error("Error fetching organization details:", error);
-    ok(res, {});
-  }
-}));
-
-/* ---- Public event registration forms (no sign-in) ---- */
-r.use(publicEventRoutes);
-
-/* ---- everything below requires auth ---- */
-r.use(authenticate);
-r.get("/auth/me", authC.me);
 r.post("/auth/change-password", authC.changePassword);
 r.get("/system/status", msgC.status);
 
@@ -394,34 +404,78 @@ r.post("/flowchat/media", require_("workflows", "create"), upload.single("file")
 r.patch("/flowchat/media/:id", require_("workflows", "edit"), flowMediaC.updateFlowMedia);
 r.delete("/flowchat/media/:id", require_("workflows", "del"), flowMediaC.deleteFlowMedia);
 
+/* ---- Lead CRM extras: settings, automation, documents, fees, calling, targets, capture, applications, reports … ----
+   Mounted before the lead routes so fixed paths like /leads/report are never read as a lead id. */
+r.use(crmRoutes);
+r.use(crm2Routes);
+r.use(websiteRoutes);
+r.use(websiteDataRoutes);
+
 /* ---- Leads ---- */
-const leadCrud = crud(Lead, { module: "leads", searchFields: ["name", "phone", "course"], populate: "status source subStatus" });
-r.get("/leads", require_("leads", "view"), leadCrud.list);
-r.get("/leads/:id", require_("leads", "view"), leadCrud.get);
-r.post("/leads", require_("leads", "create"), leadCrud.create);
-r.patch("/leads/:id", require_("leads", "edit"), leadCrud.update);
-r.delete("/leads/:id", require_("leads", "del"), leadCrud.remove);
+// fixed paths first, so they are never read as a lead id
+r.get("/leads/meta", require_("leads", "view"), leadC.meta);
+r.get("/leads/view-counts", require_("leads", "view"), leadC.viewCounts);
+r.get("/leads/board", require_("leads", "view"), leadC.board);
+r.get("/leads/analytics", require_("leads", "view"), leadAnalytics);
+r.get("/leads/check-duplicate", require_("leads", "view"), leadC.checkDuplicate);
+r.get("/leads/export", require_("leads", "view"), leadToolsC.exportLeads);
+r.get("/leads/duplicates", require_("leads", "view"), leadToolsC.duplicates);
 r.post("/leads/convert", require_("leads", "create"), leadC.convert);
-r.post("/leads/:id/status", require_("leads", "edit"), leadC.setStatus);
-r.post("/leads/:id/services", require_("leads", "edit"), trackC.addTrack);
-r.post("/leads/:id/services/status", require_("leads", "edit"), trackC.setTrackStatus);
-r.delete("/leads/:id/services/:serviceId", require_("leads", "edit"), trackC.removeTrack);
-r.post("/leads/:id/notes", require_("leads", "edit"), leadC.addNote);
-r.post("/leads/:id/followups", require_("leads", "edit"), fuC.createFollowUpForLead);
-r.get("/leads/:id/service/:serviceId/statuses", require_("leads", "view"), leadC.getServiceStatuses);
+r.post("/leads/import", require_("leads", "create"), leadToolsC.importLeads);
+r.post("/leads/bulk", require_("leads", "edit"), leadToolsC.bulk);
+r.post("/leads/merge", require_("leads", "del"), leadToolsC.merge);
+
+r.get("/leads", require_("leads", "view"), leadC.list);
+r.get("/leads/:id", require_("leads", "view"), guardLead, leadC.get);
+r.post("/leads", require_("leads", "create"), leadC.convert);
+r.patch("/leads/:id", require_("leads", "edit"), guardLead, leadC.update);
+r.delete("/leads/:id", require_("leads", "del"), guardLead, leadC.remove);
+r.post("/leads/:id/status", require_("leads", "edit"), guardLead, leadC.setStatus);
+r.post("/leads/:id/services", require_("leads", "edit"), guardLead, trackC.addTrack);
+r.post("/leads/:id/services/status", require_("leads", "edit"), guardLead, trackC.setTrackStatus);
+r.delete("/leads/:id/services/:serviceId", require_("leads", "edit"), guardLead, trackC.removeTrack);
+r.post("/leads/:id/notes", require_("leads", "edit"), guardLead, leadC.addNote);
+r.post("/leads/:id/calls", require_("leads", "edit"), guardLead, leadC.logCall);
+r.get("/leads/:id/timeline", require_("leads", "view"), guardLead, leadC.timeline);
+r.get("/leads/:id/followups", require_("leads", "view"), guardLead, fuC.listForLead);
+r.post("/leads/:id/followups", require_("followups", "create"), guardLead, fuC.createFollowUpForLead);
+r.get("/leads/:id/service/:serviceId/statuses", require_("leads", "view"), guardLead, leadC.getServiceStatuses);
 
 /* ---- Follow-ups ---- */
-const fuCrud = crud(FollowUp, { module: "followups", searchFields: ["leadName", "phone"] });
-r.get("/followups", require_("followups", "view"), fuCrud.list);
+r.get("/followups", require_("followups", "view"), asyncHandler(async (req: any, res: any) => {
+  const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+  const perPage = Math.min(200, Math.max(1, parseInt(String(req.query.perPage || "50"), 10) || 50));
+  const filter: any = { tenant: req.tenantId };
+  for (const k of ["lead", "owner", "type"]) if (typeof req.query[k] === "string" && req.query[k]) filter[k] = req.query[k];
+  if (req.query.done === "true" || req.query.done === "false") filter.done = req.query.done === "true";
+  await scopeFollowUpFilter(req, filter);
+  const [items, total] = await Promise.all([
+    FollowUp.find(filter).sort({ due: 1 }).skip((page - 1) * perPage).limit(perPage),
+    FollowUp.countDocuments(filter),
+  ]);
+  res.json({ ok: true, data: items, page, perPage, total, pages: Math.ceil(total / perPage) });
+}));
 r.get("/followups/buckets", require_("followups", "view"), fuC.buckets);
 r.get("/followups/workload", require_("followups", "view"), fuC.getWorkload);
-r.post("/followups", require_("followups", "create"), fuCrud.create);
-r.post("/followups/:id/complete", require_("followups", "edit"), fuC.complete);
-r.post("/followups/:id/reschedule", require_("followups", "edit"), fuC.reschedule);
+r.post("/followups", require_("followups", "create"), fuC.create);
+r.post("/followups/:id/complete", require_("followups", "edit"), guardFollowUp, fuC.complete);
+r.post("/followups/:id/reschedule", require_("followups", "edit"), guardFollowUp, fuC.reschedule);
+r.delete("/followups/:id", require_("followups", "del"), guardFollowUp, fuC.remove);
 
 /* ---- Contacts ---- */
 const contactCrud = crud(Contact, { module: "contacts", searchFields: ["name", "phone", "email"] });
-r.get("/contacts", require_("contacts", "view"), contactCrud.list);
+// A role limited to its own / its team's leads sees only the contacts and chats assigned to those people.
+const scopeAssigned = (field: string) => async (req: any, _res: any, next: any) => {
+  try {
+    const names = await leadOwnerScope(req);
+    if (names && req.method === "GET" && !req.params.id) {
+      // the generic list takes plain query values: one name passes as-is, several need the dedicated filter below
+      req.assignedScope = { [field]: { $in: names } };
+    }
+    next();
+  } catch (e) { next(e); }
+};
+r.get("/contacts", require_("contacts", "view"), scopeAssigned("assigned"), contactCrud.list);
 r.get("/contacts/:id", require_("contacts", "view"), contactCrud.get);
 r.post("/contacts", require_("contacts", "create"), contactCrud.create);
 r.patch("/contacts/:id", require_("contacts", "edit"), contactCrud.update);
@@ -465,6 +519,20 @@ r.post("/grades", require_("setup", "create"), gradeCrud.create);
 r.patch("/grades/:id", require_("setup", "edit"), gradeCrud.update);
 r.delete("/grades/:id", require_("setup", "del"), gradeCrud.remove);
 
+/* ---- Fee Heads (Setup) — class-wise amounts ---- */
+const feeHeadCrud = crud(FeeHead, { module: "setup", searchFields: ["name"] });
+r.get("/fee-heads", require_("setup", "view"), feeHeadCrud.list);
+r.post("/fee-heads", require_("setup", "create"), feeHeadCrud.create);
+r.patch("/fee-heads/:id", require_("setup", "edit"), feeHeadCrud.update);
+r.delete("/fee-heads/:id", require_("setup", "del"), feeHeadCrud.remove);
+
+/* ---- Document Types (Setup) — class mapping ---- */
+const docTypeCrud = crud(DocumentType, { module: "setup", searchFields: ["name"] });
+r.get("/document-types", require_("setup", "view"), docTypeCrud.list);
+r.post("/document-types", require_("setup", "create"), docTypeCrud.create);
+r.patch("/document-types/:id", require_("setup", "edit"), docTypeCrud.update);
+r.delete("/document-types/:id", require_("setup", "del"), docTypeCrud.remove);
+
 /* ---- Designations (Setup) ---- */
 const desgCrud = crud(Designation, { module: "setup", searchFields: ["name"] });
 r.get("/designations", require_("setup", "view"), desgCrud.list);
@@ -507,11 +575,12 @@ const teamCrud = crud(Team, { module: "setup", searchFields: ["name"], populate:
 r.get("/teams", require_("setup", "view"), teamCrud.list);
 r.post("/teams", require_("setup", "create"), async (req, res) => {
   try {
-    const { name, manager, members, sources } = req.body;
+    const { name, manager, members, sources, parent } = req.body;
 
     if (!name || !name.trim()) throw new Error("Team name is required");
     if (!manager) throw new Error("Manager is required");
     if (!members || members.length === 0) throw new Error("At least one team member is required");
+    if (parent && !(await Team.exists({ _id: parent, tenant: req.tenantId }))) throw new Error("Choose a parent team");
 
     const team = new Team({
       tenant: req.tenantId,
@@ -519,28 +588,47 @@ r.post("/teams", require_("setup", "create"), async (req, res) => {
       manager,
       members: members.map(m => ({ user: m })),
       sources: sources || [],
+      parent: parent || null,
       active: true
     });
     const saved = await team.save();
     const populated = await saved.populate("manager members.user sources");
+    await audit({ tenant: req.tenantId, user: req.auth?.name, action: "CREATE", module: "Teams", entity: `Team ${saved.name}` });
     res.json(populated);
   } catch (e) { res.status(400).json({ error: (e instanceof Error ? e.message : String(e)) }); }
 });
 r.patch("/teams/:id", require_("setup", "edit"), async (req, res) => {
   try {
-    const { name, manager, members, sources } = req.body;
+    const { name, manager, members, sources, parent } = req.body;
 
     if (!name || !name.trim()) throw new Error("Team name is required");
     if (!manager) throw new Error("Manager is required");
     if (!members || members.length === 0) throw new Error("At least one team member is required");
 
-    const update = {
+    const update: any = {
       name,
       manager,
       members: members.map(m => ({ user: m })),
       sources: sources || []
     };
-    const team = await Team.findByIdAndUpdate(req.params.id, update, { new: true }).populate("manager members.user sources");
+    // parent team is optional; left untouched when the caller does not send it
+    if (parent !== undefined) {
+      if (parent) {
+        if (!(await Team.exists({ _id: parent, tenant: req.tenantId }))) throw new Error("Choose a parent team");
+        if (await teamLoop(String(req.tenantId), String(req.params.id), String(parent))) throw new Error("A team cannot sit under itself or under one of its own sub-teams");
+      }
+      update.parent = parent || null;
+    }
+    const before: any = await Team.findOne({ _id: req.params.id, tenant: req.tenantId }).populate("manager", "name").lean();
+    if (!before) throw new Error("Team not found");
+    const team: any = await Team.findOneAndUpdate({ _id: req.params.id, tenant: req.tenantId }, update, { new: true }).populate("manager members.user sources");
+    if (team) {
+      await audit({
+        tenant: req.tenantId, user: req.auth?.name, action: "UPDATE", module: "Teams", entity: `Team ${team.name}`,
+        prev: `Manager ${before?.manager?.name || "—"}, ${before?.members?.length || 0} members`,
+        next: `Manager ${team.manager?.name || "—"}, ${team.members?.length || 0} members`,
+      });
+    }
     res.json(team);
   } catch (e) { res.status(400).json({ error: (e instanceof Error ? e.message : String(e)) }); }
 });
@@ -557,7 +645,31 @@ r.delete("/workflows/:id", require_("setup", "del"), wfCrud.remove);
 const regCrud = crud(Registration, { module: "registrations", searchFields: ["name", "phone", "email"], populate: "lead" });
 r.get("/registrations", require_("leads", "view"), regCrud.list);
 r.get("/registrations/:id", require_("leads", "view"), regCrud.get);
-r.post("/registrations", require_("leads", "create"), regCrud.create);
+r.post(
+  "/registrations",
+  require_("leads", "create"),
+  asyncHandler(async (req: any, res: any) => {
+    const { tenant: _t, _id: _i, ...body } = req.body || {};
+    const lead = body.lead && (await canSeeLead(req, body.lead)) ? await Lead.findOne({ _id: body.lead, tenant: req.tenantId }) : null;
+    if (body.lead && !lead) throw new ApiError(404, "Lead not found");
+    const reg = await Registration.create({
+      ...body, name: body.name || lead?.name, phone: body.phone || lead?.phone, tenant: req.tenantId,
+      stage: "Submitted", token: newToken(), stageHistory: [{ stage: "Submitted", by: req.auth?.name || "System", at: new Date() }],
+    });
+    reg.appNo = `APP-${String(reg._id).slice(-6).toUpperCase()}`;
+    await reg.save();
+    if (lead) {
+      await logActivity({ tenant: req.tenantId, lead: lead._id, type: "registration", by: req.auth?.name, title: "Registration submitted", detail: reg.course || "" });
+      if (body.status && String(body.status) !== String(lead.status)) {
+        await changeLeadStatus({ tenant: req.tenantId, leadId: String(lead._id), statusId: String(body.status), user: req.auth?.name });
+      } else {
+        await refreshLead(lead._id);
+      }
+    }
+    await audit({ tenant: req.tenantId, user: req.auth?.name, action: "CREATE", module: "registrations", entity: reg.name });
+    ok(res, reg, 201);
+  })
+);
 r.patch("/registrations/:id", require_("leads", "edit"), regCrud.update);
 r.delete("/registrations/:id", require_("leads", "del"), regCrud.remove);
 
@@ -571,6 +683,9 @@ r.delete("/usertypes/:id", require_("setup", "del"), userTypeCrud.remove);
 // Users, user types and the password policy (passwords are hashed there — the
 // generic CRUD must never write a user).
 r.use(userAdminRoutes);
+
+/* ---- Project Management ---- */
+r.use("/pm", pmRoutes);
 
 /* ---- Event Types (Setup) — PHASE-4 real impl ---- */
 const eventTypeCrud = crud(EventType, { module: "setup", searchFields: ["name", "key", "description"] });
@@ -677,19 +792,19 @@ r.post("/campaigns/:id/pause", require_("blast", "edit"), msgC.pauseCampaign);
 
 /* ---- Messages (history) ---- */
 const msgCrud = crud(Message, { module: "reports", searchFields: ["contactName", "phone", "template"] });
-r.get("/messages", require_("reports", "view"), msgCrud.list);
+r.get("/messages", require_("reports", "view"), scopeAssigned("agent"), msgCrud.list);
 r.post("/messages/send", require_("blast", "create"), msgC.sharedSend);
 r.post("/messages/:id/convert", require_("leads", "create"), msgC.messageToLead);
 
 /* ---- Conversations (chat) ---- */
 const convCrud = crud(Conversation, { module: "chat", searchFields: ["name", "phone"] });
-r.get("/conversations", require_("chat", "view"), convCrud.list);
+r.get("/conversations", require_("chat", "view"), scopeAssigned("assigned"), convCrud.list);
 r.get("/conversations/:id", require_("chat", "view"), convCrud.get);
 r.post("/conversations/:id/reply", require_("chat", "create"), msgC.replyToConversation);
 r.post("/conversations/:id/read", require_("chat", "edit"), msgC.markRead);
 
 /* ---- Conversion analytics ---- */
-r.get("/conversion/stats", require_("conversion", "view"), msgC.conversionStats);
+r.get("/conversion/stats", require_("conversion", "view"), leadAnalytics);
 
 /* ---- Audit log ---- */
 const auditCrud = crud(AuditLog, { module: "reports", searchFields: ["entity", "user", "action"] });
@@ -706,30 +821,22 @@ r.get("/workflow-config/default", (_req, res) => {
   ok(res, { WORKFLOW_EVENTS, CONDITION_FIELDS, CONDITION_OPERATORS, ACTION_TYPES, ASSIGNMENT_STRATEGIES });
 });
 
-r.get("/workflow-config/:key", authenticate, async (req, res) => {
-  try {
-    const config = await WorkflowConfig.findOne({
-      tenant: (req as any).tenant,
-      key: req.params.key
-    });
-    ok(res, config || { fields: [] });
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
-  }
-});
+// Configs saved before tenants were recorded carry no tenant; the first save claims them.
+const findConfig = async (tenantId: any, key: string) =>
+  (await WorkflowConfig.findOne({ tenant: tenantId, key })) || (await WorkflowConfig.findOne({ tenant: null, key }));
 
-r.post("/workflow-config/:key", authenticate, require_("setup", "edit"), async (req, res) => {
-  try {
-    const config = await WorkflowConfig.findOneAndUpdate(
-      { tenant: (req as any).tenant, key: req.params.key },
-      { data: req.body, tenant: (req as any).tenant, key: req.params.key },
-      { upsert: true, new: true }
-    );
-    ok(res, config);
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
-  }
-});
+r.get("/workflow-config/:key", asyncHandler(async (req: any, res: any) => {
+  const config = await findConfig(req.tenantId, req.params.key);
+  ok(res, config || { fields: [] });
+}));
+
+r.post("/workflow-config/:key", require_("setup", "edit"), asyncHandler(async (req: any, res: any) => {
+  const existing = await findConfig(req.tenantId, req.params.key);
+  const config = existing
+    ? await WorkflowConfig.findByIdAndUpdate(existing._id, { $set: { data: req.body, tenant: req.tenantId } }, { new: true })
+    : await WorkflowConfig.create({ tenant: req.tenantId, key: req.params.key, data: req.body });
+  ok(res, config);
+}));
 
 /* ---- Organization Details ---- */
 // Login video is stored on disk (too large for a JSON body / Mongo document); only its URL is saved.
@@ -802,10 +909,13 @@ r.post("/organization-details",authenticate, require_("setup", "edit"), asyncHan
     });
   }
 
+  // older records were saved without a tenant; keep updating that one rather than adding a second
+  const current =
+    (await OrganizationDetails.findOne({ tenant: req.tenantId })) || (await OrganizationDetails.findOne({ tenant: null }));
   const orgDetails = await OrganizationDetails.findOneAndUpdate(
-    { tenant: req.tenant },
+    current ? { _id: current._id } : { tenant: req.tenantId },
     {
-      tenant: req.tenant,
+      tenant: req.tenantId,
       name,
       tagline,
       logo,

@@ -11,14 +11,18 @@ export interface ICondition {
 }
 
 export interface IAction {
-  kind: "email" | "sms" | "whatsapp" | "followup" | "status" | "assign_lead";
+  kind: "email" | "sms" | "whatsapp" | "followup" | "status" | "assign_lead" | "tag" | "notify" | "priority";
   params: Record<string, any>;
+  /** wait this long after the trigger before running (0 = at once) — makes a drip sequence */
+  delayMinutes?: number;
 }
 
 export interface IAssignmentRule {
   strategy: AssignStrategy;
   teamId?: Types.ObjectId;
   rrIndex?: number;
+  /** round-robin turn counter per team id */
+  rrByTeam?: Record<string, number>;
   sourceMap?: Array<{ source: Types.ObjectId; team: Types.ObjectId }>;
   stateMap?: Array<{ state: string; team: Types.ObjectId }>;
   cityMap?: Array<{ city: string; team: Types.ObjectId }>;
@@ -54,10 +58,11 @@ const actionSchema = new Schema<IAction>(
   {
     kind: {
       type: String,
-      enum: ["email", "sms", "whatsapp", "followup", "status", "assign_lead"],
+      enum: ["email", "sms", "whatsapp", "followup", "status", "assign_lead", "tag", "notify", "priority"],
       required: true,
     },
     params: { type: Schema.Types.Mixed, default: {} },
+    delayMinutes: { type: Number, default: 0, min: 0 },
   },
   { _id: false }
 );
@@ -89,6 +94,7 @@ const assignmentRuleSchema = new Schema<IAssignmentRule>(
     },
     teamId: { type: Schema.Types.ObjectId, ref: "Team" },
     rrIndex: { type: Number, default: 0 },
+    rrByTeam: { type: Schema.Types.Mixed, default: {} },
     sourceMap: { type: [sourceMapSchema], default: [] },
     stateMap: { type: [mappingSchema], default: [] },
     cityMap: { type: [mappingSchema], default: [] },

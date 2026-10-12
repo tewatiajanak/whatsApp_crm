@@ -8,12 +8,16 @@ import { config } from "./config";
 import { errorHandler, notFound } from "./middleware/auth";
 import apiRoutes from "./routes";
 import webhookRoutes from "./routes/webhooks";
+import siteSsrRoutes from "./routes/siteSsr";
 
 export function createApp() {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ origin: config.clientOrigin === "*" ? true : config.clientOrigin.split(","), credentials: true }));
+  const appCors = cors({ origin: config.clientOrigin === "*" ? true : config.clientOrigin.split(","), credentials: true });
+  const openCors = cors({ origin: true });
+  // the website tracking script and lead capture are called from other people's sites
+  app.use((req, res, next) => (/^\/webhooks\/(track|leads)/.test(req.path) ? openCors : appCors)(req, res, next));
   if (config.env !== "test") app.use(morgan("dev"));
 
   // capture raw body for webhook signature verification
@@ -35,6 +39,9 @@ export function createApp() {
 
   // webhooks (public)
   app.use("/webhooks", webhookRoutes);
+
+  // published websites, rendered on the server (public)
+  app.use("/site", siteSsrRoutes);
 
   // rate-limited API
   const limiter = rateLimit({ windowMs: 60_000, max: 600, standardHeaders: true, legacyHeaders: false });

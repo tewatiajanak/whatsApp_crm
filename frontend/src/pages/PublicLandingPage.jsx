@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { publicApi } from "../api";
 import { Spinner, ErrorBox } from "../components/ui";
 
+import { showNotice } from "../utils/dialog";
 export default function PublicLandingPage() {
   const { pageId } = useParams();
   const [page, setPage] = useState(null);
@@ -24,18 +25,18 @@ export default function PublicLandingPage() {
       for (const field of requiredFields) {
         const fieldKey = field.content?.fieldName || field.id;
         if (!formValues[fieldKey]) {
-          alert(`Please fill in the required field: ${field.content?.label || 'Form Field'}`);
+          showNotice(`Please fill in the required field: ${field.content?.label || 'Form Field'}`);
           setSubmittingCustomForm(false);
           return;
         }
       }
 
       // Submit lead to CRM!
-      await publicApi.submitEnquiryForm("landingpage", formValues);
-      alert("Your enquiry has been submitted successfully!");
+      await publicApi.submitLandingEnquiry(pageId, formValues);
+      showNotice("Your enquiry has been submitted successfully!");
       setFormValues({});
     } catch (err) {
-      alert(err.message || "Failed to submit enquiry.");
+      showNotice(err.message || "Failed to submit enquiry.");
     } finally {
       setSubmittingCustomForm(false);
     }
@@ -1092,7 +1093,7 @@ function renderPublicComponent(comp, theme, formValues = {}, setFormValues = () 
               <h3 className="fw-bold mb-0 text-success">{c.priceText}</h3>
             </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); alert("Mock Payment successful!"); }} className="d-flex flex-column gap-3">
+            <form onSubmit={(e) => { e.preventDefault(); showNotice("Mock Payment successful!"); }} className="d-flex flex-column gap-3">
               <div>
                 <label className="form-label small text-dark mb-1">Card Holder Name</label>
                 <input type="text" className="form-control" placeholder="Jane Doe" required />
@@ -1280,7 +1281,7 @@ function renderPublicComponent(comp, theme, formValues = {}, setFormValues = () 
                   <p className="text-muted small mb-0">Subscribe to our monthly newsletters and events tracker.</p>
                 </div>
                 <div className="col-md-6">
-                  <form onSubmit={(e) => { e.preventDefault(); alert("Subscribed successfully!"); }} className="input-group">
+                  <form onSubmit={(e) => { e.preventDefault(); showNotice("Subscribed successfully!"); }} className="input-group">
                     <input type="email" className="form-control" placeholder="Enter email address" required />
                     <button type="submit" className="btn btn-primary text-white" style={{ background: theme.primaryColor }}>Subscribe</button>
                   </form>
@@ -1357,6 +1358,7 @@ function renderPublicComponent(comp, theme, formValues = {}, setFormValues = () 
 }
 
 function SimpleInquiryForm({ submitColor, submitText, borderRadius }) {
+  const { pageId } = useParams();
   const [vals, setVals] = useState({ name: "", email: "", phone: "", msg: "" });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -1371,11 +1373,11 @@ function SimpleInquiryForm({ submitColor, submitText, borderRadius }) {
     try {
       setSubmitting(true);
       setError("");
-      await publicApi.submitEnquiryForm("landingpage", {
+      await publicApi.submitLandingEnquiry(pageId, {
         studentName: vals.name,
         emailId: vals.email,
         mobileNumber: vals.phone,
-        courseInterested: vals.msg
+        message: vals.msg
       });
       setSuccess(true);
       setVals({ name: "", email: "", phone: "", msg: "" });
@@ -1608,7 +1610,7 @@ function renderDynamicWizardForm(c, theme, textClass = "", inputClass = "") {
   switch (formType) {
     case "registration":
       return (
-        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); alert("Registration completed successfully!"); }}>
+        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); showNotice("Registration completed successfully!"); }}>
           <div>
             <label className={`fw-bold mb-0.5 ${textClass}`} style={{ fontSize: "9px" }}>Parent Name</label>
             <input type="text" className={`form-control form-control-sm ${inputClass}`} placeholder="Enter full name" required />
@@ -1637,7 +1639,7 @@ function renderDynamicWizardForm(c, theme, textClass = "", inputClass = "") {
     case "application":
     case "admission":
       return (
-        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); alert("Application submitted successfully!"); }}>
+        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); showNotice("Application submitted successfully!"); }}>
           <div>
             <label className={`fw-bold mb-0.5 ${textClass}`} style={{ fontSize: "9px" }}>Student Name</label>
             <input type="text" className={`form-control form-control-sm ${inputClass}`} placeholder="Enter full name" required />
@@ -1668,7 +1670,7 @@ function renderDynamicWizardForm(c, theme, textClass = "", inputClass = "") {
       );
     case "payment":
       return (
-        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); alert("Tuition fee estimation calculated!"); }}>
+        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); showNotice("Tuition fee estimation calculated!"); }}>
           <div>
             <label className={`fw-bold mb-0.5 ${textClass}`} style={{ fontSize: "9px" }}>Candidate Name</label>
             <input type="text" className={`form-control form-control-sm ${inputClass}`} placeholder="Enter candidate name" required />
@@ -1691,7 +1693,7 @@ function renderDynamicWizardForm(c, theme, textClass = "", inputClass = "") {
       );
     case "feedback":
       return (
-        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); alert("Feedback submitted successfully!"); }}>
+        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); showNotice("Feedback submitted successfully!"); }}>
           <div>
             <label className={`fw-bold mb-0.5 ${textClass}`} style={{ fontSize: "9px" }}>Full Name</label>
             <input type="text" className={`form-control form-control-sm ${inputClass}`} placeholder="Enter name" required />
@@ -1713,7 +1715,7 @@ function renderDynamicWizardForm(c, theme, textClass = "", inputClass = "") {
       );
     case "consent":
       return (
-        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); alert("Consent form recorded successfully!"); }}>
+        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); showNotice("Consent form recorded successfully!"); }}>
           <div>
             <label className={`fw-bold mb-0.5 ${textClass}`} style={{ fontSize: "9px" }}>Parent / Guardian Name</label>
             <input type="text" className={`form-control form-control-sm ${inputClass}`} placeholder="Enter full name" required />
@@ -1740,7 +1742,7 @@ function renderDynamicWizardForm(c, theme, textClass = "", inputClass = "") {
     case "enquiry":
     default:
       return (
-        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); alert("Enquiry submitted successfully!"); }}>
+        <form className="d-flex flex-column gap-2 mt-2 text-start" onSubmit={(e) => { e.preventDefault(); showNotice("Enquiry submitted successfully!"); }}>
           <div>
             <label className={`fw-bold mb-0.5 ${textClass}`} style={{ fontSize: "9px" }}>Full Name</label>
             <input type="text" className={`form-control form-control-sm ${inputClass}`} placeholder="Enter full name" required />

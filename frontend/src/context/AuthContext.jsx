@@ -84,8 +84,13 @@ export function AuthProvider({ children }) {
     [perms]
   );
 
+  // Project Management right: hasRight("tasks", "reassign")
+  const hasRight = useCallback((screen, action = "view") => can(`pm_${screen}`, action), [can]);
+  // any Project Management screen at all (decides whether the module is listed)
+  const hasPm = perms.some((p) => p.module.startsWith("pm_") && p.view);
+
   return (
-    <AuthContext.Provider value={{ user, perms, loading, login, verifyOtp, changePassword, logout, can, storeError, retryStore: loadStore }}>
+    <AuthContext.Provider value={{ user, perms, loading, login, verifyOtp, changePassword, logout, can, hasRight, hasPm, storeError, retryStore: loadStore }}>
       {children}
     </AuthContext.Provider>
   );

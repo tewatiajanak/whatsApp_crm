@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, KeyRound, RotateCcw, Users as UsersIcon } from "lucide-react";
-import { usersApi } from "../../api";
+import { Plus, Pencil, Trash2, KeyRound, RotateCcw, Upload, Users as UsersIcon } from "lucide-react";
+import { usersApi, pmApi } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import DateInput from "../../components/DateInput";
@@ -17,9 +17,15 @@ type UserType = { _id: string; name: string; kind: "internal" | "client"; perms:
 type User = {
   _id: string; name: string; email: string; mobile?: string; dob?: string; status: string;
   userType?: Role | null; category?: UserType | null; permOverrides?: Perm[]; lastLogin?: string;
+  code?: string; joiningDate?: string; photo?: string;
+  department?: { _id: string; name: string } | null; reportingManager?: { _id: string; name: string } | null;
 };
-type Form = { name: string; email: string; mobile: string; dob: string; userType: string; category: string; status: string };
-const EMPTY: Form = { name: "", email: "", mobile: "", dob: "", userType: "", category: "", status: "Active" };
+type Form = {
+  name: string; email: string; mobile: string; dob: string; userType: string; category: string; status: string;
+  code: string; department: string; reportingManager: string; joiningDate: string;
+};
+const EMPTY: Form = { name: "", email: "", mobile: "", dob: "", userType: "", category: "", status: "Active", code: "", department: "", reportingManager: "", joiningDate: "" };
+type Department = { _id: string; name: string; active?: boolean };
 
 /** Configuration → User Management → Users. */
 export default function UsersPage() {
@@ -28,6 +34,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [types, setTypes] = useState<UserType[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [photo, setPhoto] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<User | null>(null);
@@ -45,6 +54,8 @@ export default function UsersPage() {
       setUsers(u?.data ?? []);
       setRoles(r?.data ?? []);
       setTypes(t?.data ?? []);
+      // departments belong to Project Management; the page works without them
+      pmApi.departments().then((d: any) => setDepartments(d?.data ?? [])).catch(() => setDepartments([]));
     } catch (e: any) {
       toast(e?.message || "Could not load users", "error");
     } finally {
@@ -64,11 +75,16 @@ export default function UsersPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({ ...EMPTY, userType: roles[0]?._id || "", category: types[0]?._id || "" });
+    setPhoto("");
     setFormOpen(true);
   };
   const openEdit = (u: User) => {
     setEditing(u);
-    setForm({ name: u.name, email: u.email, mobile: u.mobile || "", dob: u.dob || "", userType: u.userType?._id || "", category: u.category?._id || "", status: u.status || "Active" });
+    setForm({
+      name: u.name, email: u.email, mobile: u.mobile || "", dob: u.dob || "", userType: u.userType?._id || "", category: u.category?._id || "", status: u.status || "Active",
+      code: u.code || "", department: u.department?._id || "", reportingManager: u.reportingManager?._id || "", joiningDate: u.joiningDate || "",
+    });
+    setPhoto(u.photo || "");
     setFormOpen(true);
   };
   const canSave = form.name.trim() && form.email.trim() && form.userType;
@@ -77,7 +93,7 @@ export default function UsersPage() {
     if (!canSave) return;
     setSaving(true);
     try {
-      const body = { ...form, category: form.category || null };
+      const body = { ...form, category: form.category || null, department: form.department || null, reportingManager: form.reportingManager || null };
       if (editing) {
         await usersApi.updateUser(editing._id, body);
         toast("User updated");
@@ -91,6 +107,21 @@ export default function UsersPage() {
       toast(e?.message || "Could not save the user", "error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const changePhoto = async (file?: File | null) => {
+    if (!editing || !file) return;
+    setPhotoBusy(true);
+    try {
+      const res: any = await pmApi.uploadPhoto(editing._id, file);
+      setPhoto(res?.data?.photo || "");
+      setUsers((list) => list.map((x) => (x._id === editing._id ? { ...x, photo: res?.data?.photo || "" } : x)));
+      toast("Photo saved");
+    } catch (e: any) {
+      toast(e?.message || "Could not save the photo", "error");
+    } finally {
+      setPhotoBusy(false);
     }
   };
 
@@ -255,6 +286,46 @@ export default function UsersPage() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className={LABEL}>Employee code</label>
+              <input className="ui-input w-full" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} maxLength={20} />
+            </div>
+            <div>
+              <label className={LABEL}>Joining date</label>
+              <DateInput className="ui-input w-full" value={form.joiningDate} onChange={(e: any) => setForm({ ...form, joiningDate: e.target.value })} />
+            </div>
+            <div>
+              <label className={LABEL}>Department</label>
+              <select className="ui-input w-full" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
+                <option value="">— none —</option>
+                {departments.filter((d) => d.active !== false || d._id === form.department).map((d) => (
+                  <option key={d._id} value={d._id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LABEL}>Reporting manager</label>
+              <select className="ui-input w-full" value={form.reportingManager} onChange={(e) => setForm({ ...form, reportingManager: e.target.value })}>
+                <option value="">— none —</option>
+                {users.filter((u) => u._id !== editing?._id && u.category?.kind !== "client").map((u) => (
+                  <option key={u._id} value={u._id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            {editing && (
+              <div className="sm:col-span-2">
+                <label className={LABEL}>Photo</label>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-full overflow-hidden shrink-0 text-sm font-semibold" style={{ background: "var(--muted-background)", color: "var(--muted-foreground)" }}>
+                    {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : form.name.trim().charAt(0).toUpperCase() || "?"}
+                  </span>
+                  <label className="ui-btn ui-btn-outline ui-btn-sm cursor-pointer" style={{ marginBottom: 0, opacity: photoBusy ? 0.6 : 1 }}>
+                    <Upload className="h-3.5 w-3.5" /> {photo ? "Change" : "Upload"}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={photoBusy} onChange={(e) => { changePhoto(e.target.files?.[0]); e.target.value = ""; }} />
+                  </label>
+                </div>
+              </div>
+            )}
             {editing && (
               <div>
                 <label className={LABEL}>Status</label>

@@ -27,6 +27,7 @@ const leadStatusSchema = new Schema<ILeadStatus>(
   },
   { timestamps: true }
 );
+leadStatusSchema.index({ tenant: 1, order: 1 });
 export const LeadStatus = model<ILeadStatus>("LeadStatus", leadStatusSchema);
 
 /* ---- Sub-status (belongs to a status) ---- */
@@ -115,3 +116,60 @@ const designationSchema = new Schema<IDesignation>(
 );
 designationSchema.index({ tenant: 1, name: 1 }, { unique: true });
 export const Designation = model<IDesignation>("Designation", designationSchema);
+
+/* ---- Fee Head (class-wise amounts) ---- */
+export interface IFeeHead extends Document {
+  tenant: Types.ObjectId;
+  name: string;
+  order: number;
+  isActive: boolean;
+  /** one row per class the head applies to; no row = not applicable to that class */
+  classFees: { grade: Types.ObjectId; amount: number }[];
+}
+const feeHeadSchema = new Schema<IFeeHead>(
+  {
+    tenant: { type: Schema.Types.ObjectId, ref: "Tenant", required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    order: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    classFees: {
+      type: [
+        new Schema(
+          {
+            grade: { type: Schema.Types.ObjectId, ref: "Grade", required: true },
+            amount: { type: Number, default: 0, min: 0 },
+          },
+          { _id: false }
+        ),
+      ],
+      default: [],
+    },
+  },
+  { timestamps: true }
+);
+feeHeadSchema.index({ tenant: 1, name: 1 }, { unique: true });
+export const FeeHead = model<IFeeHead>("FeeHead", feeHeadSchema);
+
+/* ---- Document Type (class mapping) ---- */
+export interface IDocumentType extends Document {
+  tenant: Types.ObjectId;
+  name: string;
+  order: number;
+  isActive: boolean;
+  mandatory: boolean;
+  /** classes the document is asked for */
+  grades: Types.ObjectId[];
+}
+const documentTypeSchema = new Schema<IDocumentType>(
+  {
+    tenant: { type: Schema.Types.ObjectId, ref: "Tenant", required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    order: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    mandatory: { type: Boolean, default: true },
+    grades: { type: [{ type: Schema.Types.ObjectId, ref: "Grade" }], default: [] },
+  },
+  { timestamps: true }
+);
+documentTypeSchema.index({ tenant: 1, name: 1 }, { unique: true });
+export const DocumentType = model<IDocumentType>("DocumentType", documentTypeSchema);

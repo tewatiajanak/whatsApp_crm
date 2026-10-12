@@ -27,8 +27,11 @@ export async function sendEmail(opts: {
   html?: string;
   text?: string;
   from?: string;
+  /** SMTP saved in the app (Project Management › Setup); when given it is used instead of the env settings */
+  smtp?: { host: string; port: number; secure: boolean; user: string; pass: string } | null;
+  attachments?: { filename: string; content: string; contentType?: string }[];
 }): Promise<EmailResult> {
-  if (!live()) {
+  if (!opts.smtp?.host && !live()) {
     return { messageId: simId(), simulated: true };
   }
   // Live path (lazy require so nodemailer is only needed when actually sending).
@@ -39,18 +42,23 @@ export async function sendEmail(opts: {
   } catch {
     throw new Error("Email live mode needs nodemailer: npm i nodemailer");
   }
-  const transport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || "587", 10),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
+  const transport = (nodemailer.default || nodemailer).createTransport(
+    opts.smtp?.host
+      ? { host: opts.smtp.host, port: opts.smtp.port, secure: opts.smtp.secure, auth: opts.smtp.user ? { user: opts.smtp.user, pass: opts.smtp.pass } : undefined }
+      : {
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || "587", 10),
+          secure: process.env.SMTP_SECURE === "true",
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+        }
+  );
   const info = await transport.sendMail({
     from: opts.from || process.env.SMTP_FROM || process.env.SMTP_USER,
     to: opts.to,
     subject: opts.subject,
     text: opts.text,
     html: opts.html,
+    attachments: opts.attachments,
   });
   return { messageId: info.messageId, simulated: false };
 }

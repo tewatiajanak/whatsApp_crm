@@ -78,7 +78,19 @@ async function requestForm(method, path, formData) {
   return json;
 }
 
+// Fetch a file that needs the login (attachments). Returns a Blob.
+async function requestBlob(path) {
+  const activeToken = getToken();
+  const res = await fetch(`${BASE}/api${path}`, { headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {} });
+  if (!res.ok) {
+    if (res.status === 401) setToken(null);
+    throw new Error(`${res.status} ${res.statusText}`);
+  }
+  return res.blob();
+}
+
 export const http = {
+  blob: (p) => requestBlob(p),
   get: (p) => request("GET", p),
   post: (p, b) => request("POST", p, b),
   postForm: (p, fd) => requestForm("POST", p, fd),

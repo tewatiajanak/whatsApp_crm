@@ -5,6 +5,7 @@ import { useApi } from "../hooks/useApi";
 import { useToast } from "../context/ToastContext";
 import { Spinner, ErrorBox, EmptyState, Modal, IconBtn } from "../components/ui";
 
+import { askConfirm } from "../utils/dialog";
 const ENQUIRY_FORM_DEFAULT_FIELDS = [
   { fieldName: "studentName", label: "Student Name", fieldType: "text", isRequired: true, selected: true, hidden: false, defaultValue: "", options: [], textColor: "#000000" },
   { fieldName: "mobileNumber", label: "Mobile Number", fieldType: "phone", isRequired: true, selected: true, hidden: false, defaultValue: "", options: [], textColor: "#000000" },
@@ -312,7 +313,7 @@ export default function EnquiryForms() {
   };
 
   const deleteForm = async (formIdToDelete) => {
-    if (!confirm("Delete this enquiry form?")) return;
+    if (!(await askConfirm("Delete this enquiry form?"))) return;
     const next = forms.filter((form) => form._id !== formIdToDelete);
     await saveConfig(next);
   };

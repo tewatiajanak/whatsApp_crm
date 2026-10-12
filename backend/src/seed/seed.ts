@@ -75,17 +75,17 @@ async function seed() {
 
   // WhatsApp-specific statuses (its own pipeline)
   const waStatuses = await LeadStatus.create([
-    { tenant: T, service: svc.whatsapp._id, name: "Enquiry", color: "#25d366", followUpRequired: "Yes", order: 1 },
-    { tenant: T, service: svc.whatsapp._id, name: "In Conversation", color: "#0891b2", followUpRequired: "Yes", order: 2 },
-    { tenant: T, service: svc.whatsapp._id, name: "Deal Won", color: "#16a34a", followUpRequired: "No", order: 3, isWon: true },
-    { tenant: T, service: svc.whatsapp._id, name: "Not Interested", color: "#dc2626", followUpRequired: "No", order: 4, isLost: true },
+    { tenant: T, offerings: [svc.whatsapp._id], name: "Enquiry", color: "#25d366", followUpRequired: "Yes", order: 1 },
+    { tenant: T, offerings: [svc.whatsapp._id], name: "In Conversation", color: "#0891b2", followUpRequired: "Yes", order: 2 },
+    { tenant: T, offerings: [svc.whatsapp._id], name: "Deal Won", color: "#16a34a", followUpRequired: "No", order: 3, isWon: true },
+    { tenant: T, offerings: [svc.whatsapp._id], name: "Not Interested", color: "#dc2626", followUpRequired: "No", order: 4, isLost: true },
   ]);
   // Event Management-specific statuses
   const evStatuses = await LeadStatus.create([
-    { tenant: T, service: svc.events._id, name: "Invited", color: "#7c3aed", followUpRequired: "Yes", order: 1 },
-    { tenant: T, service: svc.events._id, name: "Registered", color: "#2563eb", followUpRequired: "Yes", order: 2 },
-    { tenant: T, service: svc.events._id, name: "Attended", color: "#16a34a", followUpRequired: "No", order: 3, isWon: true },
-    { tenant: T, service: svc.events._id, name: "Next Year", color: "#d97706", followUpRequired: "Yes", order: 4 },
+    { tenant: T, offerings: [svc.events._id], name: "Invited", color: "#7c3aed", followUpRequired: "Yes", order: 1 },
+    { tenant: T, offerings: [svc.events._id], name: "Registered", color: "#2563eb", followUpRequired: "Yes", order: 2 },
+    { tenant: T, offerings: [svc.events._id], name: "Attended", color: "#16a34a", followUpRequired: "No", order: 3, isWon: true },
+    { tenant: T, offerings: [svc.events._id], name: "Next Year", color: "#d97706", followUpRequired: "Yes", order: 4 },
   ]);
   // a couple of service-specific sub-statuses
   await SubStatus.create([

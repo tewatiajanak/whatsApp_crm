@@ -208,3 +208,77 @@ export function Modal({ title, onClose, children, footer, size, bodyStyle }) {
     </div>
   );
 }
+
+// Small confirmation dialog for destructive actions (replaces the browser's confirm()).
+export function Confirm({ title, text, confirmLabel = "Confirm", danger, busy, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40" onClick={onCancel}>
+      <div className="w-full max-w-sm rounded-xl border bg-card shadow-2xl p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="text-sm font-semibold text-foreground">{title}</div>
+        {text && <div className="text-xs text-muted-foreground mt-1">{text}</div>}
+        <div className="flex justify-end gap-2 mt-4">
+          <button type="button" className="ui-btn ui-btn-outline" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button type="button" className={"ui-btn " + (danger ? "ui-btn-danger" : "ui-btn-primary")} onClick={onConfirm} disabled={busy}>
+            {busy ? "Working…" : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// KPI tile. Pass onClick to make it a filter; `tone` is a theme colour name.
+export function StatCard({ label, value, icon, tone = "primary", hint, active, onClick }) {
+  const Tag = onClick ? "button" : "div";
+  return (
+    <Tag
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={"rounded-xl border bg-card p-3 text-left w-full transition-colors" + (onClick ? " hover:bg-accent/30" : "")}
+      style={active ? { borderColor: "var(--primary)", boxShadow: "0 0 0 3px var(--ring)" } : undefined}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground truncate">{label}</div>
+        {icon && (
+          <span
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg flex-shrink-0"
+            style={{ background: `color-mix(in srgb, var(--${tone}) 12%, transparent)`, color: `var(--${tone})` }}
+          >
+            <i className={`bi bi-${icon}`} style={{ fontSize: 13 }}></i>
+          </span>
+        )}
+      </div>
+      <div className="text-xl font-semibold text-foreground mt-1 leading-tight">{value}</div>
+      {hint && <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{hint}</div>}
+    </Tag>
+  );
+}
+
+// Soft coloured label. `color` is any CSS colour (a status colour or a theme variable).
+export function Chip({ color = "var(--muted-foreground)", icon, children, title }) {
+  return (
+    <span
+      title={title}
+      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium whitespace-nowrap"
+      style={{ borderRadius: 6, background: `color-mix(in srgb, ${color} 13%, transparent)`, color }}
+    >
+      {icon && <i className={`bi bi-${icon}`} style={{ fontSize: 10 }}></i>}
+      {children}
+    </span>
+  );
+}
+
+// Card with a title row — the standard panel on dashboards and reports.
+export function Panel({ title, actions, children, className = "", bodyClass = "p-3" }) {
+  return (
+    <section className={"rounded-xl border bg-card overflow-hidden " + className}>
+      {(title || actions) && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b">
+          <h2 className="text-sm font-semibold text-foreground m-0">{title}</h2>
+          {actions}
+        </div>
+      )}
+      <div className={bodyClass}>{children}</div>
+    </section>
+  );
+}
