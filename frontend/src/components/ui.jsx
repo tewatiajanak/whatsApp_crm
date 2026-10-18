@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 // Shared presentational components — used everywhere so the UI is identical
 // across the whole application (header, tabs, filter bar, table, pills, buttons).
 // Markup and classes mirror the Event Manager pages (MiniCrudPage /
@@ -163,6 +165,7 @@ export function IconBtn({ icon, title, danger, onClick }) {
       type="button"
       className={"ui-btn ui-btn-sm ui-btn-icon " + (danger ? "ui-btn-danger" : "ui-btn-ghost")}
       title={title}
+      aria-label={title}
       onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }}
     >
       <i className={`bi bi-${icon}`} style={{ fontSize: 13 }}></i>
@@ -183,27 +186,60 @@ export function Avatar({ name = "?", size = 32 }) {
   );
 }
 
+/* Overlays (sliders + confirm dialogs): Esc closes the topmost one, the page behind doesn't scroll,
+   focus moves into the overlay and returns to where it was when it closes. */
+const overlayStack = [];
+function useOverlay(onClose) {
+  const panelRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const me = {};
+    overlayStack.push(me);
+    const before = document.activeElement;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // focus the panel unless a field inside already took focus (autoFocus)
+    const t = setTimeout(() => { const el = panelRef.current; if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true }); }, 0);
+    const onKey = (e) => { if (e.key === "Escape" && overlayStack[overlayStack.length - 1] === me && closeRef.current) { e.stopPropagation(); closeRef.current(); } };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("keydown", onKey);
+      overlayStack.splice(overlayStack.indexOf(me), 1);
+      if (!overlayStack.length) document.body.style.overflow = prevOverflow;
+      if (before && typeof before.focus === "function" && document.contains(before)) before.focus({ preventScroll: true });
+    };
+  }, []);
+  return panelRef;
+}
+
 // Standard form shell — a right-side slider (same as Event Manager drawers).
-// `size` widens it: "lg" / "xl" for bigger forms.
-const DRAWER_WIDTH = { sm: "max-w-md", lg: "max-w-2xl", xl: "max-w-4xl" };
+// Every slider is the standard width; size="wide" (or "xl") is for full records, big tables and previews.
+const sliderWidth = (size) => (size === "wide" || size === "xl" ? "var(--slider-w-wide)" : "var(--slider-w)");
 
 export function Modal({ title, onClose, children, footer, size, bodyStyle }) {
+  const panelRef = useOverlay(onClose);
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
       <div className="flex-1 bg-black/40" />
       <div
-        className={`w-full ${DRAWER_WIDTH[size] || "max-w-lg"} bg-card border-l shadow-2xl flex flex-col h-full`}
-        style={{ animation: "slideInRight 0.2s ease-out" }}
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className="w-full bg-card border-l shadow-2xl flex flex-col h-full outline-none"
+        style={{ maxWidth: sliderWidth(size), animation: "slideInRight 0.2s ease-out" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b p-4">
           <div className="text-lg font-semibold text-foreground leading-tight">{title}</div>
-          <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" onClick={onClose} title="Close">
+          <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" onClick={onClose} title="Close" aria-label="Close">
             <i className="bi bi-x-lg"></i>
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4" style={bodyStyle}>{children}</div>
-        {footer && <div className="border-t p-4 flex items-center justify-end gap-2">{footer}</div>}
+        {footer && <div className="border-t p-4 flex flex-wrap items-center justify-end gap-2">{footer}</div>}
       </div>
     </div>
   );
@@ -211,9 +247,10 @@ export function Modal({ title, onClose, children, footer, size, bodyStyle }) {
 
 // Small confirmation dialog for destructive actions (replaces the browser's confirm()).
 export function Confirm({ title, text, confirmLabel = "Confirm", danger, busy, onConfirm, onCancel }) {
+  const panelRef = useOverlay(busy ? null : onCancel);
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40" onClick={onCancel}>
-      <div className="w-full max-w-sm rounded-xl border bg-card shadow-2xl p-4" onClick={(e) => e.stopPropagation()}>
+      <div ref={panelRef} role="alertdialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm rounded-xl border bg-card shadow-2xl p-4 outline-none" onClick={(e) => e.stopPropagation()}>
         <div className="text-sm font-semibold text-foreground">{title}</div>
         {text && <div className="text-xs text-muted-foreground mt-1">{text}</div>}
         <div className="flex justify-end gap-2 mt-4">

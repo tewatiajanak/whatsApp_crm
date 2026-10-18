@@ -141,7 +141,7 @@ export default function TemplateManager({ channel, module = "events" }: { channe
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="crm-theme w-full sm:max-w-3xl flex flex-col gap-0 p-0">
+        <SheetContent size="wide" className="crm-theme w-full sm:max-w-3xl flex flex-col gap-0 p-0">
           <SheetHeader className="border-b p-4 pr-10"><SheetTitle>{editing ? "Edit template" : "Add template"}</SheetTitle></SheetHeader>
           <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <div className="space-y-3">
@@ -259,17 +259,17 @@ export default function TemplateManager({ channel, module = "events" }: { channe
                   <div className="rounded-lg bg-white" style={{ maxWidth: 320, marginLeft: "auto", color: "#111827", boxShadow: "0 1px 1px rgba(0,0,0,.12)" }}>
                     {isWa && form.header?.type === "text" && form.header.text && <div className="px-3 pt-2 text-sm font-semibold">{withSamples(form.header.text, form.sample)}</div>}
                     {isWa && ["image", "video", "document"].includes(form.header?.type || "") && (
-                      <div className="flex items-center justify-center rounded-t-lg" style={{ background: "#e5e7eb", color: "#6b7280", aspectRatio: "16 / 9" }}>
+                      <div className="flex items-center justify-center rounded-t-lg" style={{ background: "#e5e7eb", color: "var(--muted-foreground)", aspectRatio: "16 / 9" }}>
                         {form.header?.type === "image" ? <ImageIcon className="h-8 w-8" /> : form.header?.type === "video" ? <Video className="h-8 w-8" /> : <FileText className="h-8 w-8" />}
                       </div>
                     )}
                     <div className="p-3 text-sm" style={{ whiteSpace: "pre-wrap", minHeight: 44 }}>{withSamples(form.body, form.sample)}</div>
-                    {isWa && form.footer && <div className="px-3 pb-2 text-xs" style={{ color: "#6b7280" }}>{form.footer}</div>}
+                    {isWa && form.footer && <div className="px-3 pb-2 text-xs" style={{ color: "var(--muted-foreground)" }}>{form.footer}</div>}
                     {isWa && (
                       <div className="px-3 pb-2 flex items-center justify-end" style={{ color: "#3b82f6" }}><CheckCheck className="h-3 w-3" /></div>
                     )}
                     {isWa && form.buttons.map((b, i) => (
-                      <div key={i} className="border-t py-2 text-sm font-medium flex items-center justify-center gap-1" style={{ color: "#2563eb" }}>
+                      <div key={i} className="border-t py-2 text-sm font-medium flex items-center justify-center gap-1" style={{ color: "var(--primary)" }}>
                         {b.type === "url" ? <Link2 className="h-4 w-4" /> : b.type === "phone" ? <Phone className="h-4 w-4" /> : <Reply className="h-4 w-4" />}
                         {b.text}
                       </div>

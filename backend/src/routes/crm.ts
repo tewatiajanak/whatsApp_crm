@@ -23,7 +23,7 @@ import { sendSms, placeCall, smsReady, telephonyReady, telephonyToken } from "..
 import { sendSummary } from "../services/crmScheduler";
 import { testInbox } from "../services/crmIntegrations";
 import { markFeePaid, newToken } from "../services/leadFees";
-import { assignableOwners, logActivity, refreshLead, changeLeadStatus } from "../services/leadService";
+import { assignableOwners, logActivity, refreshLead, changeLeadStatus, DEFAULT_SCORING } from "../services/leadService";
 import { guardLead, canSeeLead, leadOwnerScope, scopeLeadFilter } from "../services/leadAccess";
 import { appUrl } from "../services/pm/messages";
 import { localDateTime, isDateKey, localDateKey } from "../utils/dates";
@@ -175,6 +175,24 @@ r.put("/crm/settings", require_("setup", "edit"), asyncHandler(async (req: any, 
     s.booking.startHour = num(b.booking.startHour, 0, 23, 10);
     s.booking.endHour = num(b.booking.endHour, 1, 24, 18);
     s.booking.days = (Array.isArray(b.booking.days) ? b.booking.days : []).map(Number).filter((d: number) => d >= 0 && d <= 6);
+  }
+  if (b.scoring) {
+    for (const k of Object.keys(DEFAULT_SCORING) as Array<keyof typeof DEFAULT_SCORING>) {
+      if (b.scoring[k] === undefined) continue;
+      (s.scoring as any)[k] = num(b.scoring[k], k === "followUpOverdue" ? -50 : 0, 100, DEFAULT_SCORING[k]);
+    }
+    if (s.scoring.warm >= s.scoring.hot) throw new ApiError(400, "Warm must start below hot");
+    s.markModified("scoring");
+  }
+  if (b.queries) {
+    if (Array.isArray(b.queries.categories)) {
+      const cats = b.queries.categories.map((c: any) => ({ name: str(c?.name, 60), slaHours: num(c?.slaHours, 1, 2160, 24) })).filter((c: any) => c.name);
+      if (new Set(cats.map((c: any) => c.name.toLowerCase())).size !== cats.length) throw new ApiError(400, "Two categories have the same name");
+      s.queries.categories = cats.slice(0, 30) as any;
+    }
+    if (b.queries.defaultSlaHours !== undefined) s.queries.defaultSlaHours = num(b.queries.defaultSlaHours, 1, 2160, 24);
+    if (b.queries.assignToLeadOwner !== undefined) s.queries.assignToLeadOwner = !!b.queries.assignToLeadOwner;
+    s.markModified("queries");
   }
   if (b.trashDays !== undefined) s.trashDays = num(b.trashDays, 1, 365, 30);
   if (Array.isArray(b.applicationStages)) {

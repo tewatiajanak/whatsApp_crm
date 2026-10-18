@@ -10,8 +10,8 @@ export default function ChatbotRules() {
     <div>
       <Tabs
         tabs={[
-          { value: "flows", label: <><i className="bi bi-diagram-3"></i>Visual Bot Flows (FlowChat Studio)</> },
-          { value: "forms", label: <><i className="bi bi-ui-checks"></i>WhatsApp Forms Builder</> },
+          { value: "flows", label: <><i className="bi bi-diagram-3"></i>Bot Flows</> },
+          { value: "forms", label: <><i className="bi bi-ui-checks"></i>Forms</> },
         ]}
         value={activeTab}
         onChange={setActiveTab}

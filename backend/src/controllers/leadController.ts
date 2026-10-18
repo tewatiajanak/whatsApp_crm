@@ -13,6 +13,7 @@ import {
   findLeadByPhone, findDuplicateLead, maskContacts, cleanPhone, isValidPhone, isValidEmail, escapeRegex,
 } from "../services/leadService";
 import { LeadTrash, Course, Branch, Partner } from "../models/CrmMore";
+import { CrmList } from "../models/CrmPro";
 import { fireAlerts } from "../services/alertsEngine";
 import { scopeLeadFilter, leadOwnerScope } from "../services/leadAccess";
 import { crmSettingsFor, AutomationJob, AutomationRun, LeadFee, LeadDocument } from "../models/CrmExtras";
@@ -96,6 +97,19 @@ export async function buildLeadFilter(req: Request, q: Record<string, any> = req
     else if (view === "untouched") and.push(openOnly, { firstContactedAt: null });
     else if (view === "stale") and.push(openOnly, { lastActivity: { $lt: new Date(Date.now() - STALE_DAYS * 86_400_000) } });
     else if (view === "unassigned") and.push({ owner: { $in: ["Unassigned", "", null] } });
+  }
+
+  // members of a lead list (static: its saved leads; smart: its filters)
+  const listId = oid(q.list);
+  if (listId) {
+    const list: any = await CrmList.findOne({ _id: listId, tenant }).lean();
+    if (!list) and.push({ _id: null });
+    else if (list.kind === "static") and.push({ _id: { $in: list.leads || [] } });
+    else if (!q._nested) {
+      const inner = await buildLeadFilter(req, { ...(list.filters || {}), _nested: "1" });
+      delete inner.tenant;
+      and.push(inner);
+    }
   }
 
   if (and.length) filter.$and = and;

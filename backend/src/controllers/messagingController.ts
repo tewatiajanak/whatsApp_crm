@@ -615,7 +615,10 @@ export const webhookReceive = asyncHandler(async (req: Request, res: Response) =
         if (ev.status === "delivered") patch.deliveredAt = ev.timestamp || new Date();
         if (ev.status === "read") patch.readAt = ev.timestamp || new Date();
         if (ev.status === "failed") patch.failReason = ev.errorReason || "failed";
-        await Message.updateOne({ tenant: tenantId, waMessageId: ev.waMessageId }, { $set: patch });
+        // receipts can arrive out of order: never move "read" back to "delivered"
+        const lower: Record<string, string[]> = { sent: ["queued"], delivered: ["queued", "sent"], read: ["queued", "sent", "delivered"], failed: ["queued", "sent"] };
+        const from = lower[String(ev.status)];
+        await Message.updateOne({ tenant: tenantId, waMessageId: ev.waMessageId, ...(from ? { status: { $in: from } } : {}) }, { $set: patch });
       } else if (ev.kind === "template_status_update" && ev.templateName) {
         await Template.updateOne(
           { tenant: tenantId, name: ev.templateName },

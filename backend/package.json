@@ -13,8 +13,11 @@
     "pm:test": "ts-node --transpile-only src/services/pm/dateEngine.test.ts",
     "worker": "ts-node-dev --respawn --transpile-only src/jobs/worker.ts",
     "lint": "echo \"(add eslint as needed)\"",
+    "campaigns:api-test": "node src/tests/campaigns.api.test.mjs",
     "website:test": "ts-node --transpile-only src/services/websiteData.test.ts",
-    "website:api-test": "node src/tests/website.api.test.mjs"
+    "website:api-test": "node src/tests/website.api.test.mjs",
+    "crm:api-test": "node src/tests/crm.pro.api.test.mjs",
+    "prereq:api-test": "node src/tests/prerequisites.api.test.mjs"
   },
   "keywords": [
     "whatsapp",

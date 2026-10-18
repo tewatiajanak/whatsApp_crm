@@ -21,7 +21,7 @@ export default function WorkTitle({ actions }: { actions?: React.ReactNode }) {
   const current = tabs.find((t) => t.views.some(([, to]) => to === pathname));
   return (
     <>
-      <PageTitle icon={<ListTodo className="h-4 w-4" />} title="Planner" actions={actions} />
+      <PageTitle icon={<ListTodo className="h-4 w-4" />} title="Task Planner" actions={actions} />
       <div className="pm-tabs">
         {tabs.map((t) => <NavLink key={t.label} to={t.views[0][1]} className={t === current ? "is-on" : ""}>{t.label}</NavLink>)}
         {current && current.views.length > 1 && (

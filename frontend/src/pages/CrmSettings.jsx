@@ -6,12 +6,14 @@ import { useToast } from "../context/ToastContext";
 import { PageHeader, Spinner, ErrorBox, EmptyState, Tabs, Panel, Chip, Confirm } from "../components/ui";
 import { formatDateTime } from "../utils/dateFormat";
 import { labelCls } from "../components/lead/leadUtils";
+import { ActivityTypesTab, ScoringTab, QueriesTab } from "../components/lead/CrmProSettings";
 
 const TABS = [
   { value: "alerts", label: "Reminders & alerts" }, { value: "telephony", label: "Telephony" }, { value: "sms", label: "SMS" },
   { value: "reports", label: "Scheduled report" }, { value: "capture", label: "Lead capture" }, { value: "fields", label: "Custom fields" }, { value: "stages", label: "Application stages" },
   { value: "assignment", label: "Assignment & rules" }, { value: "billing", label: "Billing & GST" }, { value: "masters", label: "Courses & branches" },
-  { value: "mail", label: "Mailbox & calendar" },
+  { value: "mail", label: "Mailbox & calendar" }, { value: "activities", label: "Activity types" }, { value: "scoring", label: "Lead scoring" },
+  { value: "queries", label: "Queries" },
 ];
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const hourLabel = (h) => `${String(h).padStart(2, "0")}:00`;
@@ -264,6 +266,9 @@ export default function CrmSettings() {
             <MasterList kind="branches" title="Branches" canEdit={canEdit} fields={[["name", "Branch name *", "text"], ["city", "City", "text"]]} />
           </>}
           {tab === "fields" && <FieldsTab canEdit={canEdit} />}
+          {tab === "activities" && <ActivityTypesTab canEdit={canEdit} />}
+          {tab === "scoring" && <ScoringTab s={s} setS={setS} canEdit={canEdit} saveSections={save} />}
+          {tab === "queries" && <QueriesTab s={s} setS={setS} canEdit={canEdit} SaveBtn={SaveBtn} />}
 
           {tab === "stages" && <>
             <Panel title="Stages an application moves through" bodyClass="p-3 space-y-2">

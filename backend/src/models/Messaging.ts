@@ -47,6 +47,19 @@ export interface ICampaign extends Document {
   scheduledFor?: Date | null;
   rateLimit: string;
   createdBy: string;
+  /** who receives it: opted-in contacts (by category), an imported list, a lead list, or a resend */
+  audienceType: "contacts" | "list" | "leadList" | "resend";
+  audienceRef?: Types.ObjectId | null;
+  /** several lists of the same kind sent together (audienceRef = the first, for older readers) */
+  audienceRefs?: Types.ObjectId[];
+  audienceLabel?: string;
+  /** resend: the campaign it came from and which delivery statuses were picked */
+  parentCampaign?: Types.ObjectId | null;
+  resendStatuses: string[];
+  /** template variables {{1}}, {{2}}… filled per recipient */
+  variables: { source: "name" | "phone" | "column" | "text"; value?: string }[];
+  launchedAt?: Date | null;
+  completedAt?: Date | null;
 }
 const campaignSchema = new Schema<ICampaign>(
   {
@@ -63,6 +76,15 @@ const campaignSchema = new Schema<ICampaign>(
     scheduledFor: { type: Date, default: null },
     rateLimit: { type: String, default: "500 msg/min" },
     createdBy: String,
+    audienceType: { type: String, enum: ["contacts", "list", "leadList", "resend"], default: "contacts" },
+    audienceRef: { type: Schema.Types.ObjectId, default: null },
+    audienceRefs: { type: [Schema.Types.ObjectId], default: undefined },
+    audienceLabel: { type: String, default: "" },
+    parentCampaign: { type: Schema.Types.ObjectId, ref: "Campaign", default: null, index: true },
+    resendStatuses: { type: [String], default: [] },
+    variables: { type: [{ _id: false, source: String, value: String }], default: [] },
+    launchedAt: { type: Date, default: null },
+    completedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
@@ -131,6 +153,7 @@ const messageSchema = new Schema<IMessage>(
 messageSchema.index({ tenant: 1, createdAt: -1 });
 messageSchema.index({ tenant: 1, source: 1, createdAt: -1 });
 messageSchema.index({ tenant: 1, status: 1 });
+messageSchema.index({ campaign: 1, phone: 1 });
 export const Message = model<IMessage>("Message", messageSchema);
 
 /* ---- Conversation (1:1, user-initiated, 24h window) ---- */

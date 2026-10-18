@@ -19,6 +19,7 @@ import ChatbotRules from "./pages/ChatbotRules";
 import MediaManager from "./flowchat/pages/MediaManager";
 import Setup from "./pages/Setup";
 import PublicEnquiryForm from "./pages/PublicEnquiryForm";
+import { PublicPrerequisitePage } from "./pages/PrerequisitePages";
 import PublicLandingPage from "./pages/PublicLandingPage";
 import EnquiryForms from "./pages/EnquiryForms";
 import Audit from "./pages/Audit";
@@ -30,6 +31,7 @@ import Targets from "./pages/Targets";
 import Applications from "./pages/Applications";
 import { PublicPayPage, PublicApplicationPage, PublicPartnerPage, PublicBookingPage, ApplicantLoginPage } from "./pages/PublicCrmPages";
 import { Approvals, Partners, Reports } from "./pages/CrmMorePages";
+import { Queries, LeadLists, ActivityRegister } from "./pages/CrmProPages";
 
 // FlowChat Studio Builder
 import BotBuilder from "./flowchat/pages/BotBuilder";
@@ -226,6 +228,8 @@ export default function App() {
     <>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <div className="crm-theme"><Login /></div>} />
+        {/* Admission pre-requisite form sent to a client (Setup › Implementation › Pre-requisites) */}
+        <Route path="/prerequisites/:token" element={<PublicPrerequisitePage />} />
         <Route path="/public/enquiry-form/:formId" element={<div className="crm-theme"><PublicEnquiryForm /></div>} />
         <Route path="/public/landing-page/:pageId" element={<div className="crm-theme"><PublicLandingPage /></div>} />
         {/* Website Builder: published websites (public) */}
@@ -412,6 +416,9 @@ export default function App() {
           <Route path="reports" element={<Reports />} />
           <Route path="approvals" element={<Approvals />} />
           <Route path="partners" element={<Partners />} />
+          <Route path="queries" element={<Queries />} />
+          <Route path="lists" element={<LeadLists />} />
+          <Route path="activities" element={<ActivityRegister />} />
           <Route path="automation" element={<Automation />} />
           <Route path="settings" element={<CrmSettings />} />
           <Route path="chat" element={<Conversations />} />

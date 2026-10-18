@@ -129,6 +129,18 @@ export async function assignableOwners(tenant: any): Promise<string[]> {
 
 const ENGAGEMENT: ActivityType[] = ["call", "message", "note", "followup_done", "enquiry"];
 
+export const DEFAULT_SCORING = {
+  email: 5, course: 5, city: 3, source: 2, stageMax: 30, perEngagement: 5, engagementMax: 25,
+  recent2: 20, recent7: 12, recent14: 6, followUpOnTime: 10, followUpOverdue: -10, activityMax: 30, hot: 70, warm: 40,
+};
+/** The tenant's scoring weights, falling back to the defaults for anything not set. */
+export function scoringWeights(settings: any): typeof DEFAULT_SCORING {
+  const saved = settings?.scoring || {};
+  const out: any = { ...DEFAULT_SCORING };
+  for (const k of Object.keys(DEFAULT_SCORING)) if (Number.isFinite(Number(saved[k])) && saved[k] !== null && saved[k] !== "") out[k] = Number(saved[k]);
+  return out;
+}
+
 /**
  * Bring a lead's derived fields up to date: next follow-up (from its open
  * follow-ups), score (0–100) and priority. Call after anything that changes
@@ -139,11 +151,14 @@ export async function refreshLead(leadOrId: any): Promise<ILead | null> {
   if (!lead) return null;
   const tenant = lead.tenant;
 
-  const [statuses, engagement, nextOpen, lastDone] = await Promise.all([
+  const [statuses, engagement, nextOpen, lastDone, settings, logged] = await Promise.all([
     LeadStatus.find({ tenant }).select("order isWon isLost").lean(),
     LeadActivity.countDocuments({ tenant, lead: lead._id, type: { $in: ENGAGEMENT } }),
     FollowUp.findOne({ tenant, lead: lead._id, done: false }).sort({ due: 1 }).lean(),
     FollowUp.findOne({ tenant, lead: lead._id, done: true }).sort({ completedAt: -1, updatedAt: -1 }).lean(),
+    crmSettingsFor(tenant),
+    // points carried by custom activities (Campus visit, Demo attended, …)
+    LeadActivity.aggregate([{ $match: { tenant: new Types.ObjectId(String(tenant)), lead: lead._id, type: "activity" } }, { $group: { _id: null, points: { $sum: { $ifNull: ["$meta.points", 0] } } } }]),
   ]);
 
   // follow-up fields mirror the earliest open follow-up
@@ -156,27 +171,30 @@ export async function refreshLead(leadOrId: any): Promise<ILead | null> {
     lead.lastFollowUpType = lastDone.type;
   }
 
+  const w = scoringWeights(settings);
   const current: any = statuses.find((s: any) => String(s._id) === String(lead.status));
   let score = 0;
   if (current?.isWon) {
     score = 100;
   } else {
-    if (lead.email) score += 5;
-    if (lead.course) score += 5;
-    if (lead.city) score += 3;
-    if (lead.source) score += 2;
+    if (lead.email) score += w.email;
+    if (lead.course) score += w.course;
+    if (lead.city) score += w.city;
+    if (lead.source) score += w.source;
     if (!current?.isLost) {
       const ranks = [...new Set(statuses.filter((s: any) => !s.isLost).map((s: any) => s.order))].sort((a, b) => a - b);
       const idx = ranks.indexOf(current?.order ?? ranks[0]);
-      if (ranks.length > 1 && idx > 0) score += Math.round((idx / (ranks.length - 1)) * 30);
-      score += Math.min(25, engagement * 5);
+      if (ranks.length > 1 && idx > 0) score += Math.round((idx / (ranks.length - 1)) * w.stageMax);
+      score += Math.min(w.engagementMax, engagement * w.perEngagement);
+      const points = Number(logged[0]?.points) || 0;
+      score += Math.max(-w.activityMax, Math.min(w.activityMax, points));
       const idleDays = (Date.now() - new Date(lead.lastActivity || Date.now()).getTime()) / 86_400_000;
-      score += idleDays <= 2 ? 20 : idleDays <= 7 ? 12 : idleDays <= 14 ? 6 : 0;
-      if (nextOpen) score += new Date(nextOpen.due).getTime() >= Date.now() ? 10 : -10;
+      score += idleDays <= 2 ? w.recent2 : idleDays <= 7 ? w.recent7 : idleDays <= 14 ? w.recent14 : 0;
+      if (nextOpen) score += new Date(nextOpen.due).getTime() >= Date.now() ? w.followUpOnTime : w.followUpOverdue;
     }
   }
   lead.score = Math.max(0, Math.min(100, score));
-  if (!lead.priorityManual) lead.priority = lead.score >= 70 ? "hot" : lead.score >= 40 ? "warm" : "cold";
+  if (!lead.priorityManual) lead.priority = lead.score >= w.hot ? "hot" : lead.score >= w.warm ? "warm" : "cold";
 
   await lead.save();
   return lead;
@@ -226,6 +244,10 @@ async function resolveSource(tenant: any, keyOrId?: string) {
   return LeadSource.findOne({ tenant, name: new RegExp(escapeRegex(key), "i") });
 }
 
+const sourceEntry = (source: any, opts: NewLeadInput) => ({
+  source: source?._id || null, sourceName: source?.name || "", capturedFrom: opts.capturedFrom || (opts.manual ? "Added by hand" : ""), campaign: opts.utm?.campaign || "", at: new Date(),
+});
+
 /**
  * Create a lead — or, when the same phone is already a lead, record the new
  * enquiry on the existing one instead of making a duplicate.
@@ -243,6 +265,8 @@ export async function convertToLead(opts: NewLeadInput) {
   const existing = dupRule === "allow" && opts.manual ? null : await findDuplicateLead(tenant, phone, email);
   if (existing && dupRule === "block" && opts.manual) throw new ApiError(409, `${existing.name} is already a lead with this ${phoneKeyOf(existing.phone) === phoneKeyOf(phone) ? "phone number" : "contact"}`);
   if (existing) {
+    const again = await resolveSource(tenant, opts.sourceKeyOrId);
+    existing.sourceHistory = [...(existing.sourceHistory || []), sourceEntry(again, opts)].slice(-20) as any;
     existing.enquiryCount = (existing.enquiryCount || 1) + 1;
     existing.lastActivity = new Date();
     if (!existing.email && email) existing.email = email;
@@ -286,6 +310,7 @@ export async function convertToLead(opts: NewLeadInput) {
     tags: (opts.tags || []).map((t) => String(t).trim()).filter(Boolean),
     utm: opts.utm || {},
     capturedFrom: opts.capturedFrom || "",
+    sourceHistory: [sourceEntry(source, opts)],
     branch: opts.branch || "",
     partner: partner?._id || null,
     visitorId: opts.visitorId || "",

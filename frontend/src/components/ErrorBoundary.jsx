@@ -46,7 +46,7 @@ export class ErrorBoundary extends React.Component {
               height: "48px",
               borderRadius: "50%",
               backgroundColor: "#fee2e2",
-              color: "#dc2626",
+              color: "var(--destructive)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -56,11 +56,11 @@ export class ErrorBoundary extends React.Component {
               ⚠️
             </div>
 
-            <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#0f172a", marginBottom: "0.5rem" }}>
+            <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "var(--foreground)", marginBottom: "0.5rem" }}>
               Something went wrong
             </h2>
 
-            <p style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "1.25rem", lineHeight: "1.5" }}>
+            <p style={{ fontSize: "0.875rem", color: "var(--muted-foreground)", marginBottom: "1.25rem", lineHeight: "1.5" }}>
               An unexpected render error occurred in this view. You can reload this view or return to the main dashboard.
             </p>
 
@@ -88,7 +88,7 @@ export class ErrorBoundary extends React.Component {
                 onClick={this.handleReset}
                 style={{
                   padding: "0.5rem 1.25rem",
-                  backgroundColor: "#0f172a",
+                  backgroundcolor: "var(--foreground)",
                   color: "#ffffff",
                   borderRadius: "6px",
                   border: "none",
@@ -105,7 +105,7 @@ export class ErrorBoundary extends React.Component {
                 }}
                 style={{
                   padding: "0.5rem 1.25rem",
-                  backgroundColor: "#dc2626",
+                  backgroundcolor: "var(--destructive)",
                   color: "#ffffff",
                   borderRadius: "6px",
                   border: "none",
@@ -121,7 +121,7 @@ export class ErrorBoundary extends React.Component {
                 style={{
                   padding: "0.5rem 1.25rem",
                   backgroundColor: "#ffffff",
-                  color: "#0f172a",
+                  color: "var(--foreground)",
                   borderRadius: "6px",
                   border: "1px solid #cbd5e1",
                   fontWeight: "600",

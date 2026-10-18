@@ -68,6 +68,8 @@ export interface ILead extends Document {
   visitorId?: string;
   utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string };
   capturedFrom?: string;
+  /** every enquiry's source in order: [0] primary, [1] secondary, [2] tertiary … */
+  sourceHistory: Array<{ source?: Types.ObjectId | null; sourceName: string; capturedFrom: string; campaign: string; at: Date }>;
   customFields?: Record<string, any>;
 }
 
@@ -157,6 +159,10 @@ const leadSchema = new Schema<ILead>(
       content: { type: String, default: "" },
     },
     capturedFrom: { type: String, default: "" },
+    sourceHistory: {
+      type: [{ _id: false, source: { type: Schema.Types.ObjectId, ref: "LeadSource", default: null }, sourceName: String, capturedFrom: String, campaign: String, at: { type: Date, default: Date.now } }],
+      default: [],
+    },
     customFields: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }

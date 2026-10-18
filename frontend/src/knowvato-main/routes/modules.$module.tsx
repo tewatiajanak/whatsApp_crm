@@ -623,12 +623,12 @@ export default function ModulePage({ setupModule }: { setupModule?: Exclude<Setu
               { key: "label", label: "Status", render: (r) => <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: r.color }} />{r.label}</span> },
             ]}
             seed={[
-              { id: "1", label: "Draft", color: "#94a3b8", order: 1 },
+              { id: "1", label: "Draft", color: "var(--muted-foreground)", order: 1 },
               { id: "2", label: "Published", color: "#2249b7", order: 2 },
               { id: "3", label: "Registration Open", color: "#059669", order: 3 },
-              { id: "4", label: "Live", color: "#dc2626", order: 4 },
+              { id: "4", label: "Live", color: "var(--destructive)", order: 4 },
               { id: "5", label: "Completed", color: "#0891b2", order: 5 },
-              { id: "6", label: "Archived", color: "#64748b", order: 6 },
+              { id: "6", label: "Archived", color: "var(--muted-foreground)", order: 6 },
             ]}
           />
         );
@@ -838,7 +838,7 @@ export default function ModulePage({ setupModule }: { setupModule?: Exclude<Setu
               { id: "2", name: "VIP pass — gold ribbon", kind: "VIP", size: "A6", sides: "Front + Back", color: "#eab308" },
               { id: "3", name: "Speaker badge", kind: "Speaker", size: "Badge 4×3", sides: "Front + Back", color: "#8b5cf6" },
               { id: "4", name: "Volunteer pass", kind: "Volunteer", size: "Badge 4×3", sides: "Front only", color: "#059669" },
-              { id: "5", name: "Exhibitor booth pass", kind: "Exhibitor", size: "A6", sides: "Front + Back", color: "#dc2626" },
+              { id: "5", name: "Exhibitor booth pass", kind: "Exhibitor", size: "A6", sides: "Front + Back", color: "var(--destructive)" },
               { id: "6", name: "Student pass", kind: "Student", size: "Badge 4×3", sides: "Front only", color: "#f59e0b" },
             ]}
           />

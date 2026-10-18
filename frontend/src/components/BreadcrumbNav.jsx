@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 // Mapping Setup active sections to parent Category titles
@@ -11,6 +12,7 @@ const SETUP_CATEGORIES = {
   "ui-theme": { category: "UI", label: "Theme Customization" },
   sessions: { category: "Academic Setup", label: "Academic Sessions" },
   grades: { category: "Academic Setup", label: "Grades" },
+  prerequisites: { category: "Implementation", label: "Pre-requisites" },
   teams: { category: "Workflows", label: "Teams" },
   workflows: { category: "Workflows", label: "Workflows" },
   "comm-templates": { category: "Workflows", label: "Communication Templates" },
@@ -107,7 +109,7 @@ const MODULE_PAGES = {
   },
   projects: {
     label: "Project Management",
-    pages: { "": "Planner", dashboard: "Dashboard", reports: "Reports", "people/me": "My Performance", "my-work": "Planner", list: "Projects", new: "New Project", tasks: "Planner", "daily-plan": "Planner", "team-calendar": "Planner", meetings: "Meetings & Trainings", tickets: "Tickets", clients: "Clients", team: "Team Hierarchy", templates: "Templates", messages: "Message Log", notifications: "Notifications", setup: "Setup", products: "Product Template" },
+    pages: { "": "Task Planner", dashboard: "Dashboard", reports: "Reports", "people/me": "My Performance", "my-work": "Task Planner", list: "Projects", new: "New Project", tasks: "Task Planner", "daily-plan": "Task Planner", "team-calendar": "Task Planner", meetings: "Meetings & Trainings", tickets: "Tickets", clients: "Clients", team: "Team Hierarchy", templates: "Templates", messages: "Message Log", notifications: "Notifications", setup: "Setup", products: "Product Template" },
   },
   website: { label: "Website Builder", pages: { "": "Overview" } },
   communication: {
@@ -188,6 +190,30 @@ export default function BreadcrumbNav() {
         { label: "Home", to: "/" },
         { label: "CRM", to: "/crm" },
         { label: "Follow-ups" }
+      ];
+    }
+
+    if (pathname === "/crm/activities") {
+      return [
+        { label: "Home", to: "/" },
+        { label: "CRM", to: "/crm" },
+        { label: "Activities" }
+      ];
+    }
+
+    if (pathname === "/crm/queries") {
+      return [
+        { label: "Home", to: "/" },
+        { label: "CRM", to: "/crm" },
+        { label: "Queries" }
+      ];
+    }
+
+    if (pathname === "/crm/lists") {
+      return [
+        { label: "Home", to: "/" },
+        { label: "CRM", to: "/crm" },
+        { label: "Lead Lists" }
       ];
     }
 
@@ -353,6 +379,11 @@ export default function BreadcrumbNav() {
   };
 
   const crumbs = getCrumbs();
+  // browser tab title follows the page: "Leads · KnowVato"
+  const pageLabel = crumbs.length ? crumbs[crumbs.length - 1].label : "";
+  useEffect(() => {
+    if (typeof pageLabel === "string" && pageLabel) document.title = `${pageLabel} · KnowVato`;
+  }, [pageLabel]);
 
   return (
     <nav className="breadcrumb-nav d-inline-flex align-items-center gap-1.5 min-w-0" aria-label="breadcrumb">

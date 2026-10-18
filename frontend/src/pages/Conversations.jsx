@@ -4,6 +4,15 @@ import { useApi } from "../hooks/useApi";
 import { useToast } from "../context/ToastContext";
 import { Spinner, EmptyState, Avatar } from "../components/ui";
 
+const EMOJIS = ["😀", "😊", "🙂", "😉", "😍", "🤝", "👍", "🙏", "👏", "🎉", "✅", "📌", "📞", "📅", "📍", "💬", "⏰", "🔥", "💯", "❤️"];
+
+const FILTERS = [
+  { value: "all", label: "All" },
+  { value: "unread", label: "Unread" },
+  { value: "open", label: "Open" },
+  { value: "closed", label: "Closed" },
+];
+
 function extractInlineButtons(text) {
   if (!text) return { cleanText: "", options: [] };
   const match = text.match(/\[buttons?:\s*([^\]]+)\]/i);
@@ -16,20 +25,39 @@ function extractInlineButtons(text) {
   return { cleanText, options };
 }
 
+function isOpen(c) {
+  return c ? new Date(c.windowExpiresAt).getTime() > Date.now() : false;
+}
+
+// "5h 20m left" for an open 24-hour window
+function windowLeft(c) {
+  const ms = new Date(c?.windowExpiresAt).getTime() - Date.now();
+  if (!(ms > 0)) return "";
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h ? `${h}h ${m}m left` : `${m}m left`;
+}
+
 export default function Conversations() {
   const toast = useToast();
   const convs = useApi(() => conversationsApi.list({ perPage: 100 }), []);
   const templates = useApi(() => templatesApi.list({ status: "Approved" }), []);
   const [activeId, setActiveId] = useState(null);
+  const [mobileThread, setMobileThread] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
   const [draft, setDraft] = useState("");
   const [templateMenu, setTemplateMenu] = useState(false);
+  const [emojiMenu, setEmojiMenu] = useState(false);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [sending, setSending] = useState(false);
   const [interactiveMode, setInteractiveMode] = useState(false);
   const [interactiveBtns, setInteractiveBtns] = useState([
     { id: "btn_1", title: "View Fees" },
     { id: "btn_2", title: "Book Visit" },
   ]);
   const messagesRef = useRef(null);
+  const inputRef = useRef(null);
 
   const refreshConversationsSilently = useCallback(async () => {
     try {
@@ -43,12 +71,16 @@ export default function Conversations() {
 
   const list = convs.data || [];
   const active = list.find((c) => c._id === activeId) || list[0];
+  const unreadTotal = list.reduce((n, c) => n + (c.unread > 0 ? 1 : 0), 0);
   const filteredList = list.filter((c) => {
+    if (filter === "unread" && !(c.unread > 0)) return false;
+    if (filter === "open" && !isOpen(c)) return false;
+    if (filter === "closed" && isOpen(c)) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return [c.name, c.phone, c.last].some((v) => String(v || "").toLowerCase().includes(q));
   });
-  const windowOpen = active ? new Date(active.windowExpiresAt).getTime() > Date.now() : false;
+  const windowOpen = isOpen(active);
 
   useEffect(() => {
     if (!activeId && list.length) setActiveId(list[0]._id);
@@ -67,14 +99,24 @@ export default function Conversations() {
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
   }, [activeId, active?.messages?.length]);
 
+  function openConversation(c) {
+    setActiveId(c._id);
+    setMobileThread(true);
+    setInteractiveMode(false);
+    if (c.unread) conversationsApi.markRead(c._id).then(refreshConversationsSilently);
+  }
+
   async function send() {
-    if (!draft.trim() || !active) return;
+    if (!draft.trim() || !active || sending) return;
+    setSending(true);
     try {
       await conversationsApi.reply(active._id, { text: draft });
       setDraft("");
       refreshConversationsSilently();
     } catch (e) {
       toast(e.message, "error");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -114,267 +156,323 @@ export default function Conversations() {
     }
   }
 
+  function addEmoji(e) {
+    setDraft((d) => d + e);
+    setEmojiMenu(false);
+    inputRef.current?.focus();
+  }
+
   if (convs.loading && !convs.data) return <Spinner />;
   if (!list.length)
     return (
-      <EmptyState
-        icon="chat-dots"
-        text="No conversations yet. In the WhatsApp Business model, customers message you first."
-      />
+      <div className="wa-shell wa-shell-empty">
+        <EmptyState icon="chat-dots" text="No conversations yet" />
+      </div>
     );
 
+  const templateList = templates.data || [];
+
   return (
-    <div className="chat-grid">
-      {/* list */}
-      <div className="chat-list">
-        <div className="wa-list-top">
-          <Avatar name="You" size={36} />
-          <div className="wa-list-top-actions ms-auto">
-            <i className="bi bi-circle"></i>
-            <i className="bi bi-chat-left-text"></i>
-            <i className="bi bi-three-dots-vertical"></i>
+    <div className={"wa-shell" + (mobileThread ? " is-thread" : "") + (showDetails ? "" : " no-aside")}>
+      {/* ---------- list ---------- */}
+      <aside className="wa-list">
+        <div className="wa-list-head">
+          <div className="wa-list-title">
+            <span>Chats</span>
+            <span className="wa-count">{list.length}</span>
+          </div>
+          {unreadTotal > 0 && <span className="wa-unread-note">{unreadTotal} unread</span>}
+        </div>
+
+        <div className="wa-list-tools">
+          <div className="ui-search wa-search">
+            <span className="ui-search-icon"><i className="bi bi-search"></i></span>
+            <input className="ui-search-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search" />
+            {search && (
+              <button type="button" className="wa-search-clear" onClick={() => setSearch("")} aria-label="Clear">
+                <i className="bi bi-x"></i>
+              </button>
+            )}
+          </div>
+          <div className="wa-chips" role="tablist">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                role="tab"
+                aria-selected={filter === f.value}
+                className={"wa-chip" + (filter === f.value ? " active" : "")}
+                onClick={() => setFilter(f.value)}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="wa-list-search">
-          <i className="bi bi-search"></i>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search or start new chat"
-          />
-        </div>
-
-        <div className="p-2 border-bottom small text-secondary d-flex justify-content-between align-items-center">
-          <span>Inbox · {list.length}</span>
-          <span className="badge text-bg-light">
-            <i className="bi bi-arrow-down-left"></i> User-initiated
-          </span>
-        </div>
-        {filteredList.map((c) => {
-          const open = new Date(c.windowExpiresAt).getTime() > Date.now();
-          return (
-            <div
-              key={c._id}
-              className={"conv-item" + (active?._id === c._id ? " active" : "")}
-              onClick={() => {
-                setActiveId(c._id);
-                if (c.unread) conversationsApi.markRead(c._id).then(refreshConversationsSilently);
-              }}
-            >
-              <Avatar name={c.name} size={40} />
-              <div className="flex-grow-1 min-w-0">
-                <div className="d-flex justify-content-between">
-                  <span className="fw-medium text-truncate">{c.name}</span>
-                  <span className="text-secondary" style={{ fontSize: 10 }}>
-                    {c.lastTime}
+        <div className="wa-list-body">
+          {!filteredList.length && <div className="wa-list-empty">No chats</div>}
+          {filteredList.map((c) => {
+            const open = isOpen(c);
+            const selected = active?._id === c._id;
+            return (
+              <button
+                type="button"
+                key={c._id}
+                className={"wa-conv" + (selected ? " active" : "") + (c.unread > 0 ? " unread" : "")}
+                onClick={() => openConversation(c)}
+              >
+                <span className="wa-avatar-wrap">
+                  <Avatar name={c.name} size={40} />
+                  <span className={"wa-presence " + (open ? "on" : "off")} title={open ? "Window open" : "Window closed"} />
+                </span>
+                <span className="wa-conv-main">
+                  <span className="wa-conv-row">
+                    <span className="wa-conv-name">{c.name}</span>
+                    <span className="wa-conv-time">{c.lastTime}</span>
                   </span>
-                </div>
-                <div className="text-secondary text-truncate" style={{ fontSize: 12 }}>
-                  {c.last}
-                </div>
-                <div className="mt-1">
-                  {open ? (
-                    <span className="badge text-bg-success" style={{ fontSize: 9 }}>
-                      Open
-                    </span>
-                  ) : (
-                    <span className="badge text-bg-warning" style={{ fontSize: 9 }}>
-                      Window closed
-                    </span>
-                  )}
-                  {c.unread > 0 && (
-                    <span className="badge text-bg-success ms-1" style={{ fontSize: 9 }}>
-                      {c.unread}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                  <span className="wa-conv-row">
+                    <span className="wa-conv-last">{c.last || c.phone}</span>
+                    {c.unread > 0 && <span className="wa-unread">{c.unread}</span>}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
 
-      {/* thread */}
-      <div className="chat-thread d-flex flex-column" style={{ height: "100%" }}>
+      {/* ---------- thread ---------- */}
+      <section className="wa-thread">
         {active && (
           <>
-            <div className="wa-thread-head">
-              <Avatar name={active.name} size={38} />
-              <div className="flex-grow-1">
-                <div className="fw-semibold">{active.name}</div>
-                <div className="text-secondary" style={{ fontSize: 11 }}>
-                  {active.phone} ·{" "}
-                  {windowOpen ? (
-                    <span className="text-success">window open</span>
-                  ) : (
-                    <span className="text-warning">window closed</span>
-                  )}
-                </div>
-              </div>
-              <button className="btn btn-sm wa-convert-btn" type="button" onClick={convertToLead}>
-                <i className="bi bi-flag me-1"></i>Convert to lead
+            <header className="wa-thread-bar">
+              <button type="button" className="wa-ibtn wa-back" onClick={() => setMobileThread(false)} aria-label="Back">
+                <i className="bi bi-arrow-left"></i>
               </button>
-            </div>
-
-            <div className="messages flex-grow-1 overflow-auto p-3" ref={messagesRef}>
-              <div className="text-center mb-3">
-                <span className="badge text-bg-light">
-                  Conversation started by {active.name.split(" ")[0]}
-                </span>
-              </div>
-              {(active.messages || []).map((m, i) => (
-                <div key={i} className={"bubble " + (m.from === "me" ? "me" : "them")}>
-                  {(() => {
-                    const inlineButtons = extractInlineButtons(m.text || "");
-                    const directButtons = Array.isArray(m.buttons) ? m.buttons.map((b) => b.title || b.label).filter(Boolean) : [];
-                    const buttons = directButtons.length ? directButtons : inlineButtons.options;
-                    return (
-                      <>
-                  {m.type === "template" && (
-                    <div className="text-success fw-semibold mb-1" style={{ fontSize: 10 }}>
-                      <i className="bi bi-file-text me-1"></i>Template · {m.template}
-                    </div>
-                  )}
-                  {inlineButtons.cleanText || m.text}
-                  {buttons.length > 0 && (
-                    <div className="wa-msg-buttons">
-                      {buttons.map((btn) => (
-                        <button
-                          key={btn}
-                          type="button"
-                          className="wa-msg-btn"
-                          onClick={() => setDraft(btn)}
-                        >
-                          {btn}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div className="text-secondary text-end" style={{ fontSize: 10 }}>
-                    {m.time} {m.from === "me" ? <i className="bi bi-check2-all"></i> : null}
-                  </div>
-                      </>
-                    );
-                  })()}
+              <Avatar name={active.name} size={38} />
+              <div className="wa-thread-who">
+                <div className="wa-thread-name">{active.name}</div>
+                <div className="wa-thread-sub">
+                  <span>{active.phone}</span>
+                  <span className={"wa-status " + (windowOpen ? "on" : "off")}>
+                    <span className="dot" />
+                    {windowOpen ? windowLeft(active) || "Open" : "Window closed"}
+                  </span>
                 </div>
-              ))}
+              </div>
+              <button className="ui-btn ui-btn-outline ui-btn-sm wa-convert" type="button" onClick={convertToLead}>
+                <i className="bi bi-flag"></i>
+                <span>Convert to lead</span>
+              </button>
+              <button
+                type="button"
+                className={"wa-ibtn wa-details-toggle" + (showDetails ? " active" : "")}
+                onClick={() => setShowDetails((v) => !v)}
+                title="Details"
+              >
+                <i className="bi bi-layout-sidebar-reverse"></i>
+              </button>
+            </header>
+
+            <div className="wa-chat-messages" ref={messagesRef}>
+              <div className="wa-system-chip">
+                <i className="bi bi-lock"></i>
+                Conversation started by {active.name.split(" ")[0]}
+              </div>
+              {(active.messages || []).map((m, i) => {
+                const mine = m.from === "me";
+                const inlineButtons = extractInlineButtons(m.text || "");
+                const directButtons = Array.isArray(m.buttons) ? m.buttons.map((b) => b.title || b.label).filter(Boolean) : [];
+                const buttons = directButtons.length ? directButtons : inlineButtons.options;
+                return (
+                  <div key={i} className={"wa-msg " + (mine ? "me" : "them")}>
+                    {m.type === "template" && (
+                      <div className="wa-msg-tag">
+                        <i className="bi bi-file-earmark-text"></i>
+                        {m.template}
+                      </div>
+                    )}
+                    <div className="wa-msg-text">{inlineButtons.cleanText || m.text}</div>
+                    <div className="wa-msg-meta">
+                      {m.time}
+                      {mine && <i className="bi bi-check2-all"></i>}
+                    </div>
+                    {buttons.length > 0 && (
+                      <div className="wa-msg-btns">
+                        {buttons.map((btn) => (
+                          <button key={btn} type="button" onClick={() => setDraft(btn)}>
+                            <i className="bi bi-reply"></i>
+                            {btn}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {!windowOpen && (
-              <div className="alert alert-warning rounded-0 mb-0 py-2 small">
-                <i className="bi bi-exclamation-triangle me-1"></i>24-hour window closed — only approved templates can be sent.
+              <div className="wa-closed-bar">
+                <i className="bi bi-clock-history"></i>
+                <span>24h window closed — templates only</span>
+                <button type="button" className="ui-btn ui-btn-primary ui-btn-sm ms-auto" onClick={() => setTemplateMenu(true)}>
+                  <i className="bi bi-file-earmark-text"></i>
+                  Template
+                </button>
               </div>
             )}
 
-            {/* Interactive Buttons Config Drawer */}
             {interactiveMode && (
-              <div className="p-2 border-top bg-light">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="small fw-semibold">Interactive Buttons Config</span>
-                  <button className="btn btn-sm btn-close" type="button" onClick={() => setInteractiveMode(false)}></button>
+              <div className="wa-interactive">
+                <div className="wa-interactive-head">
+                  <span><i className="bi bi-ui-checks"></i> Buttons</span>
+                  <button type="button" className="wa-ibtn" onClick={() => setInteractiveMode(false)} aria-label="Close">
+                    <i className="bi bi-x-lg"></i>
+                  </button>
                 </div>
-                {interactiveBtns.map((b, idx) => (
-                  <input
-                    key={idx}
-                    className="form-control form-control-sm mb-1"
-                    placeholder={`Button ${idx + 1} Title`}
-                    value={b.title}
-                    onChange={(e) => {
-                      const copy = [...interactiveBtns];
-                      copy[idx].title = e.target.value;
-                      setInteractiveBtns(copy);
-                    }}
-                  />
-                ))}
-                <button className="btn btn-sm btn-wa w-100 mt-2" type="button" onClick={sendInteractive}>
-                  Send Interactive Message
+                <div className="wa-interactive-grid">
+                  {interactiveBtns.map((b, idx) => (
+                    <input
+                      key={idx}
+                      className="ui-input"
+                      aria-label={`Button ${idx + 1}`}
+                      value={b.title}
+                      onChange={(e) => {
+                        const copy = [...interactiveBtns];
+                        copy[idx].title = e.target.value;
+                        setInteractiveBtns(copy);
+                      }}
+                    />
+                  ))}
+                </div>
+                <button className="ui-btn ui-btn-primary ui-btn-sm" type="button" disabled={!draft.trim()} onClick={sendInteractive}>
+                  <i className="bi bi-send"></i>
+                  Send with buttons
                 </button>
               </div>
             )}
 
-            <div className="p-2 bg-white border-top d-flex gap-2 align-items-center wa-compose">
-              <button
-                className={`btn btn-sm ${interactiveMode ? "btn-secondary" : "btn-outline-secondary"}`}
-                title="Send Interactive Buttons"
-                type="button"
-                disabled={!windowOpen}
-                onClick={() => setInteractiveMode(!interactiveMode)}
-              >
-                <i className="bi bi-ui-checks"></i>
-              </button>
+            <div className="wa-composer">
+              <div className="wa-composer-box">
+                <div className="wa-pop-anchor">
+                  <button className="wa-ibtn" type="button" title="Emoji" disabled={!windowOpen} onClick={() => setEmojiMenu((v) => !v)}>
+                    <i className="bi bi-emoji-smile"></i>
+                  </button>
+                  {emojiMenu && (
+                    <>
+                      <div className="wa-pop-backdrop" onClick={() => setEmojiMenu(false)} />
+                      <div className="wa-pop wa-emoji-pop">
+                        {EMOJIS.map((e) => (
+                          <button key={e} type="button" onClick={() => addEmoji(e)}>{e}</button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
 
-              <button className="wa-compose-icon" type="button" title="Emoji">
-                <i className="bi bi-emoji-smile"></i>
-              </button>
+                <input
+                  ref={inputRef}
+                  className="wa-composer-input"
+                  placeholder={windowOpen ? "Type a message" : "Window closed"}
+                  value={draft}
+                  disabled={!windowOpen}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !interactiveMode) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                />
 
-              <input
-                className="form-control"
-                placeholder={windowOpen ? "Type a message..." : "Window closed — use a template"}
-                value={draft}
-                disabled={!windowOpen}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !interactiveMode) {
-                    e.preventDefault();
-                    send();
-                  }
-                }}
-              />
-
-              <button className="wa-compose-icon" type="button" title="Attach">
-                <i className="bi bi-paperclip"></i>
-              </button>
-
-              <div style={{ position: "relative" }}>
-                <button className="btn btn-outline-secondary" type="button" title="Send template" onClick={() => setTemplateMenu((v) => !v)}>
-                  <i className="bi bi-file-text"></i>
+                <button
+                  className={"wa-ibtn" + (interactiveMode ? " active" : "")}
+                  title="Interactive buttons"
+                  type="button"
+                  disabled={!windowOpen}
+                  onClick={() => setInteractiveMode(!interactiveMode)}
+                >
+                  <i className="bi bi-ui-checks"></i>
                 </button>
-                {templateMenu && (
-                  <>
-                    <div style={{ position: "fixed", inset: 0, zIndex: 30 }} onClick={() => setTemplateMenu(false)} />
-                    <div className="rounded-lg border bg-card shadow-lg" style={{ position: "absolute", right: 0, bottom: "calc(100% + 6px)", zIndex: 40, minWidth: 220, maxHeight: 280, overflowY: "auto", padding: 4 }}>
-                      {!(templates.data || []).length && <div className="px-2 py-2 text-xs text-muted-foreground">No approved templates.</div>}
-                      {(templates.data || []).map((t) => (
-                        <button key={t._id} type="button" className="block w-full text-left px-2 py-1.5 text-sm text-foreground rounded border-0 bg-transparent hover:bg-accent/40" onClick={() => { setTemplateMenu(false); sendTemplate(t.name); }}>
-                          {t.name}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+
+                <div className="wa-pop-anchor">
+                  <button className={"wa-ibtn" + (templateMenu ? " active" : "")} type="button" title="Send template" onClick={() => setTemplateMenu((v) => !v)}>
+                    <i className="bi bi-file-earmark-text"></i>
+                  </button>
+                  {templateMenu && (
+                    <>
+                      <div className="wa-pop-backdrop" onClick={() => setTemplateMenu(false)} />
+                      <div className="wa-pop wa-template-pop">
+                        <div className="wa-pop-title">Approved templates</div>
+                        {!templateList.length && <div className="wa-pop-empty">No approved templates</div>}
+                        {templateList.map((t) => (
+                          <button
+                            key={t._id}
+                            type="button"
+                            className="wa-pop-item"
+                            onClick={() => {
+                              setTemplateMenu(false);
+                              sendTemplate(t.name);
+                            }}
+                          >
+                            <i className="bi bi-file-earmark-text"></i>
+                            <span className="text-truncate">{t.name}</span>
+                            {t.category && <span className="wa-pop-cat">{t.category}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
-              <button className="btn btn-wa wa-send-btn" type="button" disabled={!windowOpen} onClick={send}>
-                <i className="bi bi-send"></i>
+              <button className="wa-send" type="button" disabled={!windowOpen || !draft.trim() || sending} onClick={send} aria-label="Send">
+                <i className="bi bi-send-fill"></i>
               </button>
             </div>
           </>
         )}
-      </div>
+      </section>
 
-      {/* details */}
-      <div className="chat-aside p-3">
+      {/* ---------- details ---------- */}
+      <aside className="wa-aside">
         {active && (
           <>
-            <div className="text-center mb-3">
+            <div className="wa-aside-profile">
               <Avatar name={active.name} size={64} />
-              <div className="fw-semibold mt-2">{active.name}</div>
-              <div className="text-secondary small">{active.phone}</div>
+              <div className="wa-aside-name">{active.name}</div>
+              <div className="wa-aside-phone">{active.phone}</div>
+              <span className={"wa-status pill " + (windowOpen ? "on" : "off")}>
+                <span className="dot" />
+                {windowOpen ? "Window open" : "Window closed"}
+              </span>
             </div>
-            <dl className="row small">
-              <dt className="col-5 text-secondary fw-normal">Started by</dt>
-              <dd className="col-7">{active.name.split(" ")[0]}</dd>
-              <dt className="col-5 text-secondary fw-normal">Window</dt>
-              <dd className="col-7">{windowOpen ? "Open" : "Closed"}</dd>
-              <dt className="col-5 text-secondary fw-normal">Assigned</dt>
-              <dd className="col-7">{active.assigned || "—"}</dd>
-              <dt className="col-5 text-secondary fw-normal">Category</dt>
-              <dd className="col-7">{active.category || "—"}</dd>
-            </dl>
+            <div className="wa-aside-section">
+              <div className="wa-aside-label">Details</div>
+              <dl className="wa-kv">
+                <dt>Started by</dt>
+                <dd>{active.name.split(" ")[0]}</dd>
+                <dt>Window</dt>
+                <dd>{windowOpen ? windowLeft(active) || "Open" : "Closed"}</dd>
+                <dt>Assigned</dt>
+                <dd>{active.assigned || "—"}</dd>
+                <dt>Category</dt>
+                <dd>{active.category || "—"}</dd>
+                <dt>Messages</dt>
+                <dd>{(active.messages || []).length}</dd>
+              </dl>
+            </div>
+            <div className="wa-aside-section">
+              <button className="ui-btn ui-btn-primary ui-btn-sm w-100" type="button" onClick={convertToLead}>
+                <i className="bi bi-flag"></i>
+                Convert to lead
+              </button>
+            </div>
           </>
         )}
-      </div>
+      </aside>
     </div>
   );
 }

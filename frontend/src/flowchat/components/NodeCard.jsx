@@ -79,7 +79,7 @@ export default function NodeCard({
   registerInPortRef,
 }) {
   if (!node) return null;
-  const def = NODE_TYPES[node.type] || { label: 'Node', color: '#64748b', icon: 'bi-box' };
+  const def = NODE_TYPES[node.type] || { label: 'Node', color: 'var(--muted-foreground)', icon: 'bi-box' };
   const outputs = getOutputs(node);
   const isConnectSource = connectingFrom?.nodeId === node.id;
   const isSingleNextOutput = outputs.length === 1 && outputs[0].key === 'next';
@@ -119,7 +119,7 @@ export default function NodeCard({
       {/* Header */}
       <div
         className="flow-node-head"
-        style={{ background: def.color || '#64748b' }}
+        style={{ background: def.color || 'var(--muted-foreground)' }}
         onMouseDown={(e) => !readOnly && onMouseDownHeader(e, node.id)}
       >
         <i className={`bi ${def.icon || 'bi-box'}`}></i>

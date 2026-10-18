@@ -278,7 +278,7 @@ export default function Templates() {
   return (
     <div>
       <PageHeader
-        title="Meta WhatsApp & Email Templates"
+        title="Templates"
       />
       {creatingMeta || editingTemplate ? (
         <div className="mt-4">
@@ -311,11 +311,8 @@ export default function Templates() {
               )}
             </div>
           </div>
-          <div className="text-muted small mb-2">
-            Use "Sync from Meta" only to import templates created directly on Meta.
-          </div>
           <ErrorBox error={list.error} />
-          <DataTable columns={columns} rows={rows} loading={list.loading} empty={{ icon: "file-text", text: "No templates found." }} />
+          <DataTable columns={columns} rows={rows} loading={list.loading} empty={{ icon: "file-text", text: "No templates" }} />
 
           {syncModalOpen && (
             <Modal
@@ -341,18 +338,15 @@ export default function Templates() {
             >
               {syncCandidates.length === 0 ? (
                 <div className="text-center py-4 text-muted">
-                  No approved Meta templates available to sync. Already-synced templates are hidden.
+                  Nothing to sync
                 </div>
               ) : (
                 <div className="d-flex flex-column gap-2">
-                  <div className="text-muted small mb-2">
-                    Only approved Meta templates are shown. Templates already synced into CRM are hidden.
-                  </div>
                   {syncCandidates.map((tpl) => (
                     <label
                       key={tpl.name}
                       className="d-flex align-items-start gap-3 border rounded p-3 cursor-pointer"
-                      style={{ background: selectedSyncNames.includes(tpl.name) ? "#f8fafc" : "#fff" }}
+                      style={{ background: selectedSyncNames.includes(tpl.name) ? "var(--muted-background)" : "var(--card)" }}
                     >
                       <input
                         type="checkbox"
@@ -399,7 +393,7 @@ export default function Templates() {
                 <div className="col-lg-5 pe-lg-2">
                   <div
                     className="d-flex flex-column gap-3 p-3 rounded-4 border"
-                    style={{ background: "#f8fafc", borderColor: "#e2e8f0" }}
+                    style={{ background: "var(--muted-background)", borderColor: "var(--border)" }}
                   >
                     <div>
                       <label className="form-label small fw-semibold text-uppercase" style={{ letterSpacing: "0.04em" }}>Target Phone Number</label>
@@ -485,15 +479,15 @@ export default function Templates() {
                         className="border rounded-4 overflow-hidden"
                         style={{
                           fontSize: "13px",
-                          background: "linear-gradient(180deg, #f9fcff 0%, #ffffff 24%)",
-                          borderColor: "#d9e3ef",
-                          boxShadow: "0 10px 26px rgba(15, 23, 42, 0.08)",
+                          background: "var(--card)",
+                          borderColor: "var(--border)",
+                          boxShadow: "var(--shadow-soft)",
                         }}
                       >
                         {preview.headerType && preview.headerType !== "NONE" && !preview.headerText && (
                           <div
                             className="px-3 py-2 border-bottom d-flex align-items-center gap-2 text-muted"
-                            style={{ background: "#f8fafc" }}
+                            style={{ background: "var(--muted-background)" }}
                           >
                             {preview.headerType === "IMAGE" && <i className="bi bi-image"></i>}
                             {preview.headerType === "VIDEO" && <i className="bi bi-play-circle"></i>}
@@ -551,10 +545,10 @@ export default function Templates() {
                                 key={index}
                                 className="px-3 py-2 text-center fw-semibold d-flex align-items-center justify-content-center gap-2"
                                 style={{
-                                  borderBottom: index < preview.buttons.length - 1 ? "1px solid #e5e7eb" : "none",
-                                  color: "#0a76c5",
+                                  borderBottom: index < preview.buttons.length - 1 ? "1px solid var(--border)" : "none",
+                                  color: "var(--primary)",
                                   fontSize: "13px",
-                                  background: "#fbfdff",
+                                  background: "var(--muted-background)",
                                 }}
                               >
                                 {btn.type === "URL" && <i className="bi bi-box-arrow-up-right"></i>}

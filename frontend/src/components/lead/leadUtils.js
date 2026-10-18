@@ -45,6 +45,9 @@ export const ACTIVITY = {
   email: { icon: "envelope-open", color: "var(--info)" },
   approval: { icon: "patch-check", color: "var(--warning)" },
   restored: { icon: "arrow-counterclockwise", color: "var(--primary)" },
+  activity: { icon: "lightning", color: "var(--primary)" },
+  query: { icon: "question-circle", color: "var(--warning)" },
+  list: { icon: "collection", color: "var(--muted-foreground)" },
 };
 
 const pad = (n) => String(n).padStart(2, "0");

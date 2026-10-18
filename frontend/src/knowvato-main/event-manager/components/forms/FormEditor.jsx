@@ -50,7 +50,7 @@ const DEFAULT_ELEMENT = {
     fontFamily: "Inter, sans-serif",
     fontStyle: "normal",
     textDecoration: "none",
-    color: "#1e293b",
+    color: "var(--foreground)",
     textAlign: "left",
     lineHeight: 1.4,
     bg: "transparent",
@@ -96,7 +96,7 @@ const DEFAULT_ELEMENT = {
     fontFamily: "Inter, sans-serif",
     fontStyle: "normal",
     textDecoration: "none",
-    color: "#94a3b8",
+    color: "var(--muted-foreground)",
     textAlign: "center",
     lineHeight: 1.4,
     bg: "#f8fafc",
@@ -144,7 +144,7 @@ const DEFAULT_ELEMENT = {
     fontFamily: "Inter, sans-serif",
     fontStyle: "normal",
     textDecoration: "none",
-    color: "#94a3b8",
+    color: "var(--muted-foreground)",
     textAlign: "center",
     lineHeight: 1,
     bg: "#f1f5f9",
@@ -169,7 +169,7 @@ const DEFAULT_ELEMENT = {
     fontFamily: "Inter, sans-serif",
     fontStyle: "normal",
     textDecoration: "none",
-    color: "#94a3b8",
+    color: "var(--muted-foreground)",
     textAlign: "center",
     lineHeight: 1,
     bg: "transparent",
@@ -192,7 +192,7 @@ const DEFAULT_ELEMENT = {
     fontFamily: "Inter, sans-serif",
     fontStyle: "normal",
     textDecoration: "none",
-    color: "#1e293b",
+    color: "var(--foreground)",
     textAlign: "left",
     lineHeight: 1.4,
     bg: "#f8fafc",
@@ -240,7 +240,7 @@ const DEFAULT_ELEMENT = {
     fontFamily: "Inter, sans-serif",
     fontStyle: "normal",
     textDecoration: "none",
-    color: "#1e293b",
+    color: "var(--foreground)",
     textAlign: "left",
     lineHeight: 1.4,
     bg: "#ffffff",
@@ -264,7 +264,7 @@ const DEFAULT_ELEMENT = {
     fontFamily: "Inter, sans-serif",
     fontStyle: "normal",
     textDecoration: "none",
-    color: "#1e293b",
+    color: "var(--foreground)",
     textAlign: "left",
     lineHeight: 1.4,
     bg: "#ffffff",
@@ -355,7 +355,7 @@ const PropRow = ({ label, children }) => (
       style={{
         fontSize: 11,
         fontWeight: 600,
-        color: "#64748b",
+        color: "var(--muted-foreground)",
         display: "block",
         marginBottom: 3,
         textTransform: "uppercase",
@@ -394,7 +394,7 @@ const NumInput = ({
         outline: "none",
       }}
     />
-    {suffix && <span style={{ fontSize: 10, color: "#94a3b8" }}>{suffix}</span>}
+    {suffix && <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>{suffix}</span>}
   </div>
 );
 
@@ -525,7 +525,7 @@ const PropertiesPanel = ({
         <div
           style={{
             fontSize: 12,
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             textAlign: "center",
             marginTop: 40,
           }}
@@ -573,7 +573,7 @@ const PropertiesPanel = ({
           style={{
             fontWeight: 700,
             fontSize: 13,
-            color: "#1e293b",
+            color: "var(--foreground)",
             display: "flex",
             alignItems: "center",
             gap: 6,
@@ -614,7 +614,7 @@ const PropertiesPanel = ({
               borderRadius: 6,
               border: "1px solid #fef2f2",
               background: "#fef2f2",
-              color: "#dc2626",
+              color: "var(--destructive)",
               cursor: "pointer",
               fontSize: 12,
               display: "flex",
@@ -664,7 +664,7 @@ const PropertiesPanel = ({
                 ...smallBtn,
                 fontSize: 9,
                 background: "#dcfce7",
-                color: "#16a34a",
+                color: "var(--success)",
               }}
               title="Group Elements"
             >
@@ -677,7 +677,7 @@ const PropertiesPanel = ({
                   ...smallBtn,
                   fontSize: 9,
                   background: "#dcfce7",
-                  color: "#16a34a",
+                  color: "var(--success)",
                 }}
                 title="Ungroup Elements"
               >
@@ -764,7 +764,7 @@ const PropertiesPanel = ({
             <label
               style={{
                 fontSize: 10,
-                color: "#16a34a",
+                color: "var(--success)",
                 fontWeight: 600,
                 flex: 1,
               }}
@@ -825,7 +825,7 @@ const PropertiesPanel = ({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#64748b",
+              color: "var(--muted-foreground)",
               marginBottom: 8,
               textTransform: "uppercase",
               letterSpacing: 0.5,
@@ -900,19 +900,19 @@ const PropertiesPanel = ({
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
           >
             <div>
-              <span style={{ fontSize: 10, color: "#94a3b8" }}>X</span>
+              <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>X</span>
               <NumInput value={Math.round(el.x)} onChange={p("x")} />
             </div>
             <div>
-              <span style={{ fontSize: 10, color: "#94a3b8" }}>Y</span>
+              <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Y</span>
               <NumInput value={Math.round(el.y)} onChange={p("y")} />
             </div>
             <div>
-              <span style={{ fontSize: 10, color: "#94a3b8" }}>W</span>
+              <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>W</span>
               <NumInput value={Math.round(el.w)} min={10} onChange={p("w")} />
             </div>
             <div>
-              <span style={{ fontSize: 10, color: "#94a3b8" }}>H</span>
+              <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>H</span>
               <NumInput value={Math.round(el.h)} min={4} onChange={p("h")} />
             </div>
           </div>
@@ -1040,7 +1040,7 @@ const PropertiesPanel = ({
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: "#64748b",
+            color: "var(--muted-foreground)",
             marginBottom: 8,
             textTransform: "uppercase",
             letterSpacing: 0.5,
@@ -1059,7 +1059,7 @@ const PropertiesPanel = ({
           </button>
         </div>
         <div style={{ marginTop: 8 }}>
-          <span style={{ fontSize: 10, color: "#94a3b8" }}>
+          <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
             Z-Index: {el.zIndex}
           </span>
         </div>
@@ -1078,7 +1078,7 @@ const PropertiesPanel = ({
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: "#64748b",
+            color: "var(--muted-foreground)",
             marginBottom: 8,
             textTransform: "uppercase",
             letterSpacing: 0.5,
@@ -1142,7 +1142,7 @@ const PropertiesPanel = ({
               onChange={(e) => p("opacity")(Number(e.target.value))}
               style={{ flex: 1 }}
             />
-            <span style={{ fontSize: 11, color: "#64748b", width: 32 }}>
+            <span style={{ fontSize: 11, color: "var(--muted-foreground)", width: 32 }}>
               {Math.round(el.opacity * 100)}%
             </span>
           </div>
@@ -1163,7 +1163,7 @@ const PropertiesPanel = ({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#64748b",
+              color: "var(--muted-foreground)",
               marginBottom: 8,
               textTransform: "uppercase",
               letterSpacing: 0.5,
@@ -1354,7 +1354,7 @@ const PropertiesPanel = ({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#64748b",
+              color: "var(--muted-foreground)",
               marginBottom: 8,
               textTransform: "uppercase",
               letterSpacing: 0.5,
@@ -1426,7 +1426,7 @@ const PropertiesPanel = ({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#64748b",
+              color: "var(--muted-foreground)",
               marginBottom: 8,
               textTransform: "uppercase",
               letterSpacing: 0.5,
@@ -1598,7 +1598,7 @@ const PropertiesPanel = ({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#64748b",
+              color: "var(--muted-foreground)",
               marginBottom: 8,
               textTransform: "uppercase",
               letterSpacing: 0.5,
@@ -1655,7 +1655,7 @@ const PropertiesPanel = ({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#64748b",
+              color: "var(--muted-foreground)",
               marginBottom: 8,
               textTransform: "uppercase",
               letterSpacing: 0.5,
@@ -1768,9 +1768,9 @@ const CanvasEl = ({ el, selected, onMouseDown }) => {
         >
           <i
             className="bi bi-qr-code"
-            style={{ fontSize: Math.min(el.w, el.h) * 0.55, color: "#1e293b" }}
+            style={{ fontSize: Math.min(el.w, el.h) * 0.55, color: "var(--foreground)" }}
           />
-          <span style={{ fontSize: 9, color: "#94a3b8" }}>
+          <span style={{ fontSize: 9, color: "var(--muted-foreground)" }}>
             {el.content || "{{passId}}"}
           </span>
         </div>
@@ -1921,7 +1921,7 @@ const CanvasEl = ({ el, selected, onMouseDown }) => {
             className={`bi ${el.type === "logo" ? "bi-patch-check" : "bi-image"}`}
             style={{ fontSize: 28, color: "#cbd5e1" }}
           />
-          <span style={{ fontSize: 10, color: "#94a3b8" }}>{el.label}</span>
+          <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>{el.label}</span>
         </div>
       ) : el.type === "divider" ? (
         <div style={{ width: "100%", height: "100%", background: el.bg }} />
@@ -2603,7 +2603,7 @@ const FormEditor = ({ formId, onBack }) => {
               <h5 style={{ marginBottom: 0, fontWeight: "bold" }}>
                 {form?.formName}
               </h5>
-              <small style={{ color: "#6b7280" }}>{form?.eventName}</small>
+              <small style={{ color: "var(--muted-foreground)" }}>{form?.eventName}</small>
             </div>
           </div>
           <button
@@ -2659,7 +2659,7 @@ const FormEditor = ({ formId, onBack }) => {
             alignItems: "center",
           }}
         >
-          <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
+          <span style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 600 }}>
             Design:
           </span>
           <button
@@ -2810,7 +2810,7 @@ const FormEditor = ({ formId, onBack }) => {
           <span
             style={{
               fontSize: 11,
-              color: "#64748b",
+              color: "var(--muted-foreground)",
               minWidth: 40,
               textAlign: "center",
             }}
@@ -2906,7 +2906,7 @@ const FormEditor = ({ formId, onBack }) => {
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: "#64748b",
+                  color: "var(--muted-foreground)",
                   marginBottom: 8,
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
@@ -2923,7 +2923,7 @@ const FormEditor = ({ formId, onBack }) => {
                 }}
               >
                 <div>
-                  <span style={{ fontSize: 10, color: "#94a3b8" }}>Width</span>
+                  <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Width</span>
                   <NumInput
                     value={canvas.width}
                     min={100}
@@ -2932,7 +2932,7 @@ const FormEditor = ({ formId, onBack }) => {
                   />
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, color: "#94a3b8" }}>Height</span>
+                  <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Height</span>
                   <NumInput
                     value={canvas.height}
                     min={100}
@@ -2942,7 +2942,7 @@ const FormEditor = ({ formId, onBack }) => {
                 </div>
               </div>
               <div style={{ marginBottom: 6 }}>
-                <span style={{ fontSize: 10, color: "#94a3b8" }}>
+                <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
                   Background
                 </span>
                 <ColorInput
@@ -2951,7 +2951,7 @@ const FormEditor = ({ formId, onBack }) => {
                 />
               </div>
               <div style={{ marginBottom: 6 }}>
-                <span style={{ fontSize: 10, color: "#94a3b8" }}>
+                <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
                   Border Radius
                 </span>
                 <NumInput
@@ -2978,7 +2978,7 @@ const FormEditor = ({ formId, onBack }) => {
                       border: "1px solid #e2e8f0",
                       background: "#f8fafc",
                       cursor: "pointer",
-                      color: "#64748b",
+                      color: "var(--muted-foreground)",
                     }}
                   >
                     {p.label}
@@ -2993,7 +2993,7 @@ const FormEditor = ({ formId, onBack }) => {
                 padding: "8px 12px 4px",
                 fontWeight: 700,
                 fontSize: 11,
-                color: "#64748b",
+                color: "var(--muted-foreground)",
                 textTransform: "uppercase",
                 letterSpacing: 0.5,
               }}
@@ -3066,7 +3066,7 @@ const FormEditor = ({ formId, onBack }) => {
                       {el.locked && (
                         <i
                           className="bi bi-lock-fill"
-                          style={{ fontSize: 10, color: "#94a3b8" }}
+                          style={{ fontSize: 10, color: "var(--muted-foreground)" }}
                         />
                       )}
                     </div>
@@ -3077,7 +3077,7 @@ const FormEditor = ({ formId, onBack }) => {
                   style={{
                     padding: 16,
                     fontSize: 11,
-                    color: "#94a3b8",
+                    color: "var(--muted-foreground)",
                     textAlign: "center",
                   }}
                 >

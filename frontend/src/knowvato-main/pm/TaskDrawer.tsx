@@ -209,7 +209,7 @@ export default function TaskDrawer({ taskId, onClose, onChanged }: { taskId: str
 
   return (
     <Sheet open={!!taskId} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="crm-theme w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+      <SheetContent size="wide" className="crm-theme w-full sm:max-w-2xl flex flex-col gap-0 p-0">
         <SheetHeader className="border-b p-4 pr-10">
           <SheetTitle className="flex items-center gap-2 min-w-0">
             <span className="font-mono text-xs text-muted-foreground shrink-0">{task?.number}</span>

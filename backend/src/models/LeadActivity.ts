@@ -6,6 +6,7 @@ export const ACTIVITY_TYPES = [
   "followup_scheduled", "followup_done", "followup_rescheduled",
   "edited", "service", "imported", "merged", "tag", "registration",
   "document", "payment", "automation", "sla", "visit", "email", "approval", "restored",
+  "activity", "query", "list",
 ] as const;
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 

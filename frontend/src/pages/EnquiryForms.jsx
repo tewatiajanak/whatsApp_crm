@@ -1251,7 +1251,7 @@ export default function EnquiryForms() {
       )}
 
       {previewForm && (
-        <Modal size="lg" title={`Preview: ${previewForm.name || "Enquiry Form"}`} onClose={closePreview} footer={<button className="btn btn-outline-secondary" onClick={closePreview}>Close</button>}>
+        <Modal size="wide" title={`Preview: ${previewForm.name || "Enquiry Form"}`} onClose={closePreview} footer={<button className="btn btn-outline-secondary" onClick={closePreview}>Close</button>}>
           <div className="mb-2">
           </div>
           <iframe

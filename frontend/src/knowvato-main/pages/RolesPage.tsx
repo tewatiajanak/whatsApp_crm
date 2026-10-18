@@ -250,7 +250,8 @@ export default function RolesPage() {
         <div className="fixed inset-0 z-50 flex" onClick={closeDrawer}>
           <div className="flex-1 bg-black/40 backdrop-blur-sm" />
           <div
-            className="w-full max-w-5xl bg-card border-l shadow-2xl flex flex-col"
+            className="w-full bg-card border-l shadow-2xl flex flex-col"
+            style={{ maxWidth: "var(--slider-w-wide)" }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sticky header */}

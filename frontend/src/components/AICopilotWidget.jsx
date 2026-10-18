@@ -182,7 +182,7 @@ export default function AICopilotWidget() {
         <div
           role="button"
           tabIndex={0}
-          className="position-fixed d-flex align-items-center gap-1"
+          className="ai-copilot-launcher position-fixed d-flex align-items-center gap-1"
           style={{
             bottom: "24px",
             right: "24px",

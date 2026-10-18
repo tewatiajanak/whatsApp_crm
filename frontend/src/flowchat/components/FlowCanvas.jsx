@@ -271,7 +271,7 @@ export default function FlowCanvas({
         <svg width="3600" height="2600" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
           <defs>
             <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
-              <polygon points="0 0, 8 3.5, 0 7" fill="#64748b" />
+              <polygon points="0 0, 8 3.5, 0 7" style={{ fill: "var(--muted-foreground)" }} />
             </marker>
           </defs>
           {lines.map((l) => {
@@ -282,7 +282,7 @@ export default function FlowCanvas({
                 <path d={path} stroke="transparent" strokeWidth="12" fill="none" />
                 <path
                   d={path}
-                  stroke="#94a3b8"
+                  style={{ stroke: "color-mix(in srgb, var(--muted-foreground) 60%, transparent)" }}
                   strokeWidth="2.5"
                   fill="none"
                   markerEnd="url(#arrow)"
@@ -304,7 +304,7 @@ export default function FlowCanvas({
             return (
               <path
                 d={path}
-                stroke="#f59e0b"
+                style={{ stroke: "var(--primary)" }}
                 strokeWidth="2.5"
                 fill="none"
                 strokeDasharray="5 4"

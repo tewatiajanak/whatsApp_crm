@@ -7,7 +7,7 @@ import { asyncHandler, ok, paginated, ApiError, audit } from "../utils/http";
  * All queries are automatically filtered by req.tenantId so tenants never see
  * each other's data.
  */
-export function crud<T>(Mdl: Model<T>, opts: { module: string; searchFields?: string[]; populate?: string } = { module: "generic" }) {
+export function crud<T>(Mdl: Model<T>, opts: { module: string; searchFields?: string[]; populate?: string; defaultSort?: Record<string, 1 | -1> } = { module: "generic" }) {
   return {
     list: asyncHandler(async (req: Request, res: Response) => {
       const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
@@ -28,7 +28,7 @@ export function crud<T>(Mdl: Model<T>, opts: { module: string; searchFields?: st
         filter.$or = opts.searchFields.map((f) => ({ [f]: rx }));
       }
 
-      const sort: any = req.query.sort ? { [String(req.query.sort).replace(/^-/, "")]: String(req.query.sort).startsWith("-") ? -1 : 1 } : { createdAt: -1 };
+      const sort: any = req.query.sort ? { [String(req.query.sort).replace(/^-/, "")]: String(req.query.sort).startsWith("-") ? -1 : 1 } : opts.defaultSort || { createdAt: -1 };
 
       let query = Mdl.find(filter).sort(sort).skip((page - 1) * perPage).limit(perPage);
       if (opts.populate) query = query.populate(opts.populate) as any;

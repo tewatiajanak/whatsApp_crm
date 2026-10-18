@@ -386,7 +386,8 @@ export class MetaProvider implements WhatsAppProvider {
             kind: "status",
             waMessageId: st.id,
             status: st.status,
-            errorReason: st.errors?.[0]?.title || st.errors?.[0]?.message,
+            // keep Meta's code so the report can explain it, e.g. "(#131026) Message undeliverable — details"
+            errorReason: st.errors?.[0] ? `${st.errors[0].code ? `(#${st.errors[0].code}) ` : ""}${st.errors[0].title || st.errors[0].message || "failed"}${st.errors[0].error_data?.details ? ` — ${st.errors[0].error_data.details}` : ""}` : undefined,
             timestamp: st.timestamp ? new Date(+st.timestamp * 1000) : new Date(),
           });
         }

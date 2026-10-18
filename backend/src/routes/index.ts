@@ -55,6 +55,7 @@ import publicEventRoutes from "./publicEvents";
 import userAdminRoutes from "./userAdmin";
 import pmRoutes from "./pm";
 import pmPublicRoutes from "./pm/public";
+import { publicRouter as prereqPublicRoutes, adminRouter as prereqRoutes } from "./prerequisites";
 import { teamLoop } from "../services/pm/visibility";
 import { EVENT_TYPE_DEFAULTS } from "../data/eventTypeDefaults";
 import { convertToLead, changeLeadStatus, logActivity, refreshLead } from "../services/leadService";
@@ -64,6 +65,8 @@ import crmRoutes from "./crm";
 import { newToken } from "../services/leadFees";
 import crmPublicRoutes from "./crmPublic";
 import crm2Routes from "./crm2";
+import crm3Routes from "./crm3";
+import campaignRoutes from "./campaigns";
 import websiteRoutes, { websitePublicRoutes } from "./website";
 import websiteDataRoutes, { websiteDataPublicRoutes } from "./websiteData";
 import { leadOwnerScope } from "../services/leadAccess";
@@ -172,6 +175,8 @@ r.use(pmPublicRoutes);
 r.use(crmPublicRoutes);
 r.use(websitePublicRoutes);
 r.use(websiteDataPublicRoutes);
+// Admission pre-requisite form a client fills from a link (Setup › Implementation › Pre-requisites)
+r.use(prereqPublicRoutes);
 
 /* ---- everything below requires auth ---- */
 r.use(authenticate);
@@ -408,6 +413,7 @@ r.delete("/flowchat/media/:id", require_("workflows", "del"), flowMediaC.deleteF
    Mounted before the lead routes so fixed paths like /leads/report are never read as a lead id. */
 r.use(crmRoutes);
 r.use(crm2Routes);
+r.use(crm3Routes);
 r.use(websiteRoutes);
 r.use(websiteDataRoutes);
 
@@ -513,9 +519,24 @@ r.patch("/masters/sessions/:id", require_("setup", "edit"), sessionCrud.update);
 r.delete("/masters/sessions/:id", require_("setup", "del"), sessionCrud.remove);
 
 /* ---- Grades (Setup) ---- */
-const gradeCrud = crud(Grade, { module: "setup", searchFields: ["name"] });
+// Grades always come back in their set sequence, so every screen lists them the same way.
+const gradeCrud = crud(Grade, { module: "setup", searchFields: ["name"], defaultSort: { order: 1, createdAt: 1 } });
 r.get("/grades", require_("setup", "view"), gradeCrud.list);
-r.post("/grades", require_("setup", "create"), gradeCrud.create);
+r.post("/grades", require_("setup", "create"), asyncHandler(async (req: any, res: any, next: any) => {
+  // a new grade goes to the end of the sequence unless one is given
+  if (!Number.isFinite(Number(req.body?.order)) || req.body?.order === "" || req.body?.order === null || req.body?.order === undefined) {
+    const last: any = await Grade.findOne({ tenant: req.tenantId }).sort({ order: -1 }).select("order").lean();
+    req.body = { ...req.body, order: (last?.order || 0) + 1 };
+  }
+  return gradeCrud.create(req, res, next);
+}));
+/** Save a new sequence: ids in the order they should appear. */
+r.put("/grades/reorder", require_("setup", "edit"), asyncHandler(async (req: any, res: any) => {
+  const ids: string[] = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
+  if (!ids.length) throw new ApiError(400, "ids are required");
+  await Grade.bulkWrite(ids.map((id, i) => ({ updateOne: { filter: { _id: id, tenant: req.tenantId }, update: { $set: { order: i + 1 } } } })));
+  ok(res, await Grade.find({ tenant: req.tenantId }).sort({ order: 1, createdAt: 1 }).lean());
+}));
 r.patch("/grades/:id", require_("setup", "edit"), gradeCrud.update);
 r.delete("/grades/:id", require_("setup", "del"), gradeCrud.remove);
 
@@ -781,14 +802,11 @@ r.delete("/chatbot-rules/:id", require_("workflows", "del"), msgC.deleteChatbotR
 r.post("/chatbot-rules/test", require_("workflows", "create"), msgC.testChatbotRule);
 
 /* ---- Campaigns ---- */
+// list (live delivery counts), create, edit, launch, pause/resume, report, resend, recipient lists
+r.use(campaignRoutes);
+r.use(prereqRoutes);
 const campCrud = crud(Campaign, { module: "blast", searchFields: ["name", "template"] });
-r.get("/campaigns", require_("blast", "view"), campCrud.list);
 r.get("/campaigns/:id", require_("blast", "view"), campCrud.get);
-r.post("/campaigns", require_("blast", "create"), campCrud.create);
-r.patch("/campaigns/:id", require_("blast", "edit"), campCrud.update);
-r.delete("/campaigns/:id", require_("blast", "del"), campCrud.remove);
-r.post("/campaigns/:id/launch", require_("blast", "create"), msgC.launch);
-r.post("/campaigns/:id/pause", require_("blast", "edit"), msgC.pauseCampaign);
 
 /* ---- Messages (history) ---- */
 const msgCrud = crud(Message, { module: "reports", searchFields: ["contactName", "phone", "template"] });

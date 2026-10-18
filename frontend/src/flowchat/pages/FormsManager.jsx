@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useBots } from '../context/BotContext.jsx';
 import { uid } from '../utils/id';
 import '../flowchat.css';
+import { PageHeader } from '../../components/ui';
 
 export default function FormsManager() {
   const { forms = [], addForm, updateForm, deleteForm, duplicateForm, isFormInUse, toggleFormStatus } = useBots() || {};
@@ -64,19 +65,14 @@ export default function FormsManager() {
 
   return (
     <div className="forms-manager">
-      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-          <h4 className="fw-bold mb-1 d-flex align-items-center gap-2">
-            <span className="brand-logo" style={{ width: 32, height: 32, fontSize: 16, background: 'linear-gradient(135deg, #0284c7, #0369a1)' }}>
-              <i className="bi bi-ui-checks"></i>
-            </span>
-            WhatsApp Interactive Forms Builder
-          </h4>
-        </div>
-        <button className="btn btn-brand btn-sm rounded-pill px-3" onClick={() => setShowCreateModal(true)}>
-          <i className="bi bi-plus-lg me-1"></i> Create WhatsApp Form
-        </button>
-      </div>
+      <PageHeader
+        title="WhatsApp Forms"
+        actions={
+          <button className="btn btn-brand btn-sm" onClick={() => setShowCreateModal(true)}>
+            <i className="bi bi-plus-lg me-1"></i>New Form
+          </button>
+        }
+      />
 
       <div className="row g-4">
         <div className="col-12">
@@ -99,7 +95,7 @@ export default function FormsManager() {
                 <tbody>
                   {forms.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="text-muted small">No forms created yet.</td>
+                      <td colSpan={3} className="text-muted small">No forms</td>
                     </tr>
                   )}
                   {forms.map((f) => {
@@ -121,7 +117,7 @@ export default function FormsManager() {
                         <td className="text-end">
                           <div className="d-inline-flex align-items-center gap-1">
                             <button
-                              className="btn btn-sm icon-only-action text-info"
+                              className="btn btn-sm icon-only-action text-primary"
                               title="View"
                               onClick={() => {
                                 setSelectedFormId(f.id);
@@ -409,7 +405,7 @@ export default function FormsManager() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="modal d-block" style={{ background: 'rgba(15,23,42,.45)', zIndex: 1060 }} onClick={() => setShowCreateModal(false)}>
+        <div className="modal d-block" style={{ background: 'rgba(37,51,56,.45)', zIndex: 1060 }} onClick={() => setShowCreateModal(false)}>
           <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content rounded-4 border-0 p-2 shadow">
               <div className="modal-header border-0">

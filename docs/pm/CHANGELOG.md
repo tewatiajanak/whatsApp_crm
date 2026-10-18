@@ -9,6 +9,54 @@ Newest first. One entry per part.
 ### How to test
 -->
 
+## Bulk Campaigns: recipient lists, delivery report, resend — 2026-10-15
+### Added
+- **Recipient Lists** tab (CRM → Bulk Campaigns): import a CSV / Excel file (pick the phone and name columns, check valid / invalid / duplicate, import), view, search, remove a number, add more numbers from another file, rename, Excel export, Send. Other columns are kept to fill template variables.
+- **New Campaign** now picks who it goes to: an imported list, a CRM lead list, or opted-in contacts. Template preview, template variables ({{1}}… from name / phone / a list column / fixed text), send now or schedule.
+- **Report** on every campaign (row click or chart icon): recipients, sent, delivered, read, failed with percentages, a delivery bar, every recipient with their latest status and times, filters, search, Excel export.
+- **Resend**: from the report, pick Failed / Sent not delivered / Delivered not read / Read / Not sent → a new campaign (own name, template, schedule) linked to the original. **Resend history** in the report; the list shows "Resend of …".
+- Live counts: list and report numbers come from the delivery log (real webhook receipts, not only simulation) and refresh while sending.
+- API: `routes/campaigns.ts`, model `models/CampaignPro.ts`; test `npm --prefix backend run campaigns:api-test` (14 checks, sends nothing, cleans up).
+### Existing files changed (and why)
+- `models/Messaging.ts` — Campaign gets audience, resend link, variables, launch/complete times (additive, with defaults); Message index on campaign + phone.
+- `services/campaignService.ts` — resolves the audience, freezes it at launch, sends in the background (the launch request no longer waits for every send), pause really stops and resume continues, campaigns finish as Completed, template language and variables are passed.
+- `services/crmScheduler.ts` — scheduled campaigns now actually go out when their time comes (before, nothing sent them).
+- `controllers/messagingController.ts` — delivery receipts arriving out of order no longer move "read" back to "delivered".
+- `routes/index.ts` — campaign routes moved to the new router (same URLs).
+- Frontend: `pages/Campaigns.jsx`, `api/index.js`.
+### How to test
+- `npm --prefix backend run campaigns:api-test` with the API running.
+- Bulk Campaigns → Recipient Lists → Import List → Sample → import; New Campaign → Imported list → Send now; open the campaign → Report → Resend.
+
+## WhatsApp Manager: theme pass — 2026-10-15
+### Added
+- **Conversations** (`/crm/chat`) redesigned on the app theme: chat list with All / Unread / Open / Closed filters, unread counts and window-status dots; thread header with time left in the 24h window; theme-coloured bubbles, reply buttons and template tags; closed-window bar with a Template shortcut; pill composer with emoji picker, interactive buttons and template menu; collapsible details panel. Mobile: list → thread with a back button.
+### Existing files changed (and why)
+- `pages/Conversations.jsx`, `styles.css` (old hard-coded WhatsApp-green chat CSS replaced by `.wa-*` styles that use only theme tokens).
+- `flowchat/flowchat.css`, `flowchat/data/nodeTypes.js`, `FlowCanvas.jsx`, `NodeCard.jsx`, `NodeConfigPanel.jsx`, `WhatsAppPreview.jsx` — bot builder, canvas, nodes and phone preview use theme colours; builder gets the theme classes.
+- `flowchat/pages/Dashboard.jsx`, `FormsManager.jsx`, `MediaManager.jsx`, `pages/ChatbotRules.jsx`, `pages/Templates.jsx`, `components/WhatsAppTemplateBuilder.jsx` — shared page header, theme colours, shorter labels, filler text removed.
+- `styles.css` — Bootstrap colour utilities (text/bg/subtle/alerts/badges/outline buttons) mapped to theme tokens on CRM pages; icon-action hovers no longer Bootstrap blue.
+### How to test
+- `npx vite build` in `frontend`. Open CRM → WhatsApp Manager pages; switch theme preset — all colours follow it.
+
+## Lead CRM: Meritto / LeadSquared features — 2026-10-14
+### Added
+- **Queries** (`/crm/queries`): student/customer query desk. Number per tenant (#1001…), category, priority, status (Open → Waiting on customer → Resolved / Closed), assignee, reply-by time from the category, thread with replies, internal notes and "customer said", optional send by WhatsApp or email, Excel export. Also a **Queries** tab on every lead.
+- **Activity types** (CRM settings → Activity types): custom activities like "Campus visit" with their own fields (text, number, date, dropdown, yes/no) and score points. Logged from the lead timeline (**Activity** mode); shown on the timeline; listed on the new **Activities** page (`/crm/activities`) with filters and Excel export.
+- **Lead scoring** (CRM settings → Lead scoring): every weight and the hot/warm bands are now settings (defaults = the old fixed numbers), activity points count, "Rescore all leads".
+- **Lead lists** (`/crm/lists`): static lists (Leads → select → **Add to list**) and smart lists (saved filters). Open in Leads (`?list=`), message all, Excel export, list chips on the lead.
+- **Source history**: every enquiry's source is kept; lead Details shows primary / secondary / tertiary source.
+- API: `routes/crm3.ts`, model `models/CrmPro.ts`; test `npm run crm:api-test` (13 checks, cleans up after itself).
+### Existing files changed (and why)
+- `models/Lead.ts` (`sourceHistory`), `models/LeadActivity.ts` (types `activity`, `query`, `list`), `models/CrmExtras.ts` (`scoring`, `queries` settings) — additive fields with defaults.
+- `services/leadService.ts` — score reads the settings and activity points; enquiries record their source.
+- `controllers/leadController.ts` — `list` filter; `routes/crm.ts` — saves the new settings; `routes/index.ts` — mounts the routes.
+- Frontend: `LeadDrawer.jsx`, `Leads.jsx`, `CrmSettings.jsx`, `App.jsx`, sidebar, breadcrumbs, `api/index.js`.
+- `AICopilotWidget.jsx` + `styles.css` — the floating Ask button is hidden while a drawer/modal is open (it covered the Save buttons on every drawer).
+### How to test
+- `npm --prefix backend run crm:api-test` with the API running.
+- CRM → Queries → New query; CRM settings → Activity types → Add, then a lead → Timeline → Activity; Leads → select → Add to list.
+
 ## Planner: one page for tasks, plan and calendar — 2026-10-06
 ### Added
 - `pm/WorkTabs.tsx`: the **Planner** title with the tabs **My Task · Team Task · Daily Plan · Team Calendar**. A tab is shown only to a user with the right of that screen (the rights themselves are unchanged).
@@ -316,3 +364,79 @@ Employees, roles & rights, team hierarchy.
 - `docs/pm/GAP_REPORT.md`, `docs/pm/CHANGELOG.md`, `docs/pm/DECISIONS.md`
 ### Existing files changed (and why)
 - None.
+
+## 2026-10-16 — Campaign recipient lists: Source + contact fields
+- Recipient lists have a **Source** from the Setup Source master (set on import, change in the list view, Source column + filter in the Lists tab). New `GET /campaign-lists/sources` (blast view right); `PATCH /campaign-lists/:id` accepts `source`.
+- Standard contact fields on every row: Name, Mobile Number, Email ID, Father Name/Mobile/Email, Mother Name/Mobile/Email, Location, City, State, Country, Address. Import auto-maps them from file headers; sample file includes them; **Add contact** form in the list view; Export Excel includes all; usable as template variables.
+- List search also matches these fields.
+- Files: `backend/src/models/CampaignPro.ts`, `backend/src/routes/campaigns.ts`, `frontend/src/api/index.js`, `frontend/src/pages/Campaigns.jsx`, `backend/src/tests/campaigns.api.test.mjs`.
+- **New List (manual entry)** in Recipient Lists: list name + list source, enter contacts one by one ("Add another"), then Create list. "Add contact" in a list now has "Save & add another".
+- Per-contact **Source** field (from the Source master) on manual entry, import mapping and sample file; imported rows with no Source column take the list's source.
+- **New List** now only creates the list: List name, Source, **Owner** (active employees only — client users excluded). `POST /campaign-lists`, `GET /campaign-lists/owners`; `owner` on PATCH/import, owner filter + column.
+- Recipients are added from the list row actions: **Upload recipients** (file) and **Add recipient** (manual form with Save & add another). Edit action changes name/source/owner. Send shows only when the list has recipients.
+- Import is only inside a list now (row action + "Import recipients" in the list view); the top-level Import List button is removed. The campaign form's list picker offers New List instead of Import.
+
+## 2026-10-18 — Follow-ups page: tabs + actions
+- Follow-ups now in tabs with counts: Today, Upcoming, Overdue, Completed (+ search). Lead Status column.
+- Row actions: Done (with optional next follow-up), Call, Communication (WhatsApp/SMS/Email slider), Update status (status, sub-status, lost reason), New follow-up, Reschedule, Cancel. Completed rows keep Communication / Status / New follow-up.
+- Dialogs use the shared Modal. File: `frontend/src/pages/FollowUps.jsx`.
+
+## 2026-10-18 — Button visibility fix (all pages)
+- Global `.btn` teal fill (styles.css) no longer overrides outline / light / secondary / danger / link / icon-only (`btn border-0`, `icon-only-action`) buttons or buttons with their own inline background. Icon row actions are now ghost icons (grey, tinted on hover; delete turns red). Setup → Enquiry Forms rows also get a Preview action.
+- Row icon actions (`btn border-0`) are now tinted, clearly visible buttons: teal icon on a light teal background; delete red on light red.
+- Tables scroll sideways again: global `.table-responsive` had `overflow: hidden` (now `overflow-x: auto`). Action cells don't wrap; row icons are plain (no fill), danger icons red.
+- Setup → Landing Pages table: Hero CTA and Highlights columns removed so it fits without scrolling; dates don't wrap (also in Forms tables).
+
+## 2026-10-18 — Landing page builder cleanup
+- Toolbar rebuilt (wraps, nothing cut off): Back, page name, Desktop/Tablet/Mobile + Undo/Redo segmented controls, HTML, JSON, Preview, Save. Canvas W/H moved to the Page panel only.
+- Fixed-width side panels (Elements 248px, Properties 300px), canvas fills the rest; each pane scrolls on its own; builder fits the viewport.
+- Element categories as chips, element tiles larger/readable; property tabs restyled; clicking empty canvas deselects.
+- Block toolbar now sits inside the block (name, Duplicate, Delete; coordinates only while dragging); hover/selected use outlines (no layout shift).
+- Custom HTML renders in a self-sizing iframe in the builder so its CSS/scripts work (no washed-out buttons / stuck animations).
+- Shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Y redo, Ctrl/Cmd+D duplicate, Delete remove, Esc deselect. Fixed a crash on Delete (`toast.show` didn't exist).
+- Preset style drawer shows a live, scaled-down render of each section in that style (real look, not a generic mock); click a card to add it. Drawer widened to 340px. Old wireframe mockups removed.
+- Main app menu folds away while the Landing Page wizard/editor, Registration Form editor or WhatsApp Template editor is open and comes back on save/exit (restored only if it was open before). `useSidebarOptional` added to ui/sidebar.tsx.
+
+## 2026-10-18 — Grade sequence + edit
+- Setup → Grades: Seq column, drag to reorder, Edit (name + sequence), delete. New grades go to the end.
+- `GET /grades` now sorts by sequence (`order`, then created) so every screen using grades (fee heads, document types, registration/enquiry forms) follows it; `PUT /grades/reorder` saves a new order; `crud()` takes an optional `defaultSort`.
+
+## 2026-10-18 — Fee Head slider + checkbox fix
+- Setup → Fee Heads: Add/Edit opens as the right-side slider (shared Modal). Classes in a 2-column grid with ₹ amount per class (no scrolling for typical grade lists), 'All classes' checkbox, 'Same amount for all' + Apply (selects every class and sets the amount — previously only updated already-ticked classes and was disabled until one was ticked), class count + total, inline name error.
+- Global CSS: checkboxes/radios no longer inherit the text-input min-height (were stretched into tall bars app-wide); checked colour = theme primary.
+- Remaining Setup pop-ups (User Type, User, WhatsApp account, Team, Team Members, Document Type) converted from old centred Bootstrap modals to the theme right-side slider.
+
+## 2026-10-18 — Implementation › Pre-requisites (client questionnaire)
+- Setup gets an **Implementation** group with **Pre-requisites**: state badge (Not started / Opened / In progress / Submitted), progress (sections received of 13), per-section Received/Pending with a summary of what came in and when, Client URL (link is built on it, e.g. https://dps.knowvato.in/prerequisites/<token>), copy/open link, new link (old one stops working, answers kept), View answers (read-only), Reopen after submit, **Email link** slider (email template or default message, `{{link}}` `{{name}}` `{{institute}}`), sent-email log.
+- Client form at `/prerequisites/:token` (no login): the supplied admission pre-requisite form, re-themed; every change autosaves, Save & Next marks the section received, the link resumes where they left, Final Submit (name + confirmation, pending sections listed) locks it read-only.
+- Backend: `models/Prerequisite.ts` (one per tenant), `routes/prerequisites.ts` — admin `GET/PATCH /prerequisites`, `GET /prerequisites/data`, `POST /prerequisites/regenerate|reopen|send`; public `GET/PUT /public/prereq/:token`, `POST /public/prereq/:token/submit` (40-hex token, rate-limited, 2 MB cap, 409 after submit).
+- Frontend: `public/prerequisite-form.html`, `pages/PrerequisitePages.jsx`, Setup category + breadcrumb, `prerequisitesApi`.
+- Tests: `npm run prereq:api-test` (18 checks); headless-Chrome run of the full client + team flow (24 checks: save/resume/autosave/submit lock/reopen/email/read-only view/bad link/mobile width).
+
+## 2026-10-18 — PM Planner
+- Renamed to **Task Planner** (page title, sidebar, breadcrumbs).
+- Fixed invisible text on the active view button (Tasks / Calendar) and teal unselected tabs: the app-wide `a { color }` rule is unlayered and beat pm.css; Planner tab/segment link colours now use !important.
+
+## 2026-10-18 — Campaigns: multiple lists
+- New Campaign → Recipients: pick **several imported lists or several lead lists** (searchable checklist, Select all, New List). Footer shows lists picked and the **unique** number count (shared numbers sent once).
+- Backend: `Campaign.audienceRefs` (additive; `audienceRef` = first list for older readers). `resolveAudience` merges all lists and de-duplicates by last 10 digits. Label "A + B" / "A, B +n more" and re-labelled on list rename. List usage count, delete guard and rename cover lists used with others. `POST /campaigns/audience-preview` returns the unique count. Template variables can use columns from any picked list.
+- Tests: campaigns API test 19/19 (3 new multi-list cases).
+
+## 2026-10-18 — One slider width across the app
+- Two widths only, as CSS tokens in styles.css: `--slider-w` 520px (all forms; was 640px, felt too wide) and `--slider-w-wide` 960px (full records / big tables / previews); phones get full screen.
+- Shared components follow them: CRM `Modal` (size="wide"/"xl" → wide, everything else standard), Radix `SheetContent` (right side ignores width classes passed in; `size="wide"` opt-in), Bootstrap `.offcanvas-end`, RegistrationSlider, Roles permission drawer.
+- Wide: lead detail, duplicate leads, Import leads, recipient-list contents, campaign report, form/page previews, user-type / user access rights, role permissions, PM task detail, ticket detail, template manager. Everything else (40+ sliders) is standard.
+- Verified in headless Chrome on 16 sliders (Campaigns, Setup, Follow-ups, Leads, PM Planner/Tickets/Clients, phone).
+
+## 2026-10-18 — Campaigns table, report, resend name
+- Campaign table: Audience and Template columns removed (template + recipients shown under the name); Sent/Delivered/Read/Failed shown as small numbers under the Delivery bar → no horizontal scroll.
+- Campaign report: one row of compact clickable tiles (Recipients / Read / Delivered / Sent / Failed / Not sent) replaces the big stat cards + duplicate filter chips; legend shows only non-zero parts; duplicate Resend button in the empty history removed.
+- Resend asks for the **new campaign name** first (empty, required, inline error). Server: resend name required; campaign names unique per tenant (any case) on create, resend and rename (409).
+- Campaigns API test 19/19.
+
+## 2026-10-18 — All sliders one width
+- `--slider-w-wide` now equals `--slider-w` (520px): every right slider in the app is the same width; tables inside scroll. Slider footers wrap. Recipient-list view header stacked (Name / Source + Owner / Search) and shows 2 extra columns. Checked in headless Chrome: list view, campaign report, lead detail, PM task detail, duplicates — all 520px, nothing overflowing.
+
+## 2026-10-19 — Campaign failure reasons + bot builder
+- **Failure reasons explained**: `services/waErrors.ts` decodes Meta errors (35+ codes: 131030 test-mode allowed list, 131026 undeliverable, 131047 24h window, 132001 template missing, 190 token expired, …) into a plain reason + how to fix. Campaign report: "Why messages failed" box (grouped, counts), Reason column shows reason + fix + code, Excel export adds reason / fix / code / raw. Delivery webhooks now keep Meta's code (`(#code) title — details`). Event Manager communication log shows the plain reason.
+- **Bot builder**: Connect Sub-Bot lists every other chatbot (older bots had no clientId and were filtered out). Palette 210px with icons and readable names, filler text removed; top bar uses theme buttons (Blocks / Phone preview toggle, Meta API, Publish); block panel header with close + delete, slider width token.

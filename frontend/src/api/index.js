@@ -93,6 +93,33 @@ export const crmApi = {
   setBranches: (userId, branches) => http.put(`/crm/availability/${userId}`, { branches }),
   applicantCode: (phone) => http.post("/public/applicant/code", { phone }),
   applicantVerify: (phone, code) => http.post("/public/applicant/verify", { phone, code }),
+  // custom activity types and the activity register
+  activityTypes: () => http.get("/crm/activity-types"),
+  createActivityType: (b) => http.post("/crm/activity-types", b),
+  updateActivityType: (id, b) => http.patch(`/crm/activity-types/${id}`, b),
+  removeActivityType: (id) => http.del(`/crm/activity-types/${id}`),
+  logActivity: (leadId, b) => http.post(`/leads/${leadId}/activities`, b),
+  activities: (params) => http.get("/crm/activities" + qs(params)),
+  // query desk
+  queryMeta: () => http.get("/crm/queries/meta"),
+  queries: (params) => http.get("/crm/queries" + qs(params)),
+  query: (id) => http.get(`/crm/queries/${id}`),
+  createQuery: (b) => http.post("/crm/queries", b),
+  updateQuery: (id, b) => http.patch(`/crm/queries/${id}`, b),
+  replyQuery: (id, b) => http.post(`/crm/queries/${id}/messages`, b),
+  removeQuery: (id) => http.del(`/crm/queries/${id}`),
+  leadQueries: (leadId) => http.get(`/leads/${leadId}/queries`),
+  // lead lists
+  lists: () => http.get("/crm/lists"),
+  list: (id, params) => http.get(`/crm/lists/${id}` + qs(params)),
+  createList: (b) => http.post("/crm/lists", b),
+  updateList: (id, b) => http.patch(`/crm/lists/${id}`, b),
+  listMembers: (id, b) => http.post(`/crm/lists/${id}/members`, b),
+  removeList: (id) => http.del(`/crm/lists/${id}`),
+  leadLists: (leadId) => http.get(`/leads/${leadId}/lists`),
+  // lead scoring
+  scoring: () => http.get("/crm/scoring"),
+  rescore: () => http.post("/crm/scoring/recalculate", {}),
   // recycle bin
   trash: () => http.get("/crm/trash"),
   restoreLead: (id) => http.post(`/crm/trash/${id}/restore`, {}),
@@ -453,6 +480,27 @@ export const campaignsApi = {
   remove: (id) => http.del(`/campaigns/${id}`),
   launch: (id) => http.post(`/campaigns/${id}/launch`),
   pause: (id, statusVal) => http.post(`/campaigns/${id}/pause`, { status: statusVal }),
+  report: (id, params) => http.get(`/campaigns/${id}/report` + qs(params)),
+  resend: (id, b) => http.post(`/campaigns/${id}/resend`, b),
+};
+
+// Recipient lists imported from CSV / Excel for bulk campaigns
+export const campaignsAudienceApi = {
+  preview: (b) => http.post("/campaigns/audience-preview", b),
+};
+
+export const campaignListsApi = {
+  list: (params) => http.get("/campaign-lists" + qs(params)),
+  get: (id, params) => http.get(`/campaign-lists/${id}` + qs(params)),
+  importRows: (b) => http.post("/campaign-lists/import", b),
+  append: (id, b) => http.post(`/campaign-lists/${id}/append`, b),
+  rename: (id, name) => http.patch(`/campaign-lists/${id}`, { name }),
+  update: (id, b) => http.patch(`/campaign-lists/${id}`, b),
+  sources: () => http.get("/campaign-lists/sources"),
+  owners: () => http.get("/campaign-lists/owners"),
+  create: (b) => http.post("/campaign-lists", b),
+  removeRow: (id, phone) => http.del(`/campaign-lists/${id}/rows/${encodeURIComponent(phone)}`),
+  remove: (id) => http.del(`/campaign-lists/${id}`),
 };
 
 // Campaign tags on the page's own address (?utm_source=…) travel with the enquiry.
@@ -497,10 +545,20 @@ export const sessionsApi = {
   remove: (id) => http.del(`/masters/sessions/${id}`),
 };
 
+// Setup › Implementation › Pre-requisites (the client fills the form from a public link)
+export const prerequisitesApi = {
+  get: (params) => http.get("/prerequisites" + qs(params)),
+  update: (b) => http.patch("/prerequisites", b),
+  regenerate: (b) => http.post("/prerequisites/regenerate", b || {}),
+  reopen: (b) => http.post("/prerequisites/reopen", b || {}),
+  send: (b) => http.post("/prerequisites/send", b),
+};
+
 export const gradesApi = {
-  list: () => http.get("/grades"),
+  list: (params) => http.get("/grades" + qs({ perPage: 200, ...params })),
   create: (b) => http.post("/grades", b),
   update: (id, b) => http.patch(`/grades/${id}`, b),
+  reorder: (ids) => http.put("/grades/reorder", { ids }),
   remove: (id) => http.del(`/grades/${id}`),
 };
 

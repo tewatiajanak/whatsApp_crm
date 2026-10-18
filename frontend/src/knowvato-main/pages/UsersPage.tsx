@@ -345,7 +345,7 @@ export default function UsersPage() {
 
       {/* Access rights */}
       <Sheet open={!!access} onOpenChange={(o) => !o && setAccess(null)}>
-        <SheetContent className="crm-theme w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetContent size="wide" className="crm-theme w-full sm:max-w-2xl flex flex-col gap-0 p-0">
           <SheetHeader className="border-b p-4 pr-10"><SheetTitle>Access rights — {access?.name}</SheetTitle></SheetHeader>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <div className="flex flex-wrap gap-2 text-xs">

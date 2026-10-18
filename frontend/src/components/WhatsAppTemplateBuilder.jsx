@@ -99,9 +99,9 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
   const canEditCategory = !isEditMode ? true : (isMetaTemplateEdit ? metaStatus !== "APPROVED" : false);
 
   const disabledFieldStyle = {
-    backgroundColor: "#eef2f7",
-    color: "#64748b",
-    borderColor: "#d7dee8",
+    backgroundColor: "var(--muted-background)",
+    color: "var(--muted-foreground)",
+    borderColor: "var(--border)",
     cursor: "not-allowed",
   };
 
@@ -362,11 +362,11 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
   }
 
   return (
-    <div style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", padding: "14px" }}>
+    <div style={{ background: "var(--card)", borderRadius: "14px", border: "1px solid var(--border)", padding: "14px" }}>
       {/* Clean Header */}
       <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
         <div>
-          <h5 className="fw-bold mb-1" style={{ color: "#0f172a" }}>
+          <h5 className="fw-bold mb-1" style={{ color: "var(--foreground)" }}>
             {initialTemplate ? "Edit WhatsApp Template" : "Create WhatsApp Template"}
           </h5>
         </div>
@@ -393,7 +393,7 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
       )}
 
       {!isMetaTemplateEdit && isEditMode && (
-        <div className="alert alert-secondary py-2 px-3 mb-3 small">
+        <div className="alert alert-info py-2 px-3 mb-3 small">
           Edit mode: Template name, category, and language are locked.
         </div>
       )}
@@ -404,7 +404,7 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
         <div className="col-lg-8">
           <div className="d-flex flex-column gap-2">
             {/* Template Details Card: Template Name on Top (Row 1), Category & Language Below (Row 2) */}
-            <div className="p-4 border rounded-3 bg-light-subtle">
+            <div className="p-4 border rounded-3 bg-light">
               {/* Row 1: Template Name */}
               <div className="mb-3">
                 <label className="form-label small fw-semibold text-secondary mb-1">Template Name</label>
@@ -700,7 +700,9 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
           <div className="sticky-top" style={{ top: "80px" }}>
             <div
               style={{
-                background: "#ffffff",
+                background: "color-mix(in srgb, var(--primary) 3%, var(--muted-background))",
+                borderRadius: "var(--radius-lg)",
+                border: "1px solid var(--border)",
                 padding: "24px",
 
                 minHeight: "360px",
@@ -713,23 +715,23 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
               {/* Native WhatsApp Message Bubble */}
               <div
                 style={{
-                  background: "#ffffff",
+                  background: "var(--card)",
                   borderRadius: "12px 12px 12px 12px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-soft)",
                   overflow: "hidden",
                   width: "100%",
                 }}
               >
                 {/* Header Render */}
                 {form.headerType === "TEXT" && form.headerText && (
-                  <div style={{ padding: "14px 16px 2px", fontWeight: "700", fontSize: "14px", color: "#0f172a" }}>
+                  <div style={{ padding: "14px 16px 2px", fontWeight: "700", fontSize: "14px", color: "var(--foreground)" }}>
                     {renderPreviewBody(form.headerText, form.samples)}
                   </div>
                 )}
 
                 {["IMAGE", "VIDEO", "DOCUMENT"].includes(form.headerType) && (
-                  <div style={{ width: "100%", background: "#f8fafc" }}>
+                  <div style={{ width: "100%", background: "var(--muted-background)" }}>
                     {form.headerType === "IMAGE" && (
                       (headerLocalPreviewUrl || (form.headerMediaUrl && isHttpUrl(form.headerMediaUrl) ? form.headerMediaUrl : "")) ? (
                         <img
@@ -738,37 +740,37 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
                           style={{ width: "100%", height: "160px", objectFit: "cover" }}
                         />
                       ) : form.headerMediaUrl ? (
-                        <div style={{ padding: "14px", background: "#ecfeff", borderBottom: "1px solid #bae6fd", color: "#0c4a6e" }}>
+                        <div style={{ padding: "14px", background: "var(--info-bg)", borderBottom: "1px solid color-mix(in srgb, var(--info) 20%, transparent)", color: "var(--info)" }}>
                           Meta media ID selected (preview unavailable)
                         </div>
                       ) : (
-                        <div style={{ padding: "14px", color: "#92400e", background: "#fef3c7", borderBottom: "1px solid #fde68a" }}>
+                        <div style={{ padding: "14px", color: "var(--warning)", background: "var(--warning-bg)", borderBottom: "1px solid color-mix(in srgb, var(--warning) 20%, transparent)" }}>
                           No image attached
                         </div>
                       )
                     )}
                     {form.headerType === "VIDEO" && (
                       form.headerMediaUrl ? (
-                        <div style={{ height: "140px", background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                        <div style={{ height: "140px", background: "var(--foreground)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--card)" }}>
                           <i className="bi bi-play-circle-fill" style={{ fontSize: "36px" }}></i>
                         </div>
                       ) : (
-                        <div style={{ padding: "14px", color: "#92400e", background: "#fef3c7", borderBottom: "1px solid #fde68a" }}>
+                        <div style={{ padding: "14px", color: "var(--warning)", background: "var(--warning-bg)", borderBottom: "1px solid color-mix(in srgb, var(--warning) 20%, transparent)" }}>
                           No video attached
                         </div>
                       )
                     )}
                     {form.headerType === "DOCUMENT" && (
                       form.headerMediaUrl ? (
-                        <div style={{ padding: "14px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ padding: "14px", background: "var(--muted-background)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "10px" }}>
                           <i className="bi bi-file-earmark-pdf-fill text-danger" style={{ fontSize: "28px" }}></i>
                           <div>
-                            <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>Document attached</div>
-                            <div style={{ fontSize: "11px", color: "#64748b" }}>PDF Document</div>
+                            <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--foreground)" }}>Document attached</div>
+                            <div style={{ fontSize: "11px", color: "var(--muted-foreground)" }}>PDF Document</div>
                           </div>
                         </div>
                       ) : (
-                        <div style={{ padding: "14px", color: "#92400e", background: "#fef3c7", borderBottom: "1px solid #fde68a" }}>
+                        <div style={{ padding: "14px", color: "var(--warning)", background: "var(--warning-bg)", borderBottom: "1px solid color-mix(in srgb, var(--warning) 20%, transparent)" }}>
                           No document attached
                         </div>
                       )
@@ -777,36 +779,36 @@ export default function WhatsAppTemplateBuilder({ initialTemplate, onCancel, onS
                 )}
 
                 {/* Body Content */}
-                <div style={{ padding: "14px 16px", fontSize: "13.5px", color: "#1e293b", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
+                <div style={{ padding: "14px 16px", fontSize: "13.5px", color: "var(--foreground)", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
                   {renderPreviewBody(form.body, form.samples)}
                 </div>
 
                 {/* Footer Text */}
                 {form.footer && (
-                  <div style={{ padding: "0 16px 8px", fontSize: "11px", color: "#64748b" }}>
+                  <div style={{ padding: "0 16px 8px", fontSize: "11px", color: "var(--muted-foreground)" }}>
                     {form.footer}
                   </div>
                 )}
 
                 {/* Timestamp & Ticks */}
-                <div style={{ padding: "0 16px 10px", textAlign: "right", fontSize: "10px", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "3px" }}>
+                <div style={{ padding: "0 16px 10px", textAlign: "right", fontSize: "10px", color: "var(--muted-foreground)", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "3px" }}>
                   {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   <i className="bi bi-check2-all text-primary" style={{ fontSize: "13px" }}></i>
                 </div>
 
                 {/* Buttons */}
                 {form.buttons.length > 0 && (
-                  <div style={{ borderTop: "1px solid #e2e8f0", background: "#fafafa" }}>
+                  <div style={{ borderTop: "1px solid var(--border)", background: "var(--muted-background)" }}>
                     {form.buttons.map((btn, idx) => (
                       <div
                         key={idx}
                         style={{
                           padding: "10px 14px",
                           textAlign: "center",
-                          color: "#0284c7",
+                          color: "var(--primary)",
                           fontWeight: "600",
                           fontSize: "13px",
-                          borderBottom: idx < form.buttons.length - 1 ? "1px solid #e2e8f0" : "none",
+                          borderBottom: idx < form.buttons.length - 1 ? "1px solid var(--border)" : "none",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",

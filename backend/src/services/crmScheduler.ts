@@ -16,6 +16,7 @@ import { applyLeadAssignment } from "./workflowEngine";
 import { captureEnquiry } from "./leadCapture";
 import { pollInbox, pullPortals, syncGoogle } from "./crmIntegrations";
 import { FollowUp as FU } from "../models/FollowUp";
+import { runDueCampaigns } from "./campaignService";
 
 const MIN = 60_000;
 const localHour = () => new Date(Date.now() + tzOffsetMin * MIN).getUTCHours();
@@ -242,6 +243,7 @@ async function tick() {
         await job(t._id, s).catch((e) => console.error(`[crm] ${job.name} failed:`, e?.message || e));
       }
     }
+    await runDueCampaigns().catch((e) => console.error("[crm] scheduled campaigns failed:", e?.message || e));
   } catch (e: any) {
     console.error("[crm] scheduler error:", e?.message || e);
   } finally {

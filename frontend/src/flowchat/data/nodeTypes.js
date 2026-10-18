@@ -4,7 +4,7 @@ export const NODE_TYPES = {
   start: {
     label: 'Start (Trigger)',
     icon: 'bi-play-circle-fill',
-    color: '#25D366', // ONLY Start node is WhatsApp Green
+    color: 'var(--primary)', // Start node uses the theme primary
     description: 'When the chat begins / a keyword is received',
     outputs: [{ key: 'next', label: '' }],
     defaultData: { keywords: ['hi', 'hello', 'start', 'enquiry'] },
@@ -12,7 +12,7 @@ export const NODE_TYPES = {
   message: {
     label: 'Send Message',
     icon: 'bi-chat-left-text-fill',
-    color: '#3b82f6', // Clean Royal Blue
+    color: 'var(--info)', // Clean Royal Blue
     description: 'Send a formatted text message with variables',
     outputs: [{ key: 'next', label: '' }],
     defaultData: { text: 'Hey there! 👋 Welcome to our WhatsApp service.' },
@@ -20,7 +20,7 @@ export const NODE_TYPES = {
   templateMessage: {
     label: 'Send Template',
     icon: 'bi-file-earmark-richtext-fill',
-    color: '#0f766e',
+    color: 'var(--accent-foreground)',
     description: 'Send an approved WhatsApp template message',
     outputs: [{ key: 'next', label: '' }],
     defaultData: {
@@ -33,7 +33,7 @@ export const NODE_TYPES = {
   mediaMessage: {
     label: 'Send Media',
     icon: 'bi-image-fill',
-    color: '#2563eb',
+    color: '#4A6FA5',
     description: 'Send image/video/document/audio style message block',
     outputs: [{ key: 'next', label: '' }],
     defaultData: {
@@ -46,7 +46,7 @@ export const NODE_TYPES = {
   listMessage: {
     label: 'List Menu',
     icon: 'bi-list-ul',
-    color: '#1d4ed8',
+    color: '#3D5A80',
     description: 'Send list-style options and branch on selection',
     outputs: 'dynamic',
     defaultData: {
@@ -61,7 +61,7 @@ export const NODE_TYPES = {
   locationMessage: {
     label: 'Send Location',
     icon: 'bi-geo-alt-fill',
-    color: '#0ea5e9',
+    color: '#4C8DAE',
     description: 'Send a map location with optional place details',
     outputs: [{ key: 'next', label: '' }],
     defaultData: {
@@ -74,7 +74,7 @@ export const NODE_TYPES = {
   buttons: {
     label: 'Quick Reply Buttons',
     icon: 'bi-ui-radios',
-    color: '#6366f1', // Indigo Purple
+    color: '#6A6FB0', // Indigo Purple
     description: 'Ask a question with tappable button options',
     outputs: 'dynamic', // built from data.buttons
     defaultData: {
@@ -88,7 +88,7 @@ export const NODE_TYPES = {
   question: {
     label: 'Ask a Question',
     icon: 'bi-patch-question-fill',
-    color: '#f59e0b', // Amber Orange
+    color: '#B7883A', // Amber Orange
     description: 'Capture user reply into a variable',
     outputs: [{ key: 'next', label: '' }],
     defaultData: { text: 'Please enter your detail:', variableName: 'user_input', inputType: 'text' },
@@ -96,7 +96,7 @@ export const NODE_TYPES = {
   whatsappForm: {
     label: 'WhatsApp Form',
     icon: 'bi-ui-checks',
-    color: '#0284c7', // Sky Cyan
+    color: '#3F7C9A', // Sky Cyan
     description: 'Send an interactive WhatsApp enquiry / registration form',
     outputs: [
       { key: 'submitted', label: 'On Submit' },
@@ -110,7 +110,7 @@ export const NODE_TYPES = {
   apiRequest: {
     label: 'Call an API',
     icon: 'bi-cloud-arrow-down-fill',
-    color: '#9333ea', // Deep Violet
+    color: '#8564A8', // Deep Violet
     description: 'Fetch or send data to any HTTP REST API',
     outputs: [
       { key: 'success', label: 'On Success' },
@@ -127,7 +127,7 @@ export const NODE_TYPES = {
   condition: {
     label: 'Multiple Conditions',
     icon: 'bi-signpost-split-fill',
-    color: '#ea580c', // Dark Amber / Orange
+    color: '#B8693A', // Dark Amber / Orange
     description: 'Branch the flow on multiple variables and AND/OR rules',
     outputs: 'dynamic_condition', // built from branches + else
     defaultData: {
@@ -147,7 +147,7 @@ export const NODE_TYPES = {
   subchatbot: {
     label: 'Connect Sub-Bot',
     icon: 'bi-diagram-3-fill',
-    color: '#0d9488', // Teal
+    color: '#2E8C7E', // Teal
     description: 'Hand off the conversation to another chatbot flow',
     outputs: [],
     defaultData: { targetBotId: '' },
@@ -155,7 +155,7 @@ export const NODE_TYPES = {
   end: {
     label: 'End Conversation',
     icon: 'bi-stop-circle-fill',
-    color: '#475569', // Slate Dark Neutral
+    color: 'var(--muted-foreground)', // Slate Dark Neutral
     description: 'Close the flow / conclude conversation',
     outputs: [],
     defaultData: { text: 'Thanks for connecting with us! 💚' },

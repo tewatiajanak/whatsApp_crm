@@ -4,6 +4,7 @@ import { leadsApi, followUpsApi, crmApi } from "../../api";
 import { Documents, CustomFieldInputs, missingCustom } from "./LeadExtras";
 import Fees from "./LeadFees";
 import { Brief, Chat, WebActivity } from "./LeadMore";
+import { LogActivity, SourceHistory, LeadListChips, LeadQueries } from "./LeadPro";
 import { useApi } from "../../hooks/useApi";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -26,6 +27,7 @@ export default function LeadDrawer({ id, meta, onClose, onChanged, onFollowUp, o
   const lead = useApi(() => leadsApi.get(id), [id]);
   const timeline = useApi(() => leadsApi.timeline(id), [id]);
   const followUps = useApi(() => leadsApi.followUps(id), [id]);
+  const activityTypes = useApi(() => crmApi.activityTypes(), []);
   const [tab, setTab] = useState("timeline");
   const [pendingLost, setPendingLost] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -56,7 +58,7 @@ export default function LeadDrawer({ id, meta, onClose, onChanged, onFollowUp, o
   return (
     <>
       <Modal
-        size="lg"
+        size="wide"
         onClose={onClose}
         title={
           <div className="flex items-center gap-3 min-w-0">
@@ -91,6 +93,7 @@ export default function LeadDrawer({ id, meta, onClose, onChanged, onFollowUp, o
               <Fact label="Next follow-up"><span style={{ color: `var(--${dueInfo(l.nextFollowUp).tone})` }}>{dueInfo(l.nextFollowUp).text}</span></Fact>
               <Fact label="Last activity">{timeAgo(l.lastActivity)}</Fact>
             </div>
+            <LeadListChips leadId={id} canEdit={canEdit} stamp={l.updatedAt} />
 
             {/* stage + owner */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -128,10 +131,12 @@ export default function LeadDrawer({ id, meta, onClose, onChanged, onFollowUp, o
                 { value: "fees", label: "Fees" },
                 { value: "documents", label: "Documents" },
                 { value: "services", label: "Services" },
+                { value: "queries", label: "Queries" },
               ]}
             />
 
-            {tab === "timeline" && <Timeline id={id} items={timeline.data} loading={timeline.loading} canEdit={canEdit} onDone={refresh} />}
+            {tab === "timeline" && <Timeline id={id} items={timeline.data} loading={timeline.loading} canEdit={canEdit} onDone={refresh} activityTypes={activityTypes.data} />}
+            {tab === "queries" && <LeadQueries lead={l} canEdit={canEdit} />}
             {tab === "followups" && <FollowUpList items={followUps.data} loading={followUps.loading} onDone={refresh} />}
             {tab === "details" && <Details lead={l} meta={meta} canEdit={canEdit} onSaved={refresh} />}
             {tab === "chat" && <Chat lead={l} canSend={can("chat", "create") || can("blast", "create")} />}
@@ -186,7 +191,7 @@ function Fact({ label, children }) {
 }
 
 /* ───────────── timeline: note + call composer, then history ───────────── */
-function Timeline({ id, items, loading, canEdit, onDone }) {
+function Timeline({ id, items, loading, canEdit, onDone, activityTypes }) {
   const toast = useToast();
   const [mode, setMode] = useState("note");
   const [text, setText] = useState("");
@@ -211,7 +216,7 @@ function Timeline({ id, items, loading, canEdit, onDone }) {
       {canEdit && (
         <div className="rounded-lg border p-2.5 space-y-2">
           <div className="flex gap-1">
-            {[["note", "sticky", "Note"], ["call", "telephone", "Log call"]].map(([v, icon, label]) => (
+            {[["note", "sticky", "Note"], ["call", "telephone", "Log call"], ...((activityTypes || []).some((t) => t.active !== false) ? [["activity", "lightning", "Activity"]] : [])].map(([v, icon, label]) => (
               <button key={v} type="button" className={"ui-btn ui-btn-sm " + (mode === v ? "ui-btn-primary" : "ui-btn-ghost")} onClick={() => setMode(v)}>
                 <i className={`bi bi-${icon}`}></i>{label}
               </button>
@@ -228,10 +233,12 @@ function Timeline({ id, items, loading, canEdit, onDone }) {
               <input className="ui-input w-full" type="number" min="0" placeholder="Minutes" value={call.durationMin} onChange={(e) => setCall((c) => ({ ...c, durationMin: e.target.value }))} />
             </div>
           )}
+          {mode === "activity" ? <LogActivity leadId={id} types={activityTypes} onDone={onDone} /> : <>
           <textarea className="ui-input w-full" style={{ height: "auto", padding: "8px 12px" }} rows={2} placeholder={mode === "note" ? "Write a note…" : "What was discussed?"} value={text} onChange={(e) => setText(e.target.value)} />
           <div className="flex justify-end">
             <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" disabled={saving || (mode === "note" && !text.trim())} onClick={save}>{saving ? "Saving…" : "Save"}</button>
           </div>
+          </>}
         </div>
       )}
 
@@ -239,7 +246,7 @@ function Timeline({ id, items, loading, canEdit, onDone }) {
         <ol className="relative m-0 p-0 list-none">
           <span className="absolute top-1 bottom-1 w-px" style={{ left: 13, background: "var(--border)" }} />
           {items.map((a) => {
-            const look = ACTIVITY[a.type] || ACTIVITY.note;
+            const look = a.type === "activity" ? { icon: a.meta?.icon || "lightning", color: a.meta?.color || "var(--primary)" } : ACTIVITY[a.type] || ACTIVITY.note;
             return (
               <li key={a._id} className="relative flex gap-3 pb-3">
                 <span className="relative z-10 inline-flex h-7 w-7 items-center justify-center rounded-full flex-shrink-0 border bg-card" style={{ color: look.color }}>
@@ -247,7 +254,7 @@ function Timeline({ id, items, loading, canEdit, onDone }) {
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-                    <span className="text-sm font-medium text-foreground">{a.title}</span>
+                    <span className="text-sm font-medium text-foreground">{a.title}{a.type === "activity" && a.meta?.points ? <span className="text-[11px] font-normal text-muted-foreground"> · {a.meta.points > 0 ? "+" : ""}{a.meta.points} pts</span> : null}</span>
                     <span className="text-[11px] text-muted-foreground" title={formatDateTime(a.at)}>{timeAgo(a.at)}</span>
                   </div>
                   {a.detail && <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words">{a.detail}</div>}
@@ -428,6 +435,7 @@ function Details({ lead, meta, canEdit, onSaved }) {
           <div key={k}><dt className="text-muted-foreground font-normal">{k}</dt><dd className="text-foreground m-0">{v}</dd></div>
         ))}
       </dl>
+      <SourceHistory lead={lead} />
     </div>
   );
 }

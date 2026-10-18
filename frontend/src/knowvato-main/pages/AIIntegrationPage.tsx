@@ -93,7 +93,7 @@ const PROVIDERS = [
     badgeColor: "bg-blue-100 text-blue-800 border-blue-300",
     desc: "Industry-standard LLMs with structured outputs and high performance.",
     icon: Zap,
-    color: "#2563eb",
+    color: "var(--primary)",
     models: [
       { id: "gpt-4o-mini", name: "GPT-4o Mini (Fast & Cheap)" },
       { id: "gpt-4o", name: "GPT-4o (Omni High Capability)" },

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSidebarOptional } from "@/components/ui/sidebar";
 import { useLocation, useNavigate } from "react-router-dom";
 import { mastersApi, servicesApi, sessionsApi, gradesApi, feeHeadsApi, documentTypesApi, teamsApi, workflowsApi, workflowConfigApi, usersApi, templatesApi, integrationsApi, waAccountsApi, designationsApi } from "../api";
 import { useApi } from "../hooks/useApi";
@@ -8,6 +9,7 @@ import RegistrationFormBuilder from "../components/RegistrationFormBuilder";
 import LandingPageBuilder from "../components/LandingPageBuilder";
 import LandingPageWizard from "../components/LandingPageWizard";
 import ThemeSwitcher from "../components/ThemeSwitcher";
+import { Prerequisites } from "./PrerequisitePages";
 import WhatsAppTemplateBuilder from "../components/WhatsAppTemplateBuilder";
 import WhatsAppIntegrationManager from "../components/WhatsAppIntegrationManager";
 import FacebookIntegrationManager from "../components/FacebookIntegrationManager";
@@ -37,16 +39,25 @@ const CATEGORIES = [
     id: "general",
     icon: "building",
     title: "General",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "organization-details", label: "Organization Details" }
+    ]
+  },
+  {
+    id: "implementation",
+    icon: "clipboard-check",
+    title: "Implementation",
+    color: "var(--foreground)",
+    items: [
+      { id: "prerequisites", label: "Pre-requisites" }
     ]
   },
   {
     id: "lead-config",
     icon: "funnel",
     title: "Lead Configuration",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "offerings", label: "Offerings" },
       { id: "status", label: "Lead Statuses" },
@@ -57,7 +68,7 @@ const CATEGORIES = [
     id: "forms",
     icon: "ui-checks",
     title: "Forms",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "enquiry-form", label: "Enquiry Form" },
       { id: "registration-form", label: "Registration Form" },
@@ -68,7 +79,7 @@ const CATEGORIES = [
     id: "ui",
     icon: "palette",
     title: "UI",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "ui-theme", label: "Theme Customization" }
     ]
@@ -77,7 +88,7 @@ const CATEGORIES = [
     id: "academic",
     icon: "mortarboard",
     title: "Academic Setup",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "sessions", label: "Academic Sessions" },
       { id: "grades", label: "Grades" },
@@ -89,7 +100,7 @@ const CATEGORIES = [
     id: "workflow",
     icon: "diagram-3",
     title: "Workflows",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "workflows", label: "Workflows" },
       { id: "comm-templates", label: "Communication Templates" },
@@ -100,7 +111,7 @@ const CATEGORIES = [
     id: "custom",
     icon: "sliders",
     title: "Custom",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "custom-fields", label: "Custom Fields" }
     ]
@@ -109,7 +120,7 @@ const CATEGORIES = [
     id: "module-templates",
     icon: "chat-square-text",
     title: "Communication Templates",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "module-whatsapp-templates", label: "WhatsApp Template" },
       { id: "module-sms-templates", label: "SMS Template" },
@@ -120,7 +131,7 @@ const CATEGORIES = [
     id: "integrations",
     icon: "plug",
     title: "Integrations",
-    color: "#0f172a",
+    color: "var(--foreground)",
     items: [
       { id: "ai-integration", label: "AI Integration" },
       { id: "whatsapp-integration", label: "WhatsApp Integration" },
@@ -173,6 +184,24 @@ export default function Setup() {
   };
 
   const hideSidebar = (selected === "registration-form" || selected === "landing-page" || selected === "whatsapp-templates") && mode === "editor";
+  // Full-screen editors: fold the main app menu away while editing, bring it back on save / exit.
+  const focusMode = hideSidebar || (selected === "landing-page" && mode === "wizard");
+  const appSidebar = useSidebarOptional();
+  const sidebarRef = useRef(appSidebar);
+  sidebarRef.current = appSidebar;
+  const sidebarWasOpen = useRef(null);
+  useEffect(() => {
+    const sb = sidebarRef.current;
+    if (!sb) return;
+    if (focusMode) {
+      if (sidebarWasOpen.current === null) sidebarWasOpen.current = sb.open;
+      if (sb.open) sb.setOpen(false);
+    } else if (sidebarWasOpen.current !== null) {
+      if (sidebarWasOpen.current) sb.setOpen(true);
+      sidebarWasOpen.current = null;
+    }
+  }, [focusMode]);
+  useEffect(() => () => { if (sidebarWasOpen.current) sidebarRef.current?.setOpen(true); }, []);
 
   return (
     <div>
@@ -261,6 +290,7 @@ export default function Setup() {
           {selected === "ui-theme" && <ThemeSwitcher />}
           {selected === "sessions" && <AcademicSessions />}
           {selected === "grades" && <Grades />}
+          {selected === "prerequisites" && <Prerequisites />}
           {selected === "fee-heads" && <FeeHeads />}
           {selected === "document-types" && <DocumentTypes />}
           {selected === "teams" && <Teams />}
@@ -320,7 +350,7 @@ function ServicesMaster() {
           <label className="form-label small fw-semibold">Colour</label>
           <div className="d-flex flex-wrap gap-2 mb-3">{COLORS.map((c) => <button key={c} onClick={() => setEdit({ ...edit, color: c })} style={{ width: 26, height: 26, borderRadius: 6, background: c, border: edit.color === c ? "3px solid #1f2630" : "1px solid #ccc" }} />)}</div>
           <label className="form-label small fw-semibold">Icon</label>
-          <div className="d-flex flex-wrap gap-2 mb-3">{ICONS.map((ic) => <button key={ic} onClick={() => setEdit({ ...edit, icon: ic })} className="btn btn-sm" style={{ border: edit.icon === ic ? "2px solid var(--accent)" : "1px solid var(--border-2)" }}><i className={`bi bi-${ic}`}></i></button>)}</div>
+          <div className="d-flex flex-wrap gap-2 mb-3">{ICONS.map((ic) => <button key={ic} onClick={() => setEdit({ ...edit, icon: ic })} className="btn btn-sm" style={{ background: "var(--card)", color: "var(--foreground)", border: edit.icon === ic ? "2px solid var(--primary)" : "1px solid var(--border-2)" }}><i className={`bi bi-${ic}`}></i></button>)}</div>
           <label className="form-label small fw-semibold">Frequency</label>
           <div className="d-flex gap-3">
             <div className="form-check">
@@ -577,10 +607,8 @@ function PermModal({ userType, onClose, onSave }) {
     setPerms((ps) => ps.map((p, idx) => idx === i ? { ...p, [k]: !p[k], ...(k === "view" && p[k] ? { create: false, edit: false, del: false } : {}), ...(k !== "view" && !p[k] ? { view: true } : {}) } : p));
   }
   return (
-    <><div className="modal-backdrop fade show"></div>
-      <div className="modal d-block"><div className="modal-dialog modal-lg"><div className="modal-content">
-        <div className="modal-header"><h5 className="modal-title">{userType._id ? "Edit" : "New"} user type</h5><button className="btn-close" onClick={onClose}></button></div>
-        <div className="modal-body">
+    <Modal title={<>{userType._id ? "Edit" : "New"} user type</>} size="wide" onClose={onClose} footer={<><button className="ui-btn ui-btn-outline" onClick={onClose}>Cancel</button><button className="ui-btn ui-btn-primary" disabled={!name} onClick={() => onSave({ _id: userType._id, name, desc, perms })}>Save</button></>}>
+
           <div className="row g-3 mb-3"><div className="col-6"><label className="form-label small">Name</label><input className="form-control" value={name} onChange={(e) => setName(e.target.value)} /></div><div className="col-6"><label className="form-label small">Description</label><input className="form-control" value={desc} onChange={(e) => setDesc(e.target.value)} /></div></div>
           <table className="table table-sm table-bordered align-middle">
             <thead><tr><th>Module</th><th className="text-center">View</th><th className="text-center">Create</th><th className="text-center">Edit</th><th className="text-center">Delete</th></tr></thead>
@@ -592,9 +620,8 @@ function PermModal({ userType, onClose, onSave }) {
               ))}
             </tbody>
           </table>
-        </div>
-        <div className="modal-footer"><button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-sm btn-wa" disabled={!name} onClick={() => onSave({ _id: userType._id, name, desc, perms })}>Save</button></div>
-      </div></div></div></>
+        
+    </Modal>
   );
 }
 
@@ -633,18 +660,15 @@ function Users() {
 function UserModal({ user, types, designations = [], onClose, onSave }) {
   const [f, setF] = useState({ _id: user._id, name: user.name || "", email: user.email || "", userType: user.userType || types[0]?._id, designation: user.designation || "", status: user.status || "Active" });
   return (
-    <><div className="modal-backdrop fade show"></div>
-      <div className="modal d-block"><div className="modal-dialog"><div className="modal-content">
-        <div className="modal-header"><h5 className="modal-title">{user._id ? "Edit" : "Add"} user</h5><button className="btn-close" onClick={onClose}></button></div>
-        <div className="modal-body"><div className="row g-3">
+    <Modal title={<>{user._id ? "Edit" : "Add"} user</>} onClose={onClose} footer={<><button className="ui-btn ui-btn-outline" onClick={onClose}>Cancel</button><button className="ui-btn ui-btn-primary" disabled={!f.name || !f.email} onClick={() => onSave(f)}>Save</button></>}>
+<div className="row g-3">
           <div className="col-12"><label className="form-label small">Name</label><input className="form-control" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
           <div className="col-12"><label className="form-label small">Email</label><input className="form-control" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></div>
           <div className="col-6"><label className="form-label small">User type</label><select className="form-select" value={f.userType} onChange={(e) => setF({ ...f, userType: e.target.value })}>{types.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}</select></div>
           <div className="col-6"><label className="form-label small">Designation</label><select className="form-select" value={f.designation} onChange={(e) => setF({ ...f, designation: e.target.value })}><option value="">— Select —</option>{designations.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}</select></div>
           <div className="col-6"><label className="form-label small">Status</label><select className="form-select" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option>Active</option><option>Inactive</option><option>Pending</option></select></div>
-        </div></div>
-        <div className="modal-footer"><button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-sm btn-wa" disabled={!f.name || !f.email} onClick={() => onSave(f)}>Save</button></div>
-      </div></div></div></>
+        </div>
+    </Modal>
   );
 }
 
@@ -673,7 +697,7 @@ function WhatsAppAccounts() {
               <td style={{ fontSize: "12px", fontWeight: 400 }}>{a.label}</td>
               <td style={{ fontSize: "11.5px" }} className="text-secondary text-uppercase">{a.vendor}</td>
               <td style={{ fontSize: "12px" }} className="font-monospace text-secondary">{a.senderNumber || "—"}</td>
-              <td>{a.active ? <span style={{ fontSize: "12px", fontWeight: 500, color: "#16a34a" }}><i className="bi bi-check-circle me-1"></i>Active</span> : <button className="btn btn-sm border-0 text-success p-1" style={{ fontSize: "12px" }} onClick={() => activate(a._id)}>Make active</button>}</td>
+              <td>{a.active ? <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--success)" }}><i className="bi bi-check-circle me-1"></i>Active</span> : <button className="btn btn-sm border-0 text-success p-1" style={{ fontSize: "12px" }} onClick={() => activate(a._id)}>Make active</button>}</td>
               <td className="text-end"><div className="d-flex justify-content-end gap-1"><button className="btn btn-sm border-0 text-secondary hover-primary p-1" style={{ fontSize: "12px" }} onClick={() => setEdit(a)}><i className="bi bi-pencil" style={{ fontSize: "13px" }}></i></button><button className="btn btn-sm border-0 text-secondary hover-danger p-1" style={{ fontSize: "12px" }} onClick={() => remove(a._id)}><i className="bi bi-trash" style={{ fontSize: "13px" }}></i></button></div></td>
             </tr>
           ))}
@@ -696,10 +720,8 @@ function WaModal({ account, onClose, onSave }) {
   // strip empty secret fields so we don't overwrite stored values with blanks on edit
   function clean() { const o = { ...f }; ["apiKey", "accessToken", "appSecret"].forEach((k) => { if (!o[k]) delete o[k]; }); return o; }
   return (
-    <><div className="modal-backdrop fade show"></div>
-      <div className="modal d-block"><div className="modal-dialog"><div className="modal-content">
-        <div className="modal-header"><h5 className="modal-title">{account._id ? "Edit" : "Add"} WhatsApp account</h5><button className="btn-close" onClick={onClose}></button></div>
-        <div className="modal-body"><div className="row g-3">
+    <Modal title={<>{account._id ? "Edit" : "Add"} WhatsApp account</>} onClose={onClose} footer={<><button className="ui-btn ui-btn-outline" onClick={onClose}>Cancel</button><button className="ui-btn ui-btn-primary" disabled={!f.label} onClick={() => onSave(clean())}>Save</button></>}>
+<div className="row g-3">
           <div className="col-7"><label className="form-label small">Label</label><input className="form-control" value={f.label} onChange={(e) => set("label", e.target.value)} placeholder="Pinnacle – Admissions" /></div>
           <div className="col-5"><label className="form-label small">Vendor</label><select className="form-select" value={f.vendor} onChange={(e) => set("vendor", e.target.value)}><option value="meta">Meta (direct)</option><option value="pinnacle">Pinnacle</option><option value="simulation">Simulation</option></select></div>
           <div className="col-12"><label className="form-label small">Sender number</label><input className="form-control" value={f.senderNumber} onChange={(e) => set("senderNumber", e.target.value)} /></div>
@@ -714,9 +736,8 @@ function WaModal({ account, onClose, onSave }) {
             <div className="col-12"><label className="form-label small">API Key</label><input className="form-control" type="password" placeholder={account._id ? "•••• (unchanged)" : ""} value={f.apiKey} onChange={(e) => set("apiKey", e.target.value)} /></div>
             <div className="col-12 small text-secondary">Webhook URL to register with Pinnacle: <code>/webhooks/whatsapp/&lt;tenantId&gt;</code></div>
           </>}
-        </div></div>
-        <div className="modal-footer"><button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-sm btn-wa" disabled={!f.label} onClick={() => onSave(clean())}>Save</button></div>
-      </div></div></div></>
+        </div>
+    </Modal>
   );
 }
 
@@ -829,25 +850,117 @@ function AcademicSessions() {
 
 function Grades() {
   const toast = useToast();
-  const list = useApi(() => gradesApi.list(), []);
-  const [form, setForm] = useState({ name: "" });
-  async function add() { if (!form.name) return; try { await gradesApi.create(form); toast("Added"); setForm({ name: "" }); list.reload(); } catch (e) { toast(e.message, "error"); } }
-  async function remove(id) { if (await askConfirm("Delete?")) { try { await gradesApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
+  const list = useApi(() => gradesApi.list({ perPage: 200 }), []);
+  const [rows, setRows] = useState([]);
+  const [name, setName] = useState("");
+  const [edit, setEdit] = useState(null); // { _id, name, seq }
+  const [dragId, setDragId] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => { setRows(list.data || []); }, [list.data]);
+
+  async function add() {
+    if (!name.trim()) return;
+    try { await gradesApi.create({ name: name.trim() }); toast("Grade added"); setName(""); list.reload(); }
+    catch (e) { toast(e.message, "error"); }
+  }
+  async function remove(g) {
+    if (!(await askConfirm(`Delete "${g.name}"?`))) return;
+    try { await gradesApi.remove(g._id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); }
+  }
+  async function saveOrder(next) {
+    const prev = rows;
+    setRows(next);
+    try { await gradesApi.reorder(next.map((g) => g._id)); }
+    catch (e) { toast(e.message, "error"); setRows(prev); }
+  }
+  const move = (from, to) => {
+    if (to < 0 || to >= rows.length || from === to) return;
+    const next = [...rows];
+    const [g] = next.splice(from, 1);
+    next.splice(to, 0, g);
+    saveOrder(next);
+  };
+  async function saveEdit() {
+    const nm = edit.name.trim();
+    if (!nm) return toast("Name is required", "error");
+    setBusy(true);
+    try {
+      const from = rows.findIndex((g) => g._id === edit._id);
+      if (nm !== rows[from].name) await gradesApi.update(edit._id, { name: nm });
+      const to = Math.min(rows.length, Math.max(1, parseInt(edit.seq, 10) || from + 1)) - 1;
+      const next = rows.map((g) => (g._id === edit._id ? { ...g, name: nm } : g));
+      if (to !== from) { const [g] = next.splice(from, 1); next.splice(to, 0, g); await gradesApi.reorder(next.map((x) => x._id)); }
+      setRows(next);
+      toast("Grade updated");
+      setEdit(null);
+      list.reload();
+    } catch (e) { toast(e.message, "error"); }
+    finally { setBusy(false); }
+  }
+
   return (
     <div className="card" style={{ marginBottom: 0, borderRadius: "var(--radius)" }}>
       <div className="card-header bg-white fw-semibold" style={{ fontSize: "14px" }}>Grades</div>
       <div className="card-body" style={{ fontSize: "12px" }}>
         <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-          <input className="form-control form-control-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={{ flex: 1, fontSize: "12.5px" }} placeholder="Enter grade name (e.g. Grade 1, Class XI)" />
-          <button className="btn btn-sm btn-wa" onClick={add} style={{ padding: "5px 12px", fontSize: "12px" }} title="Add grade"><i className="bi bi-plus-lg me-1"></i>Add</button>
+          <input className="form-control form-control-sm" aria-label="Grade name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} style={{ flex: 1, fontSize: "12.5px" }} />
+          <button className="btn btn-sm btn-wa" onClick={add} style={{ padding: "5px 12px", fontSize: "12px" }}><i className="bi bi-plus-lg me-1"></i>Add</button>
         </div>
-        <div className="table-responsive">
-          <table className="table table-hover mb-0 align-middle" style={{ fontSize: "12px" }}>
-            <thead><tr className="table-light"><th style={{ fontSize: "12px", fontWeight: 600 }}>Grade</th><th className="text-end" style={{ fontSize: "12px", fontWeight: 600 }}>Action</th></tr></thead>
-            <tbody>{(list.data || []).map((g) => <tr key={g._id}><td style={{ fontSize: "12px", fontWeight: 400 }}>{g.name}</td><td className="text-end"><button className="btn btn-sm border-0 text-secondary hover-danger p-1" style={{ fontSize: "12px" }} onClick={() => remove(g._id)}><i className="bi bi-trash" style={{ fontSize: "13px" }}></i></button></td></tr>)}</tbody>
-          </table>
-        </div>
+        {list.loading && !rows.length ? <Spinner /> : !rows.length ? <EmptyState icon="mortarboard" text="No grades" /> : (
+          <div className="table-responsive">
+            <table className="table mb-0 align-middle" style={{ fontSize: "12px" }}>
+              <thead><tr className="table-light">
+                <th style={{ width: 70, fontSize: "12px", fontWeight: 600 }}>Seq</th>
+                <th style={{ fontSize: "12px", fontWeight: 600 }}>Grade</th>
+                <th className="text-end" style={{ fontSize: "12px", fontWeight: 600 }}>Action</th>
+              </tr></thead>
+              <tbody>
+                {rows.map((g, i) => (
+                  <tr
+                    key={g._id}
+                    draggable
+                    onDragStart={() => setDragId(g._id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => { const from = rows.findIndex((x) => x._id === dragId); setDragId(null); move(from, i); }}
+                    onDragEnd={() => setDragId(null)}
+                    style={{ opacity: dragId === g._id ? 0.4 : 1 }}
+                  >
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <i className="bi bi-grip-vertical text-muted me-1" style={{ cursor: "grab" }} title="Drag to reorder"></i>
+                      <span className="fw-semibold">{i + 1}</span>
+                    </td>
+                    <td style={{ fontSize: "12.5px" }}>{g.name}</td>
+                    <td className="text-end">
+                      <div className="d-flex justify-content-end gap-1">
+                        <button className="btn btn-sm border-0 text-secondary hover-primary p-1" title="Edit" onClick={() => setEdit({ _id: g._id, name: g.name, seq: i + 1 })}><i className="bi bi-pencil"></i></button>
+                        <button className="btn btn-sm border-0 text-secondary hover-danger p-1" title="Delete" onClick={() => remove(g)}><i className="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+      {edit && (
+        <Modal title="Edit Grade" onClose={() => setEdit(null)} footer={<>
+          <button className="btn btn-outline-secondary" onClick={() => setEdit(null)} disabled={busy}>Cancel</button>
+          <button className="btn btn-wa" onClick={saveEdit} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
+        </>}>
+          <div className="row g-2">
+            <div className="col-8">
+              <label className="form-label">Grade *</label>
+              <input className="form-control" autoFocus value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && saveEdit()} />
+            </div>
+            <div className="col-4">
+              <label className="form-label">Sequence</label>
+              <input className="form-control" type="number" min={1} max={rows.length} value={edit.seq} onChange={(e) => setEdit({ ...edit, seq: e.target.value })} />
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -881,11 +994,8 @@ function Teams() {
 
 function MembersModal({ team, onClose }) {
   return (
-    <>
-      <div className="modal-backdrop fade show" onClick={onClose}></div>
-      <div className="modal d-block"><div className="modal-dialog"><div className="modal-content">
-        <div className="modal-header"><h5 className="modal-title">{team.name} - Team Members</h5><button className="btn-close" onClick={onClose}></button></div>
-        <div className="modal-body">
+    <Modal title={<>{team.name} - Team Members</>} onClose={onClose} footer={<><button className="ui-btn ui-btn-outline" onClick={onClose}>Close</button></>}>
+
           {(!team.members || team.members.length === 0) ? (
             <div className="text-muted text-center py-4">No members assigned</div>
           ) : (
@@ -898,10 +1008,8 @@ function MembersModal({ team, onClose }) {
               ))}
             </ul>
           )}
-        </div>
-        <div className="modal-footer"><button className="btn btn-secondary" onClick={onClose}>Close</button></div>
-      </div></div></div>
-    </>
+        
+    </Modal>
   );
 }
 
@@ -979,17 +1087,15 @@ function TeamModal({ team, teams = [], users, sources, onClose, onSave }) {
   };
 
   return (
-    <><div className="modal-backdrop fade show"></div><div className="modal d-block"><div className="modal-dialog modal-lg"><div className="modal-content">
-      <div className="modal-header"><h5 className="modal-title">{team._id ? "Edit" : "Add"} team</h5><button className="btn-close" onClick={onClose}></button></div>
-      <div className="modal-body"><div className="row g-3">
-        <div className="col-12"><label className="form-label small">Team name <span style={{ color: "#dc2626" }}>*</span></label><input className="form-control" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Enter team name" /></div>
-        <div className="col-12"><label className="form-label small">Manager <span style={{ color: "#dc2626" }}>*</span></label><select className="form-select" value={f.manager} onChange={(e) => setF({ ...f, manager: e.target.value })}><option value="">— Select Manager —</option>{users.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}</select></div>
-        <div className="col-6"><label className="form-label small">Team Members <span style={{ color: "#dc2626" }}>*</span></label><MultiSelectDropdown options={users} selected={f.members} onChange={(members) => setF({ ...f, members })} isRequired={!f.members.length} />{!f.members.length && <div style={{ color: "#dc2626", fontSize: "12px", marginTop: "4px" }}>At least one team member is required</div>}</div>
+    <Modal title={<>{team._id ? "Edit" : "Add"} team</>} size="lg" onClose={onClose} footer={<><button className="ui-btn ui-btn-outline" onClick={onClose}>Cancel</button><button className="ui-btn ui-btn-primary" disabled={!canSave} onClick={handleSave}>Save</button></>}>
+<div className="row g-3">
+        <div className="col-12"><label className="form-label small">Team name <span style={{ color: "var(--destructive)" }}>*</span></label><input className="form-control" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Enter team name" /></div>
+        <div className="col-12"><label className="form-label small">Manager <span style={{ color: "var(--destructive)" }}>*</span></label><select className="form-select" value={f.manager} onChange={(e) => setF({ ...f, manager: e.target.value })}><option value="">— Select Manager —</option>{users.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}</select></div>
+        <div className="col-6"><label className="form-label small">Team Members <span style={{ color: "var(--destructive)" }}>*</span></label><MultiSelectDropdown options={users} selected={f.members} onChange={(members) => setF({ ...f, members })} isRequired={!f.members.length} />{!f.members.length && <div style={{ color: "var(--destructive)", fontSize: "12px", marginTop: "4px" }}>At least one team member is required</div>}</div>
         <div className="col-6"><label className="form-label small">Mapped sources</label><MultiSelectDropdown options={sources} selected={f.sources} onChange={(sources) => setF({ ...f, sources })} isRequired={false} /></div>
         <div className="col-12"><label className="form-label small">Parent team</label><select className="form-select" value={f.parent} onChange={(e) => setF({ ...f, parent: e.target.value })}><option value="">— None —</option>{teams.filter((t) => t._id !== team._id).map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}</select></div>
-      </div></div>
-      <div className="modal-footer"><button className="btn btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-wa" disabled={!canSave} onClick={handleSave}>Save</button></div>
-    </div></div></div></>
+      </div>
+    </Modal>
   );
 }
 
@@ -1050,7 +1156,7 @@ function FeeHeads() {
     try {
       const body = { name: f.name.trim(), isActive: f.isActive, classFees: f.classFees };
       if (f._id) await feeHeadsApi.update(f._id, body); else await feeHeadsApi.create(body);
-      toast("Saved"); setEdit(null); list.reload();
+      toast(f._id ? "Fee head updated" : "Fee head added"); setEdit(null); list.reload();
     } catch (e) { toast(e.message, "error"); }
   }
   async function remove(id) { if (await askConfirm("Delete?")) { try { await feeHeadsApi.remove(id); toast("Deleted"); list.reload(); } catch (e) { toast(e.message, "error"); } } }
@@ -1099,42 +1205,88 @@ function FeeHeads() {
 function FeeHeadModal({ head, grades, onClose, onSave }) {
   const [f, setF] = useState(head);
   const [bulk, setBulk] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
   const row = (gid) => f.classFees.find((c) => c.grade === gid);
-  const toggle = (gid) => setF({ ...f, classFees: row(gid) ? f.classFees.filter((c) => c.grade !== gid) : [...f.classFees, { grade: gid, amount: Number(bulk) || 0 }] });
-  const setAmount = (gid, v) => setF({ ...f, classFees: f.classFees.map((c) => (c.grade === gid ? { ...c, amount: Math.max(0, Number(v) || 0) } : c)) });
+  const amt = (v) => Math.max(0, Number(v) || 0);
+  const toggle = (gid) => setF((x) => ({ ...x, classFees: x.classFees.some((c) => c.grade === gid) ? x.classFees.filter((c) => c.grade !== gid) : [...x.classFees, { grade: gid, amount: amt(bulk) }] }));
+  const setAmount = (gid, v) => setF((x) => ({ ...x, classFees: x.classFees.map((c) => (c.grade === gid ? { ...c, amount: v === "" ? "" : amt(v) } : c)) }));
   const allOn = grades.length > 0 && grades.every((g) => row(g._id));
-  const toggleAll = () => setF({ ...f, classFees: allOn ? [] : grades.map((g) => row(g._id) || { grade: g._id, amount: Number(bulk) || 0 }) });
-  const applyBulk = () => setF({ ...f, classFees: f.classFees.map((c) => ({ ...c, amount: Math.max(0, Number(bulk) || 0) })) });
+  const toggleAll = () => setF((x) => ({ ...x, classFees: allOn ? [] : grades.map((g) => x.classFees.find((c) => c.grade === g._id) || { grade: g._id, amount: amt(bulk) }) }));
+  // sets the amount on every class (and selects them all)
+  const applyBulk = () => setF((x) => ({ ...x, classFees: grades.map((g) => ({ grade: g._id, amount: amt(bulk) })) }));
+  const total = f.classFees.reduce((n, c) => n + (Number(c.amount) || 0), 0);
+
+  async function save() {
+    if (!f.name.trim()) return setErr("Required");
+    setBusy(true);
+    try { await onSave({ ...f, classFees: f.classFees.map((c) => ({ ...c, amount: amt(c.amount) })) }); }
+    finally { setBusy(false); }
+  }
+
   return (
-    <><div className="modal-backdrop fade show"></div>
-      <div className="modal d-block"><div className="modal-dialog modal-dialog-scrollable"><div className="modal-content">
-        <div className="modal-header"><h5 className="modal-title">{f._id ? "Edit" : "Add"} fee head</h5><button className="btn-close" onClick={onClose}></button></div>
-        <div className="modal-body"><div className="row g-3">
-          <div className="col-8"><label className="form-label small">Fee Head *</label><input className="form-control" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoFocus /></div>
-          <div className="col-4"><label className="form-label small">Status</label><select className="form-select" value={f.isActive ? "1" : "0"} onChange={(e) => setF({ ...f, isActive: e.target.value === "1" })}><option value="1">Active</option><option value="0">Inactive</option></select></div>
-          <div className="col-12">
-            <div className="d-flex justify-content-between align-items-end gap-2 mb-2 flex-wrap">
-              <label className="form-label small mb-0">Classes</label>
-              <div className="d-flex gap-2">
-                <input className="form-control form-control-sm" type="number" min="0" style={{ width: 120 }} value={bulk} onChange={(e) => setBulk(e.target.value)} aria-label="Amount for all" />
-                <button className="btn btn-sm btn-outline-secondary text-nowrap" onClick={applyBulk} disabled={bulk === "" || f.classFees.length === 0}>Apply to all</button>
-              </div>
-            </div>
-            {grades.length === 0 ? <div className="text-secondary small">No grades</div> : (
-              <table className="table table-sm align-middle mb-0" style={{ fontSize: "12.5px" }}>
-                <thead><tr className="table-light"><th style={{ width: 36 }}><input type="checkbox" className="form-check-input" checked={allOn} onChange={toggleAll} aria-label="All classes" /></th><th>Class</th><th style={{ width: 150 }}>Amount (₹)</th></tr></thead>
-                <tbody>{grades.map((g) => { const r = row(g._id); return (
-                  <tr key={g._id}>
-                    <td><input type="checkbox" className="form-check-input" checked={!!r} onChange={() => toggle(g._id)} aria-label={g.name} /></td>
-                    <td>{g.name}</td>
-                    <td><input className="form-control form-control-sm" type="number" min="0" disabled={!r} value={r ? r.amount : ""} onChange={(e) => setAmount(g._id, e.target.value)} /></td>
-                  </tr>); })}</tbody>
-              </table>
+    <Modal
+      title={f._id ? "Edit Fee Head" : "Add Fee Head"}
+      onClose={onClose}
+      footer={<>
+        <span className="small text-muted me-auto">{f.classFees.length}/{grades.length} classes</span>
+        <button className="ui-btn ui-btn-outline" onClick={onClose} disabled={busy}>Cancel</button>
+        <button className="ui-btn ui-btn-primary" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
+      </>}
+    >
+      <div className="d-flex flex-column gap-3">
+        <div className="d-flex gap-2 align-items-end">
+          <div className="flex-grow-1">
+            <label className="form-label">Fee Head *</label>
+            <input className="ui-input w-100" value={f.name} autoFocus onChange={(e) => { setF({ ...f, name: e.target.value }); setErr(""); }} />
+            {err && <div className="small text-danger mt-1">{err}</div>}
+          </div>
+          <label className="d-flex align-items-center gap-2 small mb-0 pb-2" style={{ whiteSpace: "nowrap", cursor: "pointer" }}>
+            <span className="form-check form-switch m-0"><input className="form-check-input" type="checkbox" role="switch" checked={f.isActive} onChange={(e) => setF({ ...f, isActive: e.target.checked })} /></span>
+            {f.isActive ? "Active" : "Inactive"}
+          </label>
+        </div>
+
+        <div className="rounded-3 border p-2 d-flex flex-wrap align-items-center gap-2" style={{ background: "var(--muted-background)" }}>
+          <span className="small fw-semibold">Same amount for all</span>
+          <div className="d-flex gap-2 ms-auto">
+            <input className="ui-input" type="number" min="0" inputMode="numeric" aria-label="Amount for all classes" style={{ width: 110 }} value={bulk} onChange={(e) => setBulk(e.target.value)} onKeyDown={(e) => e.key === "Enter" && bulk !== "" && applyBulk()} />
+            <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" disabled={bulk === "" || !grades.length} onClick={applyBulk}>Apply</button>
+          </div>
+        </div>
+
+        <div>
+          <div className="d-flex align-items-center justify-content-between mb-2">
+            <span className="form-label mb-0">Classes</span>
+            {grades.length > 0 && (
+              <label className="d-flex align-items-center gap-2 small mb-0" style={{ cursor: "pointer" }}>
+                <input type="checkbox" className="form-check-input m-0" checked={allOn} onChange={toggleAll} />All classes
+              </label>
             )}
           </div>
-        </div></div>
-        <div className="modal-footer"><button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-sm btn-wa" disabled={!f.name.trim()} onClick={() => onSave(f)}>Save</button></div>
-      </div></div></div></>
+          {grades.length === 0 ? <div className="text-secondary small">No grades</div> : (
+            <div className="fee-grid">
+              {grades.map((g) => {
+                const r = row(g._id);
+                return (
+                  <div key={g._id} className={"fee-cell" + (r ? " on" : "")}>
+                    <label className="d-flex align-items-center gap-2 mb-0 flex-grow-1 min-w-0" style={{ cursor: "pointer" }}>
+                      <input type="checkbox" className="form-check-input m-0 flex-shrink-0" checked={!!r} onChange={() => toggle(g._id)} />
+                      <span className="text-truncate small fw-medium">{g.name}</span>
+                    </label>
+                    <div className="fee-amt">
+                      <span>₹</span>
+                      <input type="number" min="0" inputMode="numeric" aria-label={`${g.name} amount`} disabled={!r} value={r ? r.amount : ""} onChange={(e) => setAmount(g._id, e.target.value)} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {f.classFees.length > 0 && <div className="text-end small text-muted mt-2">Total ₹{total.toLocaleString("en-IN")}</div>}
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -1202,10 +1354,8 @@ function DocumentTypeModal({ doc, grades, onClose, onSave }) {
   const toggle = (gid) => setF({ ...f, grades: has(gid) ? f.grades.filter((g) => g !== gid) : [...f.grades, gid] });
   const allOn = grades.length > 0 && grades.every((g) => has(g._id));
   return (
-    <><div className="modal-backdrop fade show"></div>
-      <div className="modal d-block"><div className="modal-dialog modal-dialog-scrollable"><div className="modal-content">
-        <div className="modal-header"><h5 className="modal-title">{f._id ? "Edit" : "Add"} document type</h5><button className="btn-close" onClick={onClose}></button></div>
-        <div className="modal-body"><div className="row g-3">
+    <Modal title={<>{f._id ? "Edit" : "Add"} document type</>} onClose={onClose} footer={<><button className="ui-btn ui-btn-outline" onClick={onClose}>Cancel</button><button className="ui-btn ui-btn-primary" disabled={!f.name.trim()} onClick={() => onSave(f)}>Save</button></>}>
+<div className="row g-3">
           <div className="col-12"><label className="form-label small">Document *</label><input className="form-control" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoFocus /></div>
           <div className="col-6"><label className="form-label small">Required</label><select className="form-select" value={f.mandatory ? "1" : "0"} onChange={(e) => setF({ ...f, mandatory: e.target.value === "1" })}><option value="1">Required</option><option value="0">Optional</option></select></div>
           <div className="col-6"><label className="form-label small">Status</label><select className="form-select" value={f.isActive ? "1" : "0"} onChange={(e) => setF({ ...f, isActive: e.target.value === "1" })}><option value="1">Active</option><option value="0">Inactive</option></select></div>
@@ -1222,9 +1372,8 @@ function DocumentTypeModal({ doc, grades, onClose, onSave }) {
               </div>
             )}
           </div>
-        </div></div>
-        <div className="modal-footer"><button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Cancel</button><button className="btn btn-sm btn-wa" disabled={!f.name.trim()} onClick={() => onSave(f)}>Save</button></div>
-      </div></div></div></>
+        </div>
+    </Modal>
   );
 }
 
@@ -1484,7 +1633,7 @@ function RegistrationFormConfig() {
                           {form.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td style={{ fontSize: "11.5px" }} className="text-secondary">{form.updatedAt ? formatDateDMY(form.updatedAt) : "—"}</td>
+                      <td style={{ fontSize: "11.5px", whiteSpace: "nowrap" }} className="text-secondary">{form.updatedAt ? formatDateDMY(form.updatedAt) : "—"}</td>
                       <td className="text-end">
                         <div className="d-flex justify-content-end gap-1">
                           <button className="btn btn-sm border-0 text-secondary hover-primary p-1" style={{ fontSize: "12px" }} title="Preview form" onClick={() => openPreviewForm(form)}>
@@ -1536,14 +1685,14 @@ const LANDING_PAGE_TEMPLATES = [
     id: "blank",
     name: "Blank Screen (Start from Scratch)",
     description: "Start with an empty page canvas and drag/add elements to design your own page.",
-    accentColor: "#64748b",
+    accentcolor: "var(--muted-foreground)",
     config: {
       brandName: "My Brand",
       heroTitle: "Build Something Beautiful",
       heroSubtitle: "Design your custom layout by dragging and editing blocks.",
       heroCtaLabel: "Learn More",
       heroCtaLink: "#contact",
-      accentColor: "#64748b",
+      accentcolor: "var(--muted-foreground)",
       highlightTitle: "Key Highlights",
       features: [],
       components: []
@@ -1884,8 +2033,6 @@ function LandingPageList({ onCreate, onEdit, onPreview }) {
                   <tr className="table-light">
                     <th style={{ fontSize: "12px", fontWeight: 600 }}>Name</th>
                     <th style={{ fontSize: "12px", fontWeight: 600 }}>Brand Name</th>
-                    <th style={{ fontSize: "12px", fontWeight: 600 }}>Hero CTA</th>
-                    <th style={{ fontSize: "12px", fontWeight: 600 }}>Highlights</th>
                     <th style={{ fontSize: "12px", fontWeight: 600 }}>Status</th>
                     <th style={{ fontSize: "12px", fontWeight: 600 }}>Updated</th>
                     <th className="text-end" style={{ fontSize: "12px", fontWeight: 600 }}>Actions</th>
@@ -1894,20 +2041,14 @@ function LandingPageList({ onCreate, onEdit, onPreview }) {
                 <tbody>
                   {filteredPages.map((page) => (
                     <tr key={page._id}>
-                      <td><span className="font-monospace text-dark" style={{ fontSize: "12px", fontWeight: 400 }}>{page.name || "Untitled Landing Page"}</span></td>
+                      <td><span className="text-dark" style={{ fontSize: "12.5px", fontWeight: 500 }}>{page.name || "Untitled Landing Page"}</span></td>
                       <td style={{ fontSize: "12px" }} className="text-secondary">{page.brandName || "—"}</td>
-                      <td>
-                        <span className="text-secondary" style={{ fontSize: "11.5px", fontWeight: 400 }}>
-                          {page.heroCtaLabel || "Book a Visit"}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: "12px" }} className="text-secondary">{(page.features || []).length} items</td>
                       <td>
                         <span style={{ fontSize: "12px", fontWeight: 500, color: page.isActive !== false ? "#16a34a" : "#6b7280" }}>
                           {page.isActive !== false ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td style={{ fontSize: "11.5px" }} className="text-secondary">{page.updatedAt ? formatDateDMY(page.updatedAt) : "—"}</td>
+                      <td style={{ fontSize: "11.5px", whiteSpace: "nowrap" }} className="text-secondary">{page.updatedAt ? formatDateDMY(page.updatedAt) : "—"}</td>
                       <td className="text-end">
                         <div className="d-flex justify-content-end gap-1">
                           <button className="btn btn-sm border-0 text-secondary hover-primary p-1" style={{ fontSize: "12px" }} title="Preview page" onClick={() => onPreview(page)}>
@@ -2281,7 +2422,7 @@ function EnquiryFormConfig() {
                         </span>
                       </td>
                       <td style={{ fontSize: "12px" }} className="text-secondary">{(form.fields || []).filter((field) => field.selected).length}</td>
-                      <td style={{ fontSize: "11.5px" }} className="text-secondary">{form.updatedAt ? formatDateDMY(form.updatedAt) : "—"}</td>
+                      <td style={{ fontSize: "11.5px", whiteSpace: "nowrap" }} className="text-secondary">{form.updatedAt ? formatDateDMY(form.updatedAt) : "—"}</td>
                       <td className="text-break">
                         <div className="d-flex align-items-center" style={{ gap: "4px" }}>
                           <a href={getShareUrl(form._id)} target="_blank" rel="noreferrer" className="text-decoration-none" style={{ fontSize: "12px" }}>{getShortSharePath(form._id)}</a>
@@ -2292,6 +2433,9 @@ function EnquiryFormConfig() {
                       </td>
                       <td className="text-end">
                         <div className="d-flex justify-content-end gap-1">
+                          <button className="btn btn-sm border-0 text-secondary hover-primary p-1" style={{ fontSize: "12px" }} title="Preview form" onClick={() => openPreview(form)}>
+                            <i className="bi bi-eye" style={{ fontSize: "13px" }}></i>
+                          </button>
                           <button className="btn btn-sm border-0 text-secondary hover-primary p-1" style={{ fontSize: "12px" }} title="Edit enquiry form" onClick={() => openEditForm(form)}>
                             <i className="bi bi-pencil" style={{ fontSize: "13px" }}></i>
                           </button>

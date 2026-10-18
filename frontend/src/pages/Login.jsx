@@ -229,7 +229,7 @@ export default function Login() {
           {otp ? (
             <form onSubmit={submitCode}>
               <div style={{ fontSize: 14, fontWeight: 600, color: "#1f2937", marginBottom: 6 }}>Enter the sign-in code</div>
-              <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>Sent to {otp.sentTo}</div>
+              <div style={{ fontSize: 13, color: "var(--muted-foreground)", marginBottom: 16 }}>Sent to {otp.sentTo}</div>
               <input
                 autoFocus
                 inputMode="numeric"

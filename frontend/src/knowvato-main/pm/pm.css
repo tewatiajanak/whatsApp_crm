@@ -361,7 +361,8 @@ a.pm-link:hover {
   padding: 0 12px;
   border: 0;
   background: transparent;
-  color: var(--muted-foreground);
+  /* !important: the app-wide `a { color }` rule sits outside this stylesheet's layer and would win */
+  color: var(--muted-foreground) !important;
   font-size: 12px;
   font-weight: 500;
   line-height: 1;
@@ -369,7 +370,7 @@ a.pm-link:hover {
 .pm-seg button.is-on,
 .pm-seg a.is-on {
   background: var(--primary);
-  color: #fff;
+  color: var(--primary-foreground, #fff) !important;
 }
 
 /* Tabs that are links (Planner: My Task · Team Task) */
@@ -396,18 +397,18 @@ a.pm-link:hover {
   padding: 9px 12px;
   margin-bottom: -1px;
   border-bottom: 2px solid transparent;
-  color: var(--muted-foreground);
+  color: var(--muted-foreground) !important;
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
   text-decoration: none;
 }
 .pm-tabs > a:hover {
-  color: var(--foreground);
+  color: var(--foreground) !important;
 }
 .pm-tabs > a.is-on {
   border-bottom-color: var(--primary);
-  color: var(--primary);
+  color: var(--primary) !important;
 }
 
 /* WhatsApp template preview (the chat colours are WhatsApp's own) */

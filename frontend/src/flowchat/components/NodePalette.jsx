@@ -13,18 +13,8 @@ export default function NodePalette({ readOnly = false }) {
 
   return (
     <div className="palette">
-      <div className="text-uppercase text-muted fw-bold mb-2" style={{ fontSize: 11, letterSpacing: '.06em' }}>
-        Blocks Palette
-      </div>
-      <div className="text-muted mb-3" style={{ fontSize: 11.5 }}>
-        {readOnly ? (
-          <span className="text-warning fw-semibold">
-            <i className="bi bi-lock-fill me-1"></i>Published Flow (Read-only). Switch to Draft to add blocks.
-          </span>
-        ) : (
-          'Drag a block onto the canvas to add it to your flow.'
-        )}
-      </div>
+      <div className="palette-title">Blocks</div>
+      {readOnly && <div className="palette-lock"><i className="bi bi-lock-fill"></i>Published — read-only</div>}
       {PALETTE_ORDER.filter((t) => t !== 'start').map((type) => {
         const def = NODE_TYPES[type];
         if (!def) return null;
@@ -37,22 +27,14 @@ export default function NodePalette({ readOnly = false }) {
             title={readOnly ? 'Published Flow is locked. Switch to Draft to edit.' : def.description}
             style={{ cursor: readOnly ? 'not-allowed' : 'grab' }}
           >
-            <div className="palette-icon" style={{ background: def.color }}>
-              <i className={`bi ${def.icon}`}></i>
-            </div>
-            <div>
-              <div className="fw-semibold" style={{ fontSize: 13 }}>{def.label}</div>
-              <div className="text-muted" style={{ fontSize: 10.5 }}>{def.description}</div>
-            </div>
+            <span className="palette-icon-sm" style={{ background: def.color || 'var(--muted-foreground)' }}>
+              <i className={`bi ${def.icon || 'bi-box'}`}></i>
+            </span>
+            <span className="palette-label">{def.label}</span>
+            {!readOnly && <i className="bi bi-grip-vertical palette-grip"></i>}
           </div>
         );
       })}
-
-      <hr className="my-3" />
-      <div className="text-muted" style={{ fontSize: 11 }}>
-        <i className="bi bi-lightbulb text-warning me-1"></i>
-        <strong>Tip:</strong> Drag from a right port to a left port to connect. Right-click canvas to add nodes quickly.
-      </div>
     </div>
   );
 }

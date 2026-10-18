@@ -31,19 +31,10 @@ export default function NodeConfigPanel({
   }, [node?.id, node?.type]);
 
   if (!node) {
-    return (
-      <div className="config-panel">
-        <div className="text-center text-muted mt-5 pt-5">
-          <i className="bi bi-cursor-fill" style={{ fontSize: 28 }}></i>
-          <p className="mt-3 mb-1 fw-semibold">No block selected</p>
-          <p className="small">Click any block on the canvas to edit its properties.</p>
-        </div>
-        <VariablesHelp bot={bot} />
-      </div>
-    );
+    return null;
   }
 
-  const def = NODE_TYPES[node.type] || { label: 'Node', color: '#64748b', icon: 'bi-box', description: '' };
+  const def = NODE_TYPES[node.type] || { label: 'Node', color: 'var(--muted-foreground)', icon: 'bi-box', description: '' };
   const patch = (data) => !readOnly && updateNodeData(bot.id, node.id, data);
   const commitKeywords = () => {
     const parsed = String(keywordsInput || '')
@@ -110,39 +101,37 @@ export default function NodeConfigPanel({
   }
 
   return (
-    <div className="config-panel">
+    <div className="config-panel is-open">
       {/* Read-Only Notice */}
       {readOnly && (
-        <div className="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center gap-2 small">
-          <i className="bi bi-lock-fill text-warning"></i>
-          <div>
-            <strong>Published Flow (Locked)</strong>
-            <div style={{ fontSize: 11 }}>Switch to Draft in topbar to edit properties.</div>
-          </div>
-        </div>
+        <div className="fc-lock-note"><i className="bi bi-lock-fill"></i>Published — switch to draft to edit</div>
       )}
 
       {/* Header */}
-      <div className="d-flex align-items-center gap-2 mb-1">
-        <div className="palette-icon" style={{ background: def.color || '#64748b', width: 30, height: 30, fontSize: 13 }}>
+      <div className="fc-panel-head">
+        <span className="palette-icon-sm" style={{ background: def.color || 'var(--muted-foreground)', width: 32, height: 32, fontSize: 14 }}>
           <i className={`bi ${def.icon || 'bi-box'}`}></i>
+        </span>
+        <div className="min-w-0 flex-grow-1">
+          <div className="fw-semibold text-truncate" style={{ fontSize: 15 }}>{def.label}</div>
+          {def.description && <div className="text-muted" style={{ fontSize: 12, lineHeight: 1.35 }}>{def.description}</div>}
         </div>
-        <div className="fw-bold">{def.label}</div>
         {node.id !== bot.startNodeId && !readOnly && (
           <button
-            className="btn btn-sm btn-outline-danger ms-auto rounded-pill"
-            onClick={() => {
-              deleteNode(bot.id, node.id);
-              setSelectedNodeId(null);
-            }}
+            type="button"
+            className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon"
+            style={{ color: 'var(--destructive)' }}
+            onClick={() => { deleteNode(bot.id, node.id); setSelectedNodeId(null); }}
             title="Delete block"
+            aria-label="Delete block"
           >
             <i className="bi bi-trash3"></i>
           </button>
         )}
+        <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" onClick={() => setSelectedNodeId(null)} title="Close" aria-label="Close">
+          <i className="bi bi-x-lg"></i>
+        </button>
       </div>
-      <p className="text-muted small mb-3">{def.description}</p>
-      <hr className="my-2" />
 
       {/* Field Editors */}
       <fieldset disabled={readOnly}>
@@ -795,9 +784,9 @@ export default function NodeConfigPanel({
               value={node.data?.targetBotId || ''}
               onChange={(e) => patch({ targetBotId: e.target.value })}
             >
-              <option value="">— Select a chatbot —</option>
+              <option value="">{bots.some((b) => b && b.id !== bot?.id) ? 'Select a chatbot' : 'No other chatbots yet'}</option>
               {bots
-                .filter((b) => b && b.clientId === bot?.clientId && b.id !== bot?.id)
+                .filter((b) => b && b.id !== bot?.id) // every other bot of this account (older bots have no clientId)
                 .map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -859,7 +848,7 @@ function shortLabel(n) {
 }
 
 function Label({ children }) {
-  return <label className="form-label small fw-semibold mb-1">{children}</label>;
+  return <label className="form-label mb-1">{children}</label>;
 }
 function HelpText({ children }) {
   return <div className="text-muted mb-3" style={{ fontSize: 11.5 }}>{children}</div>;

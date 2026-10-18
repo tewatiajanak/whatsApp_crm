@@ -473,7 +473,7 @@ export default function WhatsAppPreview({ bot }) {
 
                 {m.from === 'form_card' && (
                   <div className="wa-bubble bot wa-interactive-card p-2" style={{ maxWidth: '90%' }}>
-                    <div className="d-flex align-items-center gap-1 fw-bold mb-1" style={{ fontSize: 11.5, color: '#0b6a61' }}>
+                    <div className="d-flex align-items-center gap-1 fw-bold mb-1" style={{ fontSize: 11.5, color: 'var(--primary)' }}>
                       <i className="bi bi-ui-checks"></i> WhatsApp Flow Form
                     </div>
                     <div className="fw-bold mb-1" style={{ fontSize: 13 }}>{m.form?.name}</div>

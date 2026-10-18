@@ -434,15 +434,15 @@ export default function FacebookIntegrationManager({ showHeader = true, backLink
                     </td>
                     <td className="py-2.5">
                       {i.status === "connected" ? (
-                        <span style={{ fontSize: "12px", fontWeight: 500, color: "#16a34a" }} className="d-inline-flex align-items-center gap-1">
+                        <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--success)" }} className="d-inline-flex align-items-center gap-1">
                           <CheckCircle2 size={13} /> Live & Connected
                         </span>
                       ) : i.status === "disconnected" ? (
-                        <span style={{ fontSize: "12px", fontWeight: 500, color: "#dc2626" }} className="d-inline-flex align-items-center gap-1">
+                        <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--destructive)" }} className="d-inline-flex align-items-center gap-1">
                           <XCircle size={13} /> Connection Failed
                         </span>
                       ) : (
-                        <span style={{ fontSize: "12px", fontWeight: 500, color: "#6b7280" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--muted-foreground)" }}>
                           Untested
                         </span>
                       )}

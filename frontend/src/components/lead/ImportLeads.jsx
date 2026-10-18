@@ -85,7 +85,7 @@ export default function ImportLeads({ meta, onClose, onDone }) {
   return (
     <Modal
       title="Import leads"
-      size="lg"
+      size="wide"
       onClose={onClose}
       footer={result ? <button type="button" className="ui-btn ui-btn-primary" onClick={onClose}>Done</button> : <>
         <button type="button" className="ui-btn ui-btn-outline" onClick={onClose} disabled={busy}>Cancel</button>

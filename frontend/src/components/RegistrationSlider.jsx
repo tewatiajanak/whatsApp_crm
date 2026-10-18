@@ -85,7 +85,7 @@ export default function RegistrationSlider({ lead, onClose, onSaved }) {
         className="offcanvas offcanvas-end show"
         style={{
           visibility: "visible",
-          width: 650,
+          width: "min(var(--slider-w), 100vw)",
           animation: isClosing ? "slideOutRight 0.4s ease-out forwards" : "slideInRight 0.4s ease-out",
         }}
         onAnimationEnd={() => isClosing && onClose()}

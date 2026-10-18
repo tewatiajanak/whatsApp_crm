@@ -24,7 +24,7 @@ export default function BotBuilder() {
 
   if (!bot) {
     return (
-      <div className="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
+      <div className="crm-theme crm-page d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
         <div className="text-center p-5 bg-white rounded-4 shadow-sm" style={{ maxWidth: 450 }}>
           <i className="bi bi-robot text-muted mb-3" style={{ fontSize: 42 }}></i>
           <h5 className="fw-bold">Chatbot Flow Not Found</h5>
@@ -45,13 +45,15 @@ export default function BotBuilder() {
   };
 
   return (
-    <div className="builder-shell">
+    <div className="builder-shell crm-theme crm-page">
       {/* Top bar */}
       <div className="builder-topbar">
         <button
-          className="btn btn-light rounded-circle me-3 border"
+          type="button"
+          className="ui-btn ui-btn-outline ui-btn-sm ui-btn-icon me-3"
           onClick={() => navigate('/crm/chatbot')}
-          title="Back to Chatbot List"
+          title="Back to chatbots"
+          aria-label="Back to chatbots"
         >
           <i className="bi bi-arrow-left"></i>
         </button>
@@ -83,7 +85,7 @@ export default function BotBuilder() {
           </div>
         )}
 
-        <span className={`badge rounded-pill ms-3 ${isPublished ? 'badge-status-live' : 'badge-status-draft'}`}>
+        <span className={`badge rounded-pill ms-3 ${isPublished ? 'badge-status-live' : 'badge-status-draft'}`} style={{ fontWeight: 600 }}>
           <i className={`bi ${isPublished ? 'bi-broadcast' : 'bi-pencil'} me-1`}></i>
           {isPublished ? 'Live on WhatsApp' : 'Draft Flow'}
         </span>
@@ -95,43 +97,27 @@ export default function BotBuilder() {
         )}
 
         {/* View toggles */}
-        <div className="d-none d-md-flex align-items-center gap-1 ms-4 border-start ps-3">
-          <button
-            className={`btn btn-sm rounded-pill px-3 ${showPalette ? 'btn-light border fw-semibold' : 'btn-outline-secondary'}`}
-            onClick={() => setShowPalette(!showPalette)}
-            title="Toggle block palette"
-          >
-            <i className="bi bi-grid-fill me-1"></i> Palette
+        <div className="d-none d-md-flex ms-4 fc-seg" role="group" aria-label="Panels">
+          <button type="button" className={showPalette ? 'on' : ''} aria-pressed={showPalette} onClick={() => setShowPalette(!showPalette)}>
+            <i className="bi bi-grid"></i>Blocks
           </button>
-          <button
-            className={`btn btn-sm rounded-pill px-3 ${showPreview ? 'btn-light border fw-semibold' : 'btn-outline-secondary'}`}
-            onClick={() => setShowPreview(!showPreview)}
-            title="Toggle WhatsApp Phone Simulator"
-          >
-            <i className="bi bi-phone-fill me-1"></i> Live Phone
+          <button type="button" className={showPreview ? 'on' : ''} aria-pressed={showPreview} onClick={() => setShowPreview(!showPreview)}>
+            <i className="bi bi-phone"></i>Phone preview
           </button>
         </div>
 
         <div className="ms-auto d-flex align-items-center gap-2">
-          <button className="btn btn-outline-secondary btn-sm rounded-pill" onClick={() => setShowSettings(true)}>
-            <i className="bi bi-gear me-1"></i> Meta API
+          <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => setShowSettings(true)}>
+            <i className="bi bi-gear"></i>Meta API
           </button>
 
           {isPublished ? (
-            <button
-              className="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 fw-semibold border-warning"
-              onClick={() => updateBotMeta(bot.id, { status: 'draft' })}
-              title="Switch to Draft mode to edit blocks and properties"
-            >
-              <i className="bi bi-pencil-square me-1"></i> Switch to Draft to Edit
+            <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => updateBotMeta(bot.id, { status: 'draft' })}>
+              <i className="bi bi-pencil-square"></i>Edit (switch to draft)
             </button>
           ) : (
-            <button
-              className="btn btn-sm btn-brand rounded-pill px-3 fw-semibold shadow-xs"
-              onClick={() => updateBotMeta(bot.id, { status: 'live' })}
-              title="Publish flow to WhatsApp"
-            >
-              <i className="bi bi-broadcast me-1"></i> Publish Live Flow
+            <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => updateBotMeta(bot.id, { status: 'live' })}>
+              <i className="bi bi-broadcast"></i>Publish
             </button>
           )}
         </div>

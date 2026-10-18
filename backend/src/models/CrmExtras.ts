@@ -21,6 +21,14 @@ export interface ICrmSettings extends Document {
   portals: { indiamartEnabled: boolean; indiamartKey: string; indiamartLastPull?: Date | null; indiamartLastError: string };
   push: { publicKey: string; privateKey: string };
   booking: { enabled: boolean; slotMinutes: number; startHour: number; endHour: number; days: number[] };
+  scoring: {
+    email: number; course: number; city: number; source: number;
+    stageMax: number; perEngagement: number; engagementMax: number;
+    recent2: number; recent7: number; recent14: number;
+    followUpOnTime: number; followUpOverdue: number; activityMax: number;
+    hot: number; warm: number;
+  };
+  queries: { categories: Array<{ name: string; slaHours: number }>; defaultSlaHours: number; assignToLeadOwner: boolean };
   trashDays: number;
   lastDecayKey: string;
   lastDigestKey: string;
@@ -126,6 +134,32 @@ const crmSettingsSchema = new Schema<ICrmSettings>(
       startHour: { type: Number, default: 10 },
       endHour: { type: Number, default: 18 },
       days: { type: [Number], default: [1, 2, 3, 4, 5, 6] },
+    },
+    // lead score (0–100); the defaults are the weights the CRM always used
+    scoring: {
+      email: { type: Number, default: 5 },
+      course: { type: Number, default: 5 },
+      city: { type: Number, default: 3 },
+      source: { type: Number, default: 2 },
+      stageMax: { type: Number, default: 30 },
+      perEngagement: { type: Number, default: 5 },
+      engagementMax: { type: Number, default: 25 },
+      recent2: { type: Number, default: 20 },
+      recent7: { type: Number, default: 12 },
+      recent14: { type: Number, default: 6 },
+      followUpOnTime: { type: Number, default: 10 },
+      followUpOverdue: { type: Number, default: -10 },
+      activityMax: { type: Number, default: 30 },
+      hot: { type: Number, default: 70 },
+      warm: { type: Number, default: 40 },
+    },
+    queries: {
+      categories: {
+        type: [{ _id: false, name: String, slaHours: { type: Number, default: 24 } }],
+        default: [{ name: "Admission", slaHours: 24 }, { name: "Fees", slaHours: 24 }, { name: "Documents", slaHours: 48 }, { name: "Other", slaHours: 48 }],
+      },
+      defaultSlaHours: { type: Number, default: 24 },
+      assignToLeadOwner: { type: Boolean, default: true },
     },
     trashDays: { type: Number, default: 30 },
     lastDecayKey: { type: String, default: "" },

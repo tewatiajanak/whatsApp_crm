@@ -1,3 +1,4 @@
+import { explainWaError } from "../services/waErrors";
 import { Router } from "express";
 import { Types } from "mongoose";
 import multer from "multer";
@@ -356,7 +357,9 @@ r.get(
         subject: m.subject || "",
         body: m.body || "",
         status: m.status,
-        failReason: m.failReason || "",
+        // plain reason + what to do, instead of Meta's raw error JSON
+        failReason: m.failReason ? explainWaError(m.failReason).title : "",
+        failFix: m.failReason ? explainWaError(m.failReason).fix : "",
         simulated: !!m.simulated,
         sentBy: m.agent || "",
         at: m.createdAt,

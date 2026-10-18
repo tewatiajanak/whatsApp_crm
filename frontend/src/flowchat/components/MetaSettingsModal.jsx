@@ -21,7 +21,7 @@ export default function MetaSettingsModal({ bot, onClose }) {
   };
 
   return (
-    <div className="modal d-block" style={{ background: 'rgba(15,23,42,.45)', zIndex: 1060 }} onClick={onClose}>
+    <div className="modal d-block" style={{ background: 'rgba(37,51,56,.45)', zIndex: 1060 }} onClick={onClose}>
       <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-content rounded-4 border-0 shadow">
           <div className="modal-header border-0 pb-0">

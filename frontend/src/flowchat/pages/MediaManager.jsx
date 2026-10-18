@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { flowMediaApi } from "../../api";
 import { useApi } from "../../hooks/useApi";
 import { useToast } from "../../context/ToastContext";
+import { PageHeader } from "../../components/ui";
 
 const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
 
@@ -113,33 +114,30 @@ export default function MediaManager() {
 
   return (
     <div>
-      <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-        <div>
-          <h5 className="fw-bold mb-1 d-flex align-items-center gap-2">
-            <i className="bi bi-collection-play text-primary"></i>
-            Manage Media
-          </h5>
-        </div>
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => {
-            resetForm();
-            setShowAdd(true);
-          }}
-        >
-          <i className="bi bi-plus-lg me-1"></i>Add Media
-        </button>
-      </div>
+      <PageHeader
+        title="Manage Media"
+        actions={
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              resetForm();
+              setShowAdd(true);
+            }}
+          >
+            <i className="bi bi-plus-lg me-1"></i>Add Media
+          </button>
+        }
+      />
 
       <div className="table-responsive">
         <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
           <div className="input-group input-group-sm" style={{ maxWidth: 360 }}>
-            <span className="input-group-text bg-white"><i className="bi bi-search"></i></span>
+            <span className="input-group-text"><i className="bi bi-search"></i></span>
             <input
               className="form-control"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by media name, file, or URL"
+              placeholder="Search"
             />
           </div>
           <select className="form-select form-select-sm" style={{ maxWidth: 180 }} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
@@ -307,7 +305,7 @@ export default function MediaManager() {
 
 function Modal({ title, children, onClose }) {
   return (
-    <div className="modal d-block" style={{ background: "rgba(15,23,42,.45)", zIndex: 1060 }} onClick={onClose}>
+    <div className="modal d-block" style={{ background: "rgba(37,51,56,.45)", zIndex: 1060 }} onClick={onClose}>
       <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
         <div className="modal-content rounded-4 border-0 p-2 shadow">
           <div className="modal-header border-0">

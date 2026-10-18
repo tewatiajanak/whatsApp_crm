@@ -315,7 +315,7 @@ export default function EventsCommunicationPage() {
                           <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium whitespace-nowrap" style={{ background: st.bg, color: st.fg }} title={m.failReason || undefined}>
                             {st.label}
                           </span>
-                          {m.failReason && <div className="text-[11px] mt-0.5 truncate" style={{ color: "var(--destructive)", maxWidth: 200 }} title={m.failReason}>{m.failReason}</div>}
+                          {m.failReason && <div className="text-[11px] mt-0.5 truncate" style={{ color: "var(--destructive)", maxWidth: 200 }} title={(m as any).failFix || m.failReason}>{m.failReason}</div>}
                         </td>
                         <td className="px-4 py-2.5 whitespace-nowrap">{m.sentBy || "—"}</td>
                       </tr>

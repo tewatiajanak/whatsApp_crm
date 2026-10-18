@@ -26,7 +26,7 @@ export default function DuplicatesDrawer({ onClose, onChanged }) {
   }
 
   return (
-    <Modal title="Duplicate leads" size="lg" onClose={onClose}>
+    <Modal title="Duplicate leads" size="wide" onClose={onClose}>
       <ErrorBox error={groups.error} />
       {groups.loading && !groups.data ? <Spinner /> : !(groups.data || []).length ? <EmptyState icon="check2-circle" text="No duplicates found." /> : (
         <div className="space-y-3">

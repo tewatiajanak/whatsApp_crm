@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admission Pre-Requisite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAF8F5; --panel:#ffffff; --border:#E3DED6; --text:#253338; --dim:#66797D;
+  --accent:#217E79; --accent-bg:#E6F1F0; --danger:#C84630; --danger-bg:#F7E5E0; --ok:#1D724D; --ok-bg:#E3F1E9; --warn:#A16207; --warn-bg:#FBF1DC;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:14.5px;line-height:1.5;}
+a{color:var(--accent);}
+input,select,textarea,button{font-family:inherit;font-size:14px;color:inherit;}
+h1,h2,h3{margin:0;}
+
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:240px;flex-shrink:0;border-right:1px solid var(--border);background:var(--panel);padding:14px 8px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;}
+.sidebar .brand{font-size:14px;font-weight:800;padding:4px 10px 2px;}
+.sidebar .brand-sub{font-size:12px;color:var(--dim);padding:0 10px 10px;}
+.progress{margin:0 10px 12px;}
+.progress .bar{height:6px;border-radius:99px;background:var(--border);overflow:hidden;}
+.progress .bar span{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s;}
+.progress .lbl{font-size:11.5px;color:var(--dim);margin-top:4px;}
+.vstep-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:12.8px;font-weight:600;color:var(--dim);}
+.vstep-item.active{background:var(--accent-bg);color:var(--accent);}
+.vstep-item:hover:not(.active){background:var(--bg);}
+.vstep-circle{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:var(--panel);}
+.vstep-item.active .vstep-circle{border-color:var(--accent);color:var(--accent);}
+.vstep-item.done .vstep-circle{border-color:var(--ok);background:var(--ok);color:#fff;}
+.sidebar-foot{padding:10px 8px;border-top:1px solid var(--border);margin-top:8px;}
+.sidebar-foot button{width:100%;margin-bottom:6px;}
+
+.content{flex:1;min-width:0;}
+.appbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 22px;border-bottom:1px solid var(--border);background:var(--panel);position:sticky;top:0;z-index:5;}
+.appbar .inst{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.savestate{font-size:12.5px;color:var(--dim);white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.savestate.err{color:var(--danger);}
+.savestate .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);}
+.savestate.busy .dot{background:var(--warn);}
+.savestate.err .dot{background:var(--danger);}
+.content-topbar{border-bottom:1px solid var(--border);padding:10px 22px;overflow-x:auto;background:var(--panel);}
+.content-body{padding:18px 22px 70px;max-width:1100px;overflow-wrap:anywhere;}
+
+.stepper-scroll{overflow-x:auto;}
+.stepper{display:inline-flex;align-items:center;white-space:nowrap;}
+.stepper-item{display:inline-flex;align-items:center;flex-shrink:0;cursor:pointer;}
+.stepper-circle{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:var(--dim);flex-shrink:0;background:var(--panel);}
+.stepper-item.active .stepper-circle{border-color:var(--accent);color:var(--accent);}
+.stepper-label{margin-left:6px;font-size:12.8px;font-weight:600;color:var(--dim);}
+.stepper-item.active .stepper-label{color:var(--text);}
+.stepper-line{width:18px;height:2px;background:var(--border);margin:0 6px;flex-shrink:0;}
+
+h2.title{font-size:18px;margin-bottom:12px;}
+.box{border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;background:var(--panel);}
+.field{margin-bottom:14px;}
+.field label{display:block;font-weight:600;font-size:13px;margin-bottom:5px;}
+.row{display:flex;gap:14px;flex-wrap:wrap;}
+.row > .field{flex:1;min-width:190px;}
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel],input[type=url],select,textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel);
+}
+input:disabled,select:disabled,textarea:disabled{background:var(--bg);color:var(--text);opacity:1;cursor:default;}
+textarea{resize:vertical;min-height:48px;}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent);}
+.radio-row,.check-row{display:flex;gap:14px;flex-wrap:wrap;}
+.radio-row label,.check-row label{display:flex;align-items:center;gap:6px;font-weight:500;font-size:13.5px;}
+
+button{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel);font-weight:600;font-size:13.5px;cursor:pointer;}
+button:hover{background:var(--accent-bg);}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+button.primary:hover{filter:brightness(.95);}
+button.link{border:none;background:none;color:var(--accent);text-decoration:underline;padding:4px 0;font-weight:600;}
+button.link.danger{color:var(--danger);}
+button.small{padding:4px 9px;font-size:12.5px;}
+button:disabled{opacity:.4;cursor:not-allowed;}
+
+.dtable-wrap{overflow-x:auto;margin-bottom:8px;}
+table.dtable{width:100%;border-collapse:collapse;font-size:13px;}
+.dtable th{text-align:left;font-size:10.8px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);padding:6px 6px;white-space:nowrap;}
+.dtable td{border-bottom:1px solid var(--border);padding:4px 5px;vertical-align:top;}
+.dtable td input,.dtable td select,.dtable td textarea{padding:5px 6px;font-size:13px;min-width:160px;}
+.dtable td select{min-width:180px;}
+.dtable td textarea{min-height:34px;min-width:180px;}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.chips .chip{border:1px solid var(--border);border-radius:6px;padding:4px 6px 4px 10px;font-size:12.8px;background:var(--panel);display:flex;align-items:center;gap:6px;}
+.chips .chip button{padding:0;border:none;background:none;color:var(--danger);font-weight:800;}
+.opt-add-row{display:flex;gap:6px;max-width:360px;}
+.opt-add-row input{flex:1;}
+
+.field-row{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--panel);}
+.field-row .summary{padding:9px 11px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.field-row .summary .txt{font-size:13.5px;}
+.field-row .summary .txt .type{color:var(--dim);font-size:12px;}
+.field-row .edit{border-top:1px solid var(--border);padding:14px;background:var(--accent-bg);}
+
+.stage-list{list-style:none;margin:0;padding:0;}
+.stage-list li{border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:var(--panel);}
+.stage-list .meta{font-size:12.5px;color:var(--dim);margin-top:3px;}
+
+.edit-banner{background:var(--accent-bg);border:1px solid var(--accent);border-radius:8px;padding:9px 13px;font-size:13px;margin-bottom:14px;}
+.status-banner{background:var(--accent-bg);border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-bottom:16px;}
+.lock-banner{background:var(--ok-bg);color:var(--ok);border-radius:8px;padding:10px 14px;font-size:13.5px;font-weight:600;margin-bottom:16px;}
+.view-banner{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:10px 14px;font-size:13.5px;font-weight:600;margin-bottom:16px;}
+.pending-list{background:var(--warn-bg);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 15px;border-radius:8px;font-size:13px;z-index:9999;}
+.empty{color:var(--dim);font-size:13.5px;padding:12px 0;}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px;}
+.req{color:var(--danger);}
+.pv-field{margin-bottom:14px;}
+.pv-file{border:1px dashed var(--border);border-radius:8px;padding:12px;color:var(--dim);font-size:13px;}
+.choice-row{display:flex;flex-wrap:wrap;gap:8px;}
+.choice-row label{border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-weight:500;font-size:13px;display:flex;align-items:center;gap:6px;}
+.center-msg{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;}
+.center-msg .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px 32px;max-width:420px;}
+
+@media (max-width:840px){
+  .shell{flex-direction:column;}
+  .sidebar{width:100%;height:auto;position:static;display:flex;overflow-x:auto;padding:8px;gap:4px;}
+  .sidebar .brand,.sidebar .brand-sub,.progress{display:none;}
+  .vstep-item{flex-shrink:0;}
+  .sidebar-foot{display:none;}
+  .appbar{position:static;}
+  .content-body{padding:14px 14px 60px;}
+}
+@media print{
+  .sidebar, .content-topbar, .appbar, .pager, button, .lock-banner, .view-banner{ display:none !important; }
+  .content, .content-body{ padding:0 !important; max-width:100% !important; }
+  .box{ page-break-inside:avoid; border:1px solid #999; }
+  body{ font-size:11px; background:#fff; }
+}
+</style>
+</head>
+<body>
+<div id="root"><div class="center-msg"><div class="card">Loading…</div></div></div>
+
+<script>
+/* ============================= SERVER LINK ============================= */
+// Opened as /prerequisites/<token> (the page loads this file in a frame with ?t=<token>).
+// ?view=1 is the team's read-only view (uses the signed-in user's session instead of the token).
+const QS = new URLSearchParams(location.search);
+const TOKEN = (QS.get('t') || '').trim();
+const API_BASE = (QS.get('api') || '').replace(/\/+$/,'');
+const VIEW = QS.get('view') === '1';
+const PUBLIC_URL = `${API_BASE}/api/public/prereq/${encodeURIComponent(TOKEN)}`;
+let LOCKED = false;          // submitted → read-only for the client
+let SUBMIT_INFO = null;      // { at, name }
+let INSTITUTE = '';
+let SAVED_SECTIONS = {};     // sectionKey → savedAt
+let saveTimer = null, dirty = false, saving = false;
+let saveStatus = { kind:'ok', text:'' };
+
+async function api(method, url, body, auth){
+  const headers = { 'Content-Type':'application/json' };
+  if(auth){ const t = localStorage.getItem('wacrm_token'); if(t) headers.Authorization = 'Bearer ' + t; }
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, keepalive: method !== 'GET' && JSON.stringify(body||{}).length < 60000 });
+  let json = null; try{ json = await res.json(); }catch(e){}
+  if(!res.ok || (json && json.ok === false)){ const err = new Error((json && (json.error || json.message)) || ('Request failed (' + res.status + ')')); err.status = res.status; throw err; }
+  return json ? json.data : null;
+}
+const readOnly = () => LOCKED || VIEW;
+function fmtTime(d){ if(!d) return ''; const x = new Date(d); return x.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+function fmtDate(d){ if(!d) return ''; const x = new Date(d); const p = n => String(n).padStart(2,'0'); return `${p(x.getDate())}-${p(x.getMonth()+1)}-${x.getFullYear()} ${fmtTime(x)}`; }
+
+function setSaveStatus(kind, text){ saveStatus = {kind, text}; const el = document.getElementById('saveState'); if(el){ el.className = 'savestate ' + (kind==='ok'?'':kind); el.innerHTML = `<span class="dot"></span>${escapeHtml(text)}`; } }
+
+/** Save to the server. `section` marks that section as received. */
+async function persist(section){
+  if(readOnly()) return true;
+  clearTimeout(saveTimer); saveTimer = null;
+  saving = true; setSaveStatus('busy', 'Saving…');
+  try{
+    const out = await api('PUT', PUBLIC_URL, { data: state, section: section || undefined });
+    dirty = false;
+    SAVED_SECTIONS = out.sections || SAVED_SECTIONS;
+    setSaveStatus('ok', 'Saved ' + fmtTime(out.lastSavedAt));
+    return true;
+  }catch(e){
+    if(e.status === 409){ await boot(); showToast('This form has been submitted.'); return false; }
+    setSaveStatus('err', 'Not saved — check your connection');
+    showToast(e.message || 'Could not save');
+    return false;
+  }finally{ saving = false; }
+}
+function scheduleAutosave(){
+  if(readOnly()) return;
+  dirty = true; setSaveStatus('busy', 'Unsaved changes');
+  clearTimeout(saveTimer); saveTimer = setTimeout(()=>persist(), 1500);
+}
+window.addEventListener('beforeunload', (e)=>{
+  if(dirty && !readOnly()){
+    try{ fetch(PUBLIC_URL, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({data: state}), keepalive:true }); }catch(err){}
+  }
+});
+
+/* ============================= UTIL ============================= */
+let uidCounter = 1;
+function uid(p){ return p + (uidCounter++); }
+function escapeHtml(str){ return (str==null?'':String(str)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escapeAttr(str){ return (str==null?'':String(str)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function showToast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
+let pendingRemoveKey = null;
+
+/* ============================= SECTIONS ============================= */
+const SECTIONS = [
+  {key:'institute', label:'Institute & Employees'},
+  {key:'branches', label:'Branch Details'},
+  {key:'enquiryStages', label:'Enquiry Stages'},
+  {key:'appProcess', label:'Application Process'},
+  {key:'integrations', label:'Integrations'},
+  {key:'whatsapp', label:'WhatsApp Setup'},
+  {key:'academic', label:'Academic Details'},
+  {key:'faq', label:'FAQs & Query Categories'},
+  {key:'sources', label:'Enquiry Sources & Numbering'},
+  {key:'fee', label:'Fee & Documents'},
+  {key:'assign', label:'Assignment Rules'},
+  {key:'forms', label:'Forms & Landing Page'},
+  {key:'templates', label:'Communication Templates'},
+  {key:'preview', label:'Preview & Submit'},
+];
+const REQUIRED_SECTIONS = SECTIONS.filter(s=>s.key!=='preview');
+
+/* ============================= DEFAULT DATA ============================= */
+function defaultEmployee(){ return {role:'Admission Counsellor', salutation:'Mr.', name:'', gender:'Male', mobile:'', email:''}; }
+
+function defaultState(){ return {
+  activeSection:'institute',
+  sub:{},
+  institute:{ url:'', name:'', contact:'', email:'', website:'', address:'', country:'India', city:'', state:'', senderEmail:'', employees:[defaultEmployee()] },
+  branches:[],
+  enquiryStages:[
+    {stage:'Untouched', substages:'', followup:'Yes', remark:'Default stage of new enquiry'},
+    {stage:'Not Reachable', substages:'Not Answering / Number Busy / Phone Switched off', followup:'Yes', remark:''},
+    {stage:'Cold', substages:'Requested a call back', followup:'Yes', remark:''},
+    {stage:'School Visit Done', substages:'Fee Structure shared / Fee Structure not shared', followup:'Yes', remark:''},
+    {stage:'Will Visit School', substages:'Visit Scheduled / Visit Not Scheduled', followup:'Yes', remark:''},
+    {stage:'Form Filled', substages:'', followup:'Yes', remark:'Stage where enquiry moves to Application Form'},
+    {stage:'Registered', substages:'Paid Application Fee / Paid Registration Fee', followup:'Yes', remark:''},
+    {stage:'Warm', substages:'School Visit Pending / Parent needs time', followup:'Yes', remark:''},
+    {stage:'Closed', substages:'Not Interested / Admission Taken Elsewhere / Not Looking / Invalid Number', followup:'Yes', remark:''},
+    {stage:'Admission Done', substages:'', followup:'Yes', remark:''},
+    {stage:'Sibling', substages:'', followup:'Yes', remark:''},
+    {stage:'On Hold', substages:'By School / By Parent', followup:'Yes', remark:''},
+  ],
+  integrations:[
+    {category:'Communication', integration:'SMS', required:'No', note:'Need DLT Account credentials'},
+    {category:'Communication', integration:'WhatsApp', required:'No', note:'WhatsApp Business documents required'},
+    {category:'Communication', integration:'Email', required:'No', note:''},
+    {category:'Communication', integration:'IVR', required:'No', note:'Subscription via Tata Tele / Ozonetel'},
+    {category:'Social Media', integration:'Facebook', required:'No', note:''},
+    {category:'Social Media', integration:'Instagram', required:'No', note:''},
+    {category:'Social Media', integration:'Third party', required:'No', note:''},
+    {category:'Payment Gateway', integration:'Payment Gateway', required:'No', note:''},
+    {category:'Forms', integration:'Enquiry Form with Website', required:'No', note:''},
+    {category:'Chatbot', integration:'Chatbot on website', required:'No', note:''},
+    {category:'Chatbot', integration:'WhatsApp chatbot', required:'No', note:''},
+  ],
+  academic: buildAcademicDefault(),
+  assignRules:[
+    {rule:'Class Wise', enabled:'No', description:'Enquiry for a class is allocated to a fixed counsellor', detail:''},
+    {rule:'Source Wise', enabled:'No', description:'Counsellor works on a fixed enquiry source', detail:''},
+    {rule:'Round Robin', enabled:'No', description:'All enquiries rotate among selected counsellors', detail:''},
+    {rule:'NA', enabled:'No', description:'Not auto-allocated — only Admission Head/Admin assigns', detail:''},
+    {rule:'Other', enabled:'No', description:'Specify your own rule', detail:''},
+  ],
+  roundRobinCounsellors:[],
+  enquirySources:['Reception','Email','Chatbot','Walk-In','Telephonic Enquiry','Google','Reference','Direct Call','Website Enquiry Form','Edustoke','Exhibition','Staff','Management Reference','Sibling','Word of Mouth','Facebook','Instagram'],
+  autoNumbers:[
+    {type:'Enquiry Number', example:'ENQ/25-26/0001', proposed:''},
+    {type:'Application Number', example:'APP/25-26/0001', proposed:''},
+    {type:'Payment Receipt Number', example:'RCV/25-26/0001', proposed:''},
+    {type:'Admission No.', example:'QCI-0001', proposed:''},
+    {type:'Employee Code', example:'EQCI-0001', proposed:''},
+  ],
+  feeClasses: buildAcademicDefault().map(r=>({class:r.class, feeRequired:'Yes', amount:1000})),
+  feeDocuments:[
+    {name:'Birth Certificate', applicableClass:'All'},
+    {name:'Student Aadhar Card', applicableClass:'All'},
+    {name:'Father Aadhar Card', applicableClass:'All'},
+    {name:'Mother Aadhar Card', applicableClass:'All'},
+    {name:'Address Proof (utility bill / passport / rent agreement / govt ID)', applicableClass:'All'},
+    {name:'Medical Assessment Report', applicableClass:'All'},
+    {name:'Transfer Certificate', applicableClass:'All except Nursery/Jr KG/Sr KG'},
+    {name:'Previous Class Result', applicableClass:'All except Nursery/Jr KG/Sr KG'},
+  ],
+  faqs:[
+    {q:'Is the school co-ed?', a:'Yes'},
+    {q:'Are teachers hired, trained and qualified for the job?', a:''},
+    {q:'Do you have hostels?', a:''},
+    {q:'Do you offer evening activities?', a:''},
+    {q:'What streams are available for class XI & XII?', a:''},
+    {q:'Is Admission Fee charged every year?', a:'Admission fee is a one-time, non-refundable fee charged at the time of admission only.'},
+    {q:'Is there an age criterion for admission to different classes?', a:''},
+    {q:'What is the admission fee structure?', a:''},
+    {q:'What if my child has special needs?', a:''},
+    {q:'What is the process for Nursery/KG/Primary/Senior class admissions?', a:''},
+    {q:'When does the admission process start?', a:''},
+    {q:'What if I miss the admission deadline?', a:''},
+    {q:'Is there an interview process for parents and students?', a:''},
+    {q:'How do I schedule a school visit or campus tour?', a:'You can schedule a visit by contacting your admission counsellor.'},
+    {q:'Are there any scholarships available?', a:''},
+    {q:'What is the school\'s policy on sibling admission?', a:''},
+    {q:'What are the school hours and transportation facilities?', a:''},
+    {q:'What is the procedure for overseas / NRI students?', a:''},
+    {q:'What is the next step after admission confirmation?', a:''},
+    {q:'How do I pay the school fees?', a:''},
+    {q:'What is the process for purchasing uniform and books?', a:''},
+    {q:'Can we switch from online to offline classes (or vice versa)?', a:''},
+    {q:'How do I stay updated with school events and notices?', a:''},
+  ],
+  queryCategories:['Age Criteria','Academics','Payment Failure','Application Form'],
+  queryCategories2:['Fee','Age Criteria','Transport','Admission Process','Payment'],
+  whatsappChecklist:[
+    {item:'Exhibit B — signed & stamped on letterhead', provided:false},
+    {item:'WABA document', provided:false},
+    {item:'Facebook login access', provided:false},
+    {item:'GST Certificate OR Bank statement + utility bill', provided:false},
+    {item:'Udyam certificate (optional)', provided:false},
+    {item:'Website is secured (https)', provided:false},
+    {item:'Legal & display name present on website', provided:false},
+    {item:'Website domain email address for OTP', provided:false},
+    {item:'4-5 online news articles (for green-tick)', provided:false},
+  ],
+  formsDetail:{ enquiryForm:'', appForm:'', outputFormNote:'', landingPage:'https://resource.simplyadmission.com/templates/landing_page/templates/index.html' },
+  templates: buildTemplatesDefault(),
+  appProcess: { phase:'stages', currentStageIndex:0, editingStageId:null, stages: buildAppProcessDefault() }
+}; }
+
+function buildAcademicDefault(){
+  return [
+    {wing:'Pre-Primary Wing', class:'Nursery', sections:''},
+    {wing:'Pre-Primary Wing', class:'Junior KG', sections:''},
+    {wing:'Pre-Primary Wing', class:'Senior KG', sections:''},
+    {wing:'Primary Wing', class:'I', sections:''},
+    {wing:'Primary Wing', class:'II', sections:''},
+    {wing:'Primary Wing', class:'III', sections:''},
+    {wing:'Primary Wing', class:'IV', sections:''},
+    {wing:'Primary Wing', class:'V', sections:''},
+    {wing:'Middle Wing', class:'VI', sections:''},
+    {wing:'Middle Wing', class:'VII', sections:''},
+    {wing:'Middle Wing', class:'VIII', sections:''},
+    {wing:'Secondary & Sr. Secondary', class:'IX', sections:''},
+    {wing:'Secondary & Sr. Secondary', class:'X', sections:''},
+    {wing:'Secondary & Sr. Secondary', class:'XI', sections:''},
+    {wing:'Secondary & Sr. Secondary', class:'XII', sections:''},
+  ];
+}
+
+function buildTemplatesDefault(){
+  const cats = [
+    {cat:'OTP', events:['Mobile No. Verification OTP','Email ID Verification OTP']},
+    {cat:'Enquiry', events:['Enquiry Acknowledgment']},
+    {cat:'School Tour', events:['School Tour Invite','School Tour Reminder','School Tour Thank You']},
+    {cat:'Follow-up', events:['One-to-One Meeting Invite']},
+    {cat:'Login', events:['Candidate Login Credentials','Forget Password OTP']},
+    {cat:'Registration', events:['Application Form Invite','Application Submission Acknowledgement','Registration Fee Invite','Registration Fee Payment Acknowledgement','Interaction Invite','Interaction Acknowledgement','Pending Document Notification','Admission Payment Invite','Admission Payment Acknowledgement','Payment Pending Reminder']},
+    {cat:'Status Change', events:['Application Approved','Application In Review','Application On Hold','Application Rejected']},
+    {cat:'Counsellor-End', events:['New Lead Notification']},
+  ];
+  const list = [];
+  cats.forEach(c=>c.events.forEach(e=>list.push({category:c.cat, event:e, sms:'', whatsapp:'', email:''})));
+  return list;
+}
+
+function buildAppProcessDefault(){
+  return [
+    {id:uid('st'), type:'Student Details', name:'Basic Details', approvalRequired:false, approverName:'', status:'Application In Process', commEmail:false, commSMS:false, commWhatsApp:false, emailTemplate:'', smsTemplate:'', whatsappTemplate:'', fields:[]},
+    {id:uid('st'), type:'Parent Details', name:'Parent Details', approvalRequired:false, approverName:'', status:'Application In Process', commEmail:false, commSMS:false, commWhatsApp:false, emailTemplate:'', smsTemplate:'', whatsappTemplate:'', fields:[]},
+    {id:uid('st'), type:'Document Stage', name:'Document Upload', approvalRequired:false, approverName:'', status:'Document Uploaded', commEmail:false, commSMS:false, commWhatsApp:false, emailTemplate:'', smsTemplate:'', whatsappTemplate:'', fields:[]},
+    {id:uid('st'), type:'Payment Stage', name:'Application Fee', approvalRequired:false, approverName:'', status:'Payment Done', commEmail:false, commSMS:false, commWhatsApp:false, emailTemplate:'', smsTemplate:'', whatsappTemplate:'', fields:[]},
+    {id:uid('st'), type:'Student Details', name:'Approval', approvalRequired:true, approverName:'', status:'Admission Confirmed', commEmail:false, commSMS:false, commWhatsApp:false, emailTemplate:'', smsTemplate:'', whatsappTemplate:'', fields:[]},
+  ];
+}
+
+/* ============================= STATE ============================= */
+let state = defaultState();
+
+// Every change is saved to the server shortly after typing stops (and on Save & Next).
+function saveState(){ scheduleAutosave(); }
+function adoptData(data){
+  if(data && data.institute){
+    state = Object.assign(defaultState(), data);
+    let maxN=0;
+    JSON.stringify(state).replace(/"(?:st|fd|br)(\d+)"/g,(m,n)=>{maxN=Math.max(maxN,parseInt(n,10));return m;});
+    uidCounter = maxN+1;
+  } else {
+    state = defaultState();
+  }
+}
+
+function getSub(key){ return state.sub[key]||0; }
+function setSub(key, idx){ state.sub[key]=idx; if(!readOnly()) saveState(); renderAll(); }
+
+/* ============================= PEOPLE (for counsellor dropdowns) ============================= */
+function getAllPeople(){
+  const list = [];
+  (state.institute.employees||[]).forEach(e=>{ if(e.name && e.name.trim()) list.push({name:e.name.trim(), label:`${e.name} — ${e.role}`}); });
+  (state.branches||[]).forEach(b=>{ (b.employees||[]).forEach(e=>{ if(e.name && e.name.trim()) list.push({name:e.name.trim(), label:`${e.name} — ${e.role} (${b.name||'Branch'})`}); }); });
+  return list;
+}
+
+/* ============================= GENERIC TABLE COMPONENT ============================= */
+const TABLES = {};
+function registerTable(id, getFn, blankFn){ TABLES[id] = {get:getFn, blank:blankFn}; }
+
+function renderDTable(id, columns){
+  const list = TABLES[id].get();
+  let html = `<div class="dtable-wrap"><table class="dtable"><thead><tr>`;
+  columns.forEach(c=>html+=`<th>${escapeHtml(c.label)}</th>`);
+  html += `<th></th></tr></thead><tbody>`;
+  list.forEach((row,i)=>{
+    html+=`<tr>`;
+    columns.forEach(c=>{
+      const val = row[c.key];
+      if(c.type==='checkbox'){
+        html+=`<td style="text-align:center;"><input type="checkbox" ${val?'checked':''} onchange="dtableUpdate('${id}',${i},'${c.key}',this.checked)"></td>`;
+      } else if(c.type==='select'){
+        html+=`<td><select onchange="dtableUpdate('${id}',${i},'${c.key}',this.value)">${c.options.map(o=>`<option ${val===o?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select></td>`;
+      } else if(c.type==='readonly'){
+        html+=`<td>${escapeHtml(val||'')}</td>`;
+      } else if(c.type==='textarea'){
+        html+=`<td><textarea oninput="dtableUpdate('${id}',${i},'${c.key}',this.value)">${escapeHtml(val||'')}</textarea></td>`;
+      } else {
+        const isDupCheck = (c.key==='mobile' || c.key==='email');
+        html+=`<td><input type="${c.type||'text'}" value="${escapeAttr(val==null?'':val)}" oninput="dtableUpdate('${id}',${i},'${c.key}',this.value)" ${isDupCheck?`onblur="validateEmpDup('${id}',${i},'${c.key}')"`:''}>${isDupCheck?`<div id="emperr_${id}_${i}_${c.key}" style="color:var(--danger);font-size:11px;margin-top:2px;"></div>`:''}</td>`;
+      }
+    });
+    const pk = id+'_'+i;
+    html += `<td><button class="small link danger" title="Remove" onclick="dtableRemove('${id}',${i})">${pendingRemoveKey===pk?'Confirm?':'✕'}</button></td></tr>`;
+  });
+  html += `</tbody></table></div><button onclick="dtableAdd('${id}')">+ Add Row</button>`;
+  return html;
+}
+function dtableUpdate(id, idx, key, value){
+  const row = TABLES[id].get()[idx];
+  row[key] = value;
+  if(key==='salutation'){
+    if(value==='Mr.') row.gender='Male';
+    else if(value==='Ms.'||value==='Mrs.') row.gender='Female';
+    saveState(); renderAll(); return;
+  }
+  saveState();
+}
+function getAllEmployeeRows(){
+  const rows = [];
+  (state.institute.employees||[]).forEach(e=>rows.push(e));
+  (state.branches||[]).forEach(b=>(b.employees||[]).forEach(e=>rows.push(e)));
+  return rows;
+}
+function validateEmpDup(id, idx, key){
+  const row = TABLES[id].get()[idx];
+  const val = (row[key]||'').trim();
+  const el = document.getElementById(`emperr_${id}_${idx}_${key}`);
+  if(!el) return;
+  if(!val){ el.textContent=''; return; }
+  const dup = getAllEmployeeRows().some(r=> r!==row && (r[key]||'').trim().toLowerCase()===val.toLowerCase());
+  el.textContent = dup ? `This ${key==='mobile'?'mobile number':'email'} is already used by another employee.` : '';
+}
+function dtableAdd(id){ TABLES[id].get().push(TABLES[id].blank()); saveState(); renderAll(); }
+function dtableRemove(id, idx){
+  const pk = id+'_'+idx;
+  if(pendingRemoveKey===pk){ TABLES[id].get().splice(idx,1); pendingRemoveKey=null; saveState(); renderAll(); }
+  else { pendingRemoveKey=pk; renderAll(); setTimeout(()=>{ if(pendingRemoveKey===pk){pendingRemoveKey=null; renderAll();} }, 3000); }
+}
+
+/* generic chip (tag) list component, for plain string arrays */
+function renderChipList(id){
+  const list = TABLES[id].get();
+  let html = `<div class="chips">`;
+  list.forEach((v,i)=>{ html += `<span class="chip">${escapeHtml(v)}<button onclick="chipRemove('${id}',${i})">×</button></span>`; });
+  html += `</div><div class="opt-add-row"><input type="text" id="chipin_${id}" placeholder="Add item" onkeydown="if(event.key==='Enter'){event.preventDefault();chipAdd('${id}')}"><button onclick="chipAdd('${id}')">Add</button></div>`;
+  return html;
+}
+function chipAdd(id){
+  const inp = document.getElementById('chipin_'+id);
+  const v = (inp.value||'').trim();
+  if(!v) return;
+  TABLES[id].get().push(v);
+  saveState(); renderAll();
+}
+function chipRemove(id, idx){ TABLES[id].get().splice(idx,1); saveState(); renderAll(); }
+
+/* ============================= SHELL ============================= */
+function renderShell(){
+  document.getElementById('root').innerHTML = `<div class="shell">
+    <nav class="sidebar" id="sidebar"></nav>
+    <div class="content">
+      <div class="appbar"><div class="inst" id="instName"></div><div class="savestate" id="saveState"></div></div>
+      <div class="content-topbar" id="topStepper"></div>
+      <div class="content-body" id="sectionBody"></div>
+    </div>
+  </div>`;
+}
+function renderAll(){
+  renderSidebar();
+  renderTopStepper();
+  document.getElementById('instName').textContent = INSTITUTE ? `${INSTITUTE} — Admission Pre-Requisite` : 'Admission Pre-Requisite';
+  if(readOnly()) setSaveStatus('ok', VIEW ? 'Read-only view' : 'Submitted'); else setSaveStatus(saveStatus.kind, saveStatus.text);
+  const body = document.getElementById('sectionBody');
+  body.innerHTML = renderBanner() + renderSection();
+  if(state.activeSection==='appProcess' && state.appProcess.phase==='preview') wireConditionals();
+  if(readOnly()) lockBody(body);
+}
+function renderBanner(){
+  if(VIEW) return `<div class="view-banner">Viewing the client's answers — read-only.${LOCKED && SUBMIT_INFO ? ` Submitted ${escapeHtml(fmtDate(SUBMIT_INFO.at))}${SUBMIT_INFO.name?` by ${escapeHtml(SUBMIT_INFO.name)}`:''}.` : ' Not submitted yet.'}</div>`;
+  if(LOCKED) return `<div class="lock-banner">✓ Submitted ${SUBMIT_INFO ? escapeHtml(fmtDate(SUBMIT_INFO.at)) : ''}. Thank you — the details can no longer be changed.</div>`;
+  return '';
+}
+/** Read-only: inputs disabled, editing buttons hidden; navigation (data-keep) stays. */
+function lockBody(root){
+  root.querySelectorAll('input, select, textarea').forEach(el=>{ el.disabled = true; });
+  root.querySelectorAll('button:not([data-keep])').forEach(el=>{ el.style.display = 'none'; });
+  root.querySelectorAll('.opt-add-row').forEach(el=>{ el.style.display = 'none'; });
+}
+function renderSidebar(){
+  const el = document.getElementById('sidebar');
+  const done = REQUIRED_SECTIONS.filter(s=>SAVED_SECTIONS[s.key]).length;
+  let html = `<div class="brand">Admission Pre-Requisite</div><div class="brand-sub">${escapeHtml(INSTITUTE||'')}</div>
+    <div class="progress"><div class="bar"><span style="width:${Math.round(done/REQUIRED_SECTIONS.length*100)}%"></span></div><div class="lbl">${done} of ${REQUIRED_SECTIONS.length} sections saved</div></div>`;
+  SECTIONS.forEach((s,i)=>{
+    const isDone = !!SAVED_SECTIONS[s.key] && s.key!=='preview';
+    html += `<div class="vstep-item ${state.activeSection===s.key?'active':''} ${isDone?'done':''}" onclick="goSection('${s.key}')" title="${isDone?'Saved':'Pending'}">
+      <div class="vstep-circle">${isDone?'✓':i+1}</div><div>${escapeHtml(s.label)}</div>
+    </div>`;
+  });
+  el.innerHTML = html + `<div class="sidebar-foot"><button data-keep onclick="exportAll()">Download (JSON)</button></div>`;
+}
+function goSection(key){ state.activeSection = key; if(!readOnly()) saveState(); renderAll(); window.scrollTo(0,0); }
+
+function renderTopStepper(){
+  const el = document.getElementById('topStepper');
+  const items = getSubStepsFor(state.activeSection);
+  if(!items){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='block';
+  const active = getSub(state.activeSection);
+  el.innerHTML = `<div class="stepper-scroll"><div class="stepper">` + items.map((label,i)=>{
+    const cls = ['stepper-item']; if(i===active) cls.push('active');
+    const line = i<items.length-1 ? '<div class="stepper-line"></div>' : '';
+    return `<div class="${cls.join(' ')}" onclick="setSub('${state.activeSection}',${i})"><div class="stepper-circle">${i+1}</div><div class="stepper-label">${escapeHtml(label)}</div></div>${line}`;
+  }).join('') + `</div></div>`;
+}
+function getSubStepsFor(key){
+  if(key==='institute') return ['Institute Info','Employees','Communication Email'];
+  if(key==='branches') return readOnly() ? (state.branches.length ? state.branches.map(b=>b.name||'Branch') : null) : state.branches.map(b=>b.name||'Branch').concat(['+ Add Branch']);
+  if(key==='appProcess') return ['Create Stages','Add Fields','Preview'];
+  if(key==='faq') return ['FAQs','Query Categories'];
+  if(key==='sources') return ['Enquiry Sources','Auto-Numbering'];
+  if(key==='fee') return ['Fee by Class','Documents Required'];
+  if(key==='templates') return [...new Set(state.templates.map(t=>t.category))];
+  return null;
+}
+
+function renderSection(){
+  const k = state.activeSection;
+  let body = '';
+  if(k==='institute') body = renderInstitute();
+  else if(k==='branches') body = renderBranches();
+  else if(k==='enquiryStages') body = renderEnquiryStages();
+  else if(k==='appProcess') body = renderAppProcess();
+  else if(k==='integrations') body = renderIntegrations();
+  else if(k==='whatsapp') body = renderWhatsapp();
+  else if(k==='academic') body = renderAcademic();
+  else if(k==='faq') body = renderFaq();
+  else if(k==='sources') body = renderSources();
+  else if(k==='fee') body = renderFee();
+  else if(k==='assign') body = renderAssign();
+  else if(k==='forms') body = renderForms();
+  else if(k==='templates') body = renderTemplates();
+  else if(k==='preview') body = renderPreviewAll();
+  return body + renderPageFooter();
+}
+
+/* ============================= PREVIOUS / SAVE & NEXT (every page) ============================= */
+function currentSectionIndex(){ return SECTIONS.findIndex(s=>s.key===state.activeSection); }
+function realSubCount(key){
+  if(key==='branches') return state.branches.length;
+  const subs = getSubStepsFor(key);
+  return subs ? subs.length : 1;
+}
+function isLastOverallStep(){
+  const idx = currentSectionIndex();
+  if(idx !== SECTIONS.length-1) return false;
+  const key = state.activeSection;
+  if(key==='appProcess') return ap().phase==='preview';
+  const subCount = realSubCount(key);
+  return !(subCount>0 && getSub(key) < subCount-1);
+}
+function isFirstOverallStep(){
+  if(currentSectionIndex() !== 0) return false;
+  if(state.activeSection==='appProcess') return ap().phase==='stages';
+  return getSub(state.activeSection)===0;
+}
+function renderPageFooter(){
+  const last = isLastOverallStep();
+  const first = isFirstOverallStep();
+  const ro = readOnly();
+  return `<div class="pager" style="margin-top:22px;border-top:1px solid var(--border);padding-top:16px;">
+    ${first ? '<span></span>' : `<button data-keep onclick="saveAndPrev()">← Previous</button>`}
+    ${last ? '' : `<button data-keep class="primary" onclick="saveAndNext()">${ro?'Next →':'Save &amp; Next'}</button>`}
+  </div>`;
+}
+async function saveAndPrev(){
+  const key = state.activeSection;
+  if(!readOnly()){ if(!(await persist(key))) return; showToast('Saved'); }
+  if(key==='appProcess'){ apSaveAndPrev(); return; }
+  const curSub = getSub(key);
+  if(curSub>0){ setSub(key, curSub-1); return; }
+  const idx = currentSectionIndex();
+  if(idx>0) goSection(SECTIONS[idx-1].key);
+}
+function apSaveAndPrev(){
+  const phase = ap().phase;
+  if(phase==='preview'){ apGoPhase('fields'); }
+  else if(phase==='fields'){
+    if(ap().currentStageIndex>0) apPrevStage();
+    else apGoPhase('stages');
+  } else {
+    const idx = currentSectionIndex();
+    if(idx>0) goSection(SECTIONS[idx-1].key);
+  }
+}
+async function saveAndNext(){
+  const key = state.activeSection;
+  if(!readOnly()){ if(!(await persist(key))) return; showToast('Saved'); renderSidebar(); }
+  if(key==='appProcess'){ apSaveAndNext(); return; }
+  const subCount = realSubCount(key);
+  const curSub = getSub(key);
+  if(subCount>0 && curSub < subCount-1){ setSub(key, curSub+1); return; }
+  const idx = currentSectionIndex();
+  if(idx < SECTIONS.length-1) goSection(SECTIONS[idx+1].key);
+}
+function apSaveAndNext(){
+  const phase = ap().phase;
+  if(phase==='stages'){
+    if(ap().stages.length===0){ showToast('Add at least one stage first.'); return; }
+    apGoPhase('fields');
+  } else if(phase==='fields'){
+    if(ap().currentStageIndex < ap().stages.length-1) apNextStage();
+    else apGoPhase('preview');
+  } else {
+    const idx = currentSectionIndex();
+    if(idx < SECTIONS.length-1) goSection(SECTIONS[idx+1].key);
+  }
+}
+
+/* ============================= 1. INSTITUTE & EMPLOYEES ============================= */
+registerTable('instEmployees', ()=>state.institute.employees, defaultEmployee);
+const EMP_COLS = [
+  {key:'role', label:'Role', type:'select', options:['Admin','Admission Counsellor','Admission Head']},
+  {key:'salutation', label:'Salutation', type:'select', options:['Mr.','Ms.','Mrs.','Dr.']},
+  {key:'name', label:'Full Name', type:'text'},
+  {key:'gender', label:'Gender', type:'select', options:['Male','Female']},
+  {key:'mobile', label:'Mobile', type:'text'},
+  {key:'email', label:'Email', type:'text'},
+];
+
+function updInst(key, value){ state.institute[key]=value; saveState(); }
+
+function renderInstitute(){
+  const sub = getSub('institute');
+  const it = state.institute;
+  if(sub===0){
+    return `<h2 class="title">Institute Info</h2><div class="box">
+      <div class="field"><label>Your URL <span style="font-weight:500;color:var(--dim);">(Suggest desired URL, followed by simplyadmission.com)</span></label><input type="text" value="${escapeAttr(it.url)}" oninput="updInst('url',this.value)" placeholder="yourschool.simplyadmission.com"></div>
+      <div class="row">
+        <div class="field"><label>Institute Name</label><input type="text" value="${escapeAttr(it.name)}" oninput="updInst('name',this.value)"></div>
+        <div class="field"><label>Contact No.</label><input type="text" value="${escapeAttr(it.contact)}" oninput="updInst('contact',this.value)"></div>
+        <div class="field"><label>Email ID</label><input type="text" value="${escapeAttr(it.email)}" oninput="updInst('email',this.value)"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Website</label><input type="text" value="${escapeAttr(it.website)}" oninput="updInst('website',this.value)"></div>
+        <div class="field"><label>Country</label><input type="text" value="${escapeAttr(it.country)}" oninput="updInst('country',this.value)"></div>
+        <div class="field"><label>State</label><input type="text" value="${escapeAttr(it.state)}" oninput="updInst('state',this.value)"></div>
+        <div class="field"><label>City</label><input type="text" value="${escapeAttr(it.city)}" oninput="updInst('city',this.value)"></div>
+      </div>
+      <div class="field"><label>Address</label><textarea oninput="updInst('address',this.value)">${escapeHtml(it.address)}</textarea></div>
+    </div>`;
+  }
+  if(sub===1){
+    return `<h2 class="title">Employees</h2><div class="box">${renderDTable('instEmployees', EMP_COLS)}</div>`;
+  }
+  return `<h2 class="title">Communication Email</h2><div class="box">
+    <p class="empty" style="padding-top:0;">Email through which communication will be sent to parents.</p>
+    <div class="field" style="max-width:320px;"><label>Sender Email ID</label><input type="text" value="${escapeAttr(it.senderEmail)}" oninput="updInst('senderEmail',this.value)"></div>
+  </div>`;
+}
+
+/* ============================= 2. BRANCH DETAILS ============================= */
+function addBranch(){
+  const b = {id:uid('br'), name:'New Branch', contact:'', email:'', website:'', address:'', country:'India', city:'', state:'', employees:[defaultEmployee()]};
+  state.branches.push(b);
+  state.sub.branches = state.branches.length-1;
+  saveState(); renderAll();
+}
+function removeBranch(idx){
+  const pk = 'branch_'+idx;
+  if(pendingRemoveKey===pk){ state.branches.splice(idx,1); pendingRemoveKey=null; state.sub.branches=0; saveState(); renderAll(); }
+  else { pendingRemoveKey=pk; renderAll(); setTimeout(()=>{ if(pendingRemoveKey===pk){pendingRemoveKey=null; renderAll();} },3000); }
+}
+function updBranch(idx, key, value){ state.branches[idx][key]=value; saveState(); }
+
+function renderBranches(){
+  const sub = getSub('branches');
+  if(state.branches.length===0 || sub>=state.branches.length){
+    return `<h2 class="title">Branch Details</h2><p class="empty">${readOnly()?'No branches.':'No branches added yet. Skip this if you have a single campus.'}</p><button class="primary" onclick="addBranch()">+ Add Branch</button>`;
+  }
+  const b = state.branches[sub];
+  registerTable('branchEmp_'+b.id, ()=>b.employees, defaultEmployee);
+  return `<h2 class="title">${escapeHtml(b.name||'Branch')}</h2>
+  <div class="box">
+    <div class="row">
+      <div class="field"><label>Branch Name</label><input type="text" value="${escapeAttr(b.name)}" oninput="updBranch(${sub},'name',this.value)"></div>
+      <div class="field"><label>Contact No.</label><input type="text" value="${escapeAttr(b.contact)}" oninput="updBranch(${sub},'contact',this.value)"></div>
+      <div class="field"><label>Email ID</label><input type="text" value="${escapeAttr(b.email)}" oninput="updBranch(${sub},'email',this.value)"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Website</label><input type="text" value="${escapeAttr(b.website)}" oninput="updBranch(${sub},'website',this.value)"></div>
+      <div class="field"><label>Country</label><input type="text" value="${escapeAttr(b.country)}" oninput="updBranch(${sub},'country',this.value)"></div>
+      <div class="field"><label>State</label><input type="text" value="${escapeAttr(b.state)}" oninput="updBranch(${sub},'state',this.value)"></div>
+      <div class="field"><label>City</label><input type="text" value="${escapeAttr(b.city)}" oninput="updBranch(${sub},'city',this.value)"></div>
+    </div>
+    <div class="field"><label>Address</label><textarea oninput="updBranch(${sub},'address',this.value)">${escapeHtml(b.address)}</textarea></div>
+    <button class="link danger" onclick="removeBranch(${sub})">${pendingRemoveKey===('branch_'+sub)?'Click again to confirm':'Remove This Branch'}</button>
+  </div>
+  <h3 style="font-size:14.5px;margin-bottom:8px;">Employees at this Branch</h3>
+  <div class="box">${renderDTable('branchEmp_'+b.id, EMP_COLS)}</div>`;
+}
+
+/* ============================= 3. ENQUIRY STAGES ============================= */
+registerTable('enquiryStages', ()=>state.enquiryStages, ()=>({stage:'', substages:'', followup:'Yes', remark:''}));
+function renderEnquiryStages(){
+  return `<h2 class="title">Enquiry Stages</h2><div class="box">${renderDTable('enquiryStages', [
+    {key:'stage', label:'Stage', type:'text'},
+    {key:'substages', label:'Substages', type:'text'},
+    {key:'followup', label:'Followup', type:'select', options:['Yes','No']},
+    {key:'remark', label:'Remark', type:'text'},
+  ])}</div>`;
+}
+
+/* ============================= 4. APPLICATION PROCESS (FORM BUILDER) ============================= */
+const STAGE_TYPES = {
+  'Student Details': ['First Name','Last Name','Date of Birth','Gender','Class / Grade Applied For','Academic Year','Student Photo'],
+  'Parent Details': ["Father's Name","Mother's Name",'Mobile Number','Email ID','Address'],
+  'Document Stage': ['Birth Certificate','Address Proof','Transfer Certificate','Passport Photo'],
+  'Student Detail with Document Stage': ['First Name','Last Name','Date of Birth','Student Photo','Birth Certificate','Address Proof'],
+  'Payment Stage': ['Amount','Payment Mode','Payment Status','Receipt Number'],
+  'Interaction Stage': ['Preferred Date / Slot','Interaction Summary','Outcome'],
+  'Medical Declaration Stage': ['Any Medical Illness / Allergy?','Medication Details','Emergency Care Authorisation']
+};
+const FIELD_PRESETS = {
+  'First Name': {type:'Text', mandatory:true}, 'Last Name': {type:'Text', mandatory:true},
+  'Date of Birth': {type:'Date', mandatory:true}, 'Gender': {type:'Choice', options:['Male','Female','Other'], mandatory:true},
+  'Class / Grade Applied For': {type:'Dropdown', mandatory:true}, 'Academic Year': {type:'Dropdown', mandatory:true},
+  'Student Photo': {type:'PhotoUpload', mandatory:true}, "Father's Name": {type:'Text', mandatory:true},
+  "Mother's Name": {type:'Text', mandatory:true}, 'Mobile Number': {type:'Phone', mandatory:true},
+  'Email ID': {type:'Email', mandatory:true}, 'Address': {type:'Textarea', mandatory:true},
+  'Birth Certificate': {type:'DocumentUpload', mandatory:true}, 'Address Proof': {type:'DocumentUpload'},
+  'Transfer Certificate': {type:'DocumentUpload'}, 'Passport Photo': {type:'PhotoUpload'},
+  'Amount': {type:'Number', mandatory:true}, 'Payment Mode': {type:'Dropdown', options:['Online','Cash','Cheque','DD'], mandatory:true},
+  'Payment Status': {type:'Dropdown', options:['Pending','Successful','Failed'], mandatory:true}, 'Receipt Number': {type:'Text'},
+  'Preferred Date / Slot': {type:'Date'}, 'Interaction Summary': {type:'Textarea'}, 'Outcome': {type:'Dropdown', options:['Positive','Negative','Neutral']},
+  'Any Medical Illness / Allergy?': {type:'Choice', options:['Yes','No'], mandatory:true, restricted:true},
+  'Medication Details': {type:'Textarea', restricted:true}, 'Emergency Care Authorisation': {type:'Checkbox', mandatory:true},
+};
+const FIELD_TYPES = [
+  {v:'Text', l:'Text (short answer)'}, {v:'Textarea', l:'Paragraph (long answer)'}, {v:'Number', l:'Number'}, {v:'Date', l:'Date'},
+  {v:'Email', l:'Email'}, {v:'Phone', l:'Phone Number'}, {v:'Dropdown', l:'Dropdown (pick one)', opts:true},
+  {v:'Choice', l:'Choice Buttons (pick one)', opts:true}, {v:'MultiSelect', l:'Multi-Select (pick many)', opts:true},
+  {v:'Checkbox', l:'Checkbox (Yes/No)'}, {v:'PhotoUpload', l:'Photo Upload', file:true}, {v:'DocumentUpload', l:'Document Upload', file:true},
+  {v:'Signature', l:'Signature', file:true}, {v:'Payment', l:'Payment (system)', file:true}, {v:'SystemGenerated', l:'Auto-generated (system)', file:true},
+];
+const STATUS_OPTIONS = ['Application Initiated','Application In Process','Document Uploaded','Payment Done','Under Review','Approved','Rejected','Waitlisted','Admission Confirmed','Enrolled'];
+function typeInfo(v){ return FIELD_TYPES.find(t=>t.v===v) || FIELD_TYPES[0]; }
+function mkField(label, type, opts){
+  opts = opts || {};
+  return { id:uid('fd'), label, type, mandatory:!!opts.mandatory, options:(opts.options||[]).slice(), defaultValue:opts.defaultValue||'',
+    condition:null, repeatsFor:'', restricted:!!opts.restricted, filledBy:'Parent', notes:'', _open:false };
+}
+function ap(){ return state.appProcess; }
+function getStage(id){ return ap().stages.find(s=>s.id===id); }
+function getField(stageId, fieldId){ const s=getStage(stageId); return s && s.fields.find(f=>f.id===fieldId); }
+
+function renderAppProcess(){
+  const phase = ap().phase;
+  if(phase==='stages') return renderApStagesPhase();
+  if(phase==='fields') return renderApFieldsPhase();
+  return renderApPreviewPhase();
+}
+function apGoPhase(p){ ap().phase=p; setSub('appProcess', p==='stages'?0:(p==='fields'?1:2)); }
+
+function renderApStagesPhase(){
+  const editing = ap().editingStageId ? getStage(ap().editingStageId) : null;
+  const typeVal = editing ? editing.type : Object.keys(STAGE_TYPES)[0];
+  const nameVal = editing ? editing.name : '';
+  const approvalVal = editing ? editing.approvalRequired : false;
+  const approverNameVal = editing ? (editing.approverName||'') : '';
+  const statusVal = editing ? editing.status : '';
+  const commEmail = editing ? editing.commEmail : false;
+  const commSMS = editing ? editing.commSMS : false;
+  const commWA = editing ? editing.commWhatsApp : false;
+  const emailTemplate = editing ? (editing.emailTemplate||'') : '';
+  const smsTemplate = editing ? (editing.smsTemplate||'') : '';
+  const waTemplate = editing ? (editing.whatsappTemplate||'') : '';
+  const people = getAllPeople();
+  const approverIsListed = people.some(p=>p.name===approverNameVal);
+
+  let html = `<h2 class="title">${readOnly()?'Stages':'Create Your Stages'}</h2>`;
+  if(editing && !readOnly()) html += `<div class="edit-banner">Editing <b>${escapeHtml(editing.name)}</b> — "Update Stage" to save, or "Cancel".</div>`;
+
+  const statusIsPreset = STATUS_OPTIONS.includes(statusVal);
+  const statusSelectVal = statusVal ? (statusIsPreset ? statusVal : 'Other / Custom') : '';
+  const statusCustomVal = (statusVal && !statusIsPreset) ? statusVal : '';
+
+  if(!readOnly()) html += `<div class="box">
+    <div class="row">
+      <div class="field"><label>Stage Name</label><input type="text" id="stNameInput" value="${escapeAttr(nameVal)}" placeholder="e.g. Student Details"></div>
+      <div class="field"><label>Type of Stage</label><select id="stTypeInput" onchange="onStageTypeChange()">
+        ${Object.keys(STAGE_TYPES).map(t=>`<option value="${escapeAttr(t)}" ${typeVal===t?'selected':''}>${escapeHtml(t)}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>Status Update once complete</label>
+        <select id="stStatusSelect" onchange="onStatusSelectChange()">
+          <option value="">-- Select Status --</option>
+          ${STATUS_OPTIONS.map(s=>`<option value="${escapeAttr(s)}" ${statusSelectVal===s?'selected':''}>${escapeHtml(s)}</option>`).join('')}
+          <option value="Other / Custom" ${statusSelectVal==='Other / Custom'?'selected':''}>Other / Custom</option>
+        </select>
+        <input type="text" id="stStatusCustomInput" value="${escapeAttr(statusCustomVal)}" placeholder="Type your own status" style="margin-top:6px;display:${statusSelectVal==='Other / Custom'?'block':'none'}">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Approval Required?</label>
+        <div class="radio-row">
+          <label><input type="radio" name="stApproval" value="yes" ${approvalVal?'checked':''} onchange="toggleApproverNameField()"> Yes</label>
+          <label><input type="radio" name="stApproval" value="no" ${!approvalVal?'checked':''} onchange="toggleApproverNameField()"> No</label>
+        </div>
+      </div>
+      <div class="field" id="approverNameWrap" style="display:${approvalVal?'block':'none'}">
+        <label>Counsellor who approves this stage</label>
+        <select id="stApproverSelect" onchange="onApproverSelectChange()">
+          <option value="">-- Select Counsellor --</option>
+          ${people.map(p=>`<option value="${escapeAttr(p.name)}" ${approverNameVal===p.name?'selected':''}>${escapeHtml(p.label)}</option>`).join('')}
+          <option value="Other / Custom" ${(approverNameVal && !approverIsListed)?'selected':''}>Other / Custom</option>
+        </select>
+        ${people.length===0?'<div class="empty" style="padding:4px 0;">No employees added yet — add them under "Institute &amp; Employees".</div>':''}
+        <input type="text" id="stApproverCustomInput" value="${escapeAttr((approverNameVal && !approverIsListed)?approverNameVal:'')}" placeholder="Type name" style="margin-top:6px;display:${(approverNameVal && !approverIsListed)?'block':'none'}">
+      </div>
+    </div>
+    <div class="field"><label>Communication — notify parent when this stage is done?</label>
+      <div class="check-row">
+        <label><input type="checkbox" id="stCommEmail" ${commEmail?'checked':''} onchange="toggleCommTemplate('Email')"> Email</label>
+        <label><input type="checkbox" id="stCommSMS" ${commSMS?'checked':''} onchange="toggleCommTemplate('SMS')"> SMS</label>
+        <label><input type="checkbox" id="stCommWA" ${commWA?'checked':''} onchange="toggleCommTemplate('WhatsApp')"> WhatsApp</label>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field" id="tmplWrap_Email" style="display:${commEmail?'block':'none'}"><label>Email Template</label><textarea id="stTemplateEmail">${escapeHtml(emailTemplate)}</textarea></div>
+      <div class="field" id="tmplWrap_SMS" style="display:${commSMS?'block':'none'}"><label>SMS Template</label><textarea id="stTemplateSMS">${escapeHtml(smsTemplate)}</textarea></div>
+      <div class="field" id="tmplWrap_WhatsApp" style="display:${commWA?'block':'none'}"><label>WhatsApp Template</label><textarea id="stTemplateWhatsApp">${escapeHtml(waTemplate)}</textarea></div>
+    </div>
+    <button class="primary" onclick="saveStageForm()">${editing?'Update Stage':'Add Stage'}</button>
+    ${editing?`<button onclick="cancelEditStage()">Cancel</button>`:''}
+  </div>`;
+
+  html += `<h3 style="font-size:14.5px;margin-bottom:8px;">Your Stages (${ap().stages.length})</h3>`;
+  if(ap().stages.length===0){
+    html += `<p class="empty">No stages yet.</p>`;
+  } else {
+    html += `<ul class="stage-list">`;
+    ap().stages.forEach((s,i)=>{
+      const comm = [s.commEmail&&'Email', s.commSMS&&'SMS', s.commWhatsApp&&'WhatsApp'].filter(Boolean).join(', ')||'None';
+      const removing = pendingRemoveKey==='apstage_'+s.id;
+      html += `<li><div><div><b>${i+1}. ${escapeHtml(s.name)}</b> <span style="color:var(--dim);font-size:12px;">(${escapeHtml(s.type)})</span></div>
+        <div class="meta">Approval: ${s.approvalRequired?('Yes — '+escapeHtml(s.approverName||'—')):'No'} &middot; Status: ${escapeHtml(s.status||'—')} &middot; Notify: ${comm} &middot; Fields: ${s.fields.length}</div></div>
+        <div><button class="small" onclick="editStage('${s.id}')">Edit</button> <button class="small link danger" title="Remove" onclick="removeStage('${s.id}')">${removing?'Confirm?':'✕'}</button></div></li>`;
+    });
+    html += `</ul>`;
+  }
+  if(ap().stages.length>0) html += `<div class="pager"><span></span><button data-keep class="primary" onclick="apGoPhase('fields')">${readOnly()?'View Fields →':'Continue to Add Fields →'}</button></div>`;
+  return html;
+}
+function onStageTypeChange(){
+  const type = document.getElementById('stTypeInput').value;
+  const nameInput = document.getElementById('stNameInput');
+  if(!nameInput.value.trim()) nameInput.value = type;
+}
+function onStatusSelectChange(){
+  document.getElementById('stStatusCustomInput').style.display = (document.getElementById('stStatusSelect').value==='Other / Custom')?'block':'none';
+}
+function onApproverSelectChange(){
+  document.getElementById('stApproverCustomInput').style.display = (document.getElementById('stApproverSelect').value==='Other / Custom')?'block':'none';
+}
+function toggleApproverNameField(){
+  document.getElementById('approverNameWrap').style.display = (document.querySelector('input[name=stApproval]:checked').value==='yes')?'block':'none';
+}
+function toggleCommTemplate(channel){
+  const cb = document.getElementById('stComm'+(channel==='WhatsApp'?'WA':channel));
+  document.getElementById('tmplWrap_'+channel).style.display = cb.checked?'block':'none';
+}
+function saveStageForm(){
+  const type = document.getElementById('stTypeInput').value;
+  const name = document.getElementById('stNameInput').value.trim() || type;
+  const approvalRequired = document.querySelector('input[name=stApproval]:checked').value==='yes';
+  let approverName = '';
+  if(approvalRequired){
+    const sel = document.getElementById('stApproverSelect').value;
+    approverName = (sel==='Other / Custom') ? document.getElementById('stApproverCustomInput').value.trim() : sel;
+  }
+  const status = (document.getElementById('stStatusSelect').value==='Other / Custom')
+    ? document.getElementById('stStatusCustomInput').value.trim() : document.getElementById('stStatusSelect').value;
+  const commEmail = document.getElementById('stCommEmail').checked;
+  const commSMS = document.getElementById('stCommSMS').checked;
+  const commWhatsApp = document.getElementById('stCommWA').checked;
+  const emailTemplate = commEmail ? document.getElementById('stTemplateEmail').value.trim() : '';
+  const smsTemplate = commSMS ? document.getElementById('stTemplateSMS').value.trim() : '';
+  const whatsappTemplate = commWhatsApp ? document.getElementById('stTemplateWhatsApp').value.trim() : '';
+  if(ap().editingStageId){
+    const s = getStage(ap().editingStageId);
+    Object.assign(s, {type,name,approvalRequired,approverName,status,commEmail,commSMS,commWhatsApp,emailTemplate,smsTemplate,whatsappTemplate});
+    ap().editingStageId = null;
+  } else {
+    ap().stages.push({id:uid('st'), type, name, approvalRequired, approverName, status, commEmail, commSMS, commWhatsApp, emailTemplate, smsTemplate, whatsappTemplate, fields:[]});
+  }
+  saveState(); renderAll();
+}
+function editStage(id){ ap().editingStageId=id; pendingRemoveKey=null; saveState(); renderAll(); }
+function cancelEditStage(){ ap().editingStageId=null; renderAll(); }
+function removeStage(id){
+  const pk = 'apstage_'+id;
+  if(pendingRemoveKey===pk){ ap().stages=ap().stages.filter(s=>s.id!==id); if(ap().editingStageId===id) ap().editingStageId=null; pendingRemoveKey=null; saveState(); renderAll(); }
+  else { pendingRemoveKey=pk; renderAll(); setTimeout(()=>{ if(pendingRemoveKey===pk){pendingRemoveKey=null; renderAll();} },3000); }
+}
+
+function renderApFieldsPhase(){
+  if(ap().stages.length===0) return `<p class="empty">Create at least one stage first.</p>`;
+  if(ap().currentStageIndex>=ap().stages.length) ap().currentStageIndex=ap().stages.length-1;
+  const idx = ap().currentStageIndex;
+  const stage = ap().stages[idx];
+  const comm = [stage.commEmail&&'Email', stage.commSMS&&'SMS', stage.commWhatsApp&&'WhatsApp'].filter(Boolean).join(', ')||'None';
+  let html = `<p style="color:var(--dim);font-size:12.8px;margin-bottom:2px;">Stage ${idx+1} of ${ap().stages.length}</p>
+  <h2 class="title" style="margin-bottom:10px;">${escapeHtml(stage.name)}</h2>
+  <div style="font-size:12.8px;color:var(--dim);margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">
+    Type: <b style="color:var(--text);">${escapeHtml(stage.type)}</b> &middot; Approval: <b style="color:var(--text);">${stage.approvalRequired?('Yes ('+escapeHtml(stage.approverName||'—')+')'):'No'}</b> &middot;
+    Status: <b style="color:var(--text);">${escapeHtml(stage.status||'—')}</b> &middot; Notify: <b style="color:var(--text);">${comm}</b>
+  </div>`;
+  const suggestions = STAGE_TYPES[stage.type]||[];
+  const already = stage.fields.map(f=>f.label);
+  const remaining = suggestions.filter(s=>!already.includes(s));
+  if(remaining.length && !readOnly()){
+    html += `<div class="box">
+      <label style="display:block;font-weight:600;font-size:13px;margin-bottom:8px;">Quick add — common fields</label>
+      <div class="check-row" style="flex-direction:column;align-items:flex-start;gap:7px;margin-bottom:10px;">
+        <label><input type="checkbox" onchange="toggleSelectAllSuggest(this.checked)"> <b>Select All</b></label>
+        ${remaining.map(s=>`<label><input type="checkbox" class="suggestCheck" value="${escapeAttr(s)}"> ${escapeHtml(s)}</label>`).join('')}
+      </div>
+      <button class="primary" onclick="addSelectedSuggestions('${stage.id}')">Add Selected Fields</button>
+    </div>`;
+  }
+  html += `<h3 style="font-size:14.5px;margin-bottom:8px;">Fields (${stage.fields.length})</h3>`;
+  if(stage.fields.length===0){ html += `<p class="empty">No fields yet.</p>`; }
+  else { stage.fields.forEach((f,i)=>{ html += renderFieldRow(stage, f, i, stage.fields.length); }); }
+  html += `<button onclick="addBlankField('${stage.id}')">+ Add a New Field</button>`;
+  html += `<div class="pager"><button data-keep ${idx===0?'disabled':''} onclick="apPrevStage()">← Previous Stage</button>
+    ${idx<ap().stages.length-1 ? `<button data-keep class="primary" onclick="apNextStage()">Next Stage →</button>` : `<button data-keep class="primary" onclick="apGoPhase('preview')">Finish — Preview →</button>`}
+  </div>`;
+  return html;
+}
+function apPrevStage(){ ap().currentStageIndex=Math.max(0,ap().currentStageIndex-1); if(!readOnly()) saveState(); renderAll(); }
+function apNextStage(){ ap().currentStageIndex=Math.min(ap().stages.length-1,ap().currentStageIndex+1); if(!readOnly()) saveState(); renderAll(); }
+function toggleSelectAllSuggest(checked){ document.querySelectorAll('.suggestCheck').forEach(cb=>cb.checked=checked); }
+function addSelectedSuggestions(stageId){
+  const checked = Array.from(document.querySelectorAll('.suggestCheck:checked')).map(cb=>cb.value);
+  if(checked.length===0){ showToast('Tick at least one field first.'); return; }
+  const s = getStage(stageId);
+  checked.forEach(label=>{ const preset=FIELD_PRESETS[label]||{type:'Text'}; s.fields.push(mkField(label,preset.type,preset)); });
+  saveState(); renderAll();
+}
+function addBlankField(stageId){ const s=getStage(stageId); const f=mkField('New Field','Text',{}); f._open=true; s.fields.push(f); saveState(); renderAll(); }
+
+function renderFieldRow(stage, f, idx, total){
+  const ti = typeInfo(f.type);
+  let html = `<div class="field-row"><div class="summary">
+    <div class="txt"><b>${escapeHtml(f.label)}</b> — <span class="type">${escapeHtml(ti.l)}${f.mandatory?' · Mandatory':''}</span></div>
+    <div style="display:flex;gap:4px;">
+      <button title="Up" ${idx===0?'disabled':''} onclick="moveField('${stage.id}','${f.id}',-1)">↑</button>
+      <button title="Down" ${idx===total-1?'disabled':''} onclick="moveField('${stage.id}','${f.id}',1)">↓</button>
+      <button class="small" onclick="toggleFieldOpen('${stage.id}','${f.id}')">${f._open?'Close':'Edit'}</button>
+      <button class="small link danger" title="Remove" onclick="removeField('${stage.id}','${f.id}')">✕</button>
+    </div></div>`;
+  if(f._open && !readOnly()) html += `<div class="edit">${renderFieldEditor(stage,f)}</div>`;
+  html += `</div>`;
+  return html;
+}
+function moveField(stageId, fieldId, dir){
+  const s=getStage(stageId); const i=s.fields.findIndex(f=>f.id===fieldId); const j=i+dir;
+  if(j<0||j>=s.fields.length) return;
+  const t=s.fields[i]; s.fields[i]=s.fields[j]; s.fields[j]=t; saveState(); renderAll();
+}
+function toggleFieldOpen(stageId, fieldId){ const f=getField(stageId,fieldId); f._open=!f._open; saveState(); renderAll(); }
+function removeField(stageId, fieldId){ const s=getStage(stageId); s.fields=s.fields.filter(f=>f.id!==fieldId); saveState(); renderAll(); }
+
+function renderFieldEditor(stage, f){
+  const ti = typeInfo(f.type);
+  let html = `<div class="row">
+    <div class="field"><label>Field Name</label><input type="text" value="${escapeAttr(f.label)}" oninput="updateField('${stage.id}','${f.id}','label',this.value,false)"></div>
+    <div class="field"><label>Field Type</label><select onchange="updateField('${stage.id}','${f.id}','type',this.value,true)">
+      ${FIELD_TYPES.map(t=>`<option value="${t.v}" ${f.type===t.v?'selected':''}>${t.l}</option>`).join('')}
+    </select></div>
+    <div class="field"><label>Mandatory?</label><div class="radio-row">
+      <label><input type="radio" name="mand_${f.id}" ${f.mandatory?'checked':''} onchange="updateField('${stage.id}','${f.id}','mandatory',true,false)"> Yes</label>
+      <label><input type="radio" name="mand_${f.id}" ${!f.mandatory?'checked':''} onchange="updateField('${stage.id}','${f.id}','mandatory',false,false)"> No</label>
+    </div></div>
+  </div>`;
+  if(ti.opts || !ti.file){
+    html += `<div class="row">`;
+    if(ti.opts){
+      html += `<div class="field"><label>Choices</label><div class="chips">
+        ${f.options.map((o,i)=>`<span class="chip">${escapeHtml(o)}<button onclick="removeOption('${stage.id}','${f.id}',${i})">×</button></span>`).join('')||'<span style="color:var(--dim);font-size:12.5px;">None yet</span>'}
+        </div><div class="opt-add-row"><input type="text" id="optin_${f.id}" placeholder="Type, then Add" onkeydown="if(event.key==='Enter'){event.preventDefault();addOption('${stage.id}','${f.id}')}"><button type="button" onclick="addOption('${stage.id}','${f.id}')">Add</button></div></div>`;
+    }
+    if(!ti.file){
+      html += `<div class="field"><label>Default Value</label>${ti.opts ?
+        `<select onchange="updateField('${stage.id}','${f.id}','defaultValue',this.value,false)"><option value="">-- none --</option>${f.options.map(o=>`<option ${f.defaultValue===o?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>` :
+        `<input type="${f.type==='Number'?'number':(f.type==='Date'?'date':'text')}" value="${escapeAttr(f.defaultValue)}" oninput="updateField('${stage.id}','${f.id}','defaultValue',this.value,false)">`
+      }</div>`;
+    }
+    html += `</div>`;
+  }
+  html += `<details ${f._moreOpen?'open':''} ontoggle="onMoreToggle('${stage.id}','${f.id}',this.open)"><summary style="cursor:pointer;font-weight:600;color:var(--accent);margin-bottom:10px;">More options</summary>`;
+  const allFields = [];
+  ap().stages.forEach(s=>{ s.fields.forEach(fld=>{ if(fld.id!==f.id) allFields.push({stageName:s.name, field:fld}); }); });
+  const hasOther = allFields.length>0;
+  html += `<div class="field"><label>Only show this field if...</label><div class="radio-row" style="margin-bottom:8px;">
+    <label><input type="radio" name="cond_${f.id}" ${f.condition?'checked':''} ${hasOther?'':'disabled'} onchange="toggleCondition('${stage.id}','${f.id}',true)"> Depends on another field</label>
+    <label><input type="radio" name="cond_${f.id}" ${!f.condition?'checked':''} onchange="toggleCondition('${stage.id}','${f.id}',false)"> Always show</label>
+  </div>${!hasOther?'<div style="color:var(--dim);font-size:12px;">Add another field first.</div>':''}`;
+  if(f.condition){
+    const target = allFields.find(af=>af.field.id===f.condition.targetId);
+    html += `<div class="row"><div class="field"><label>Field to check</label><select onchange="setConditionTarget('${stage.id}','${f.id}',this.value)">
+      ${allFields.map(af=>`<option value="${af.field.id}" ${f.condition.targetId===af.field.id?'selected':''}>${escapeHtml(af.stageName)} → ${escapeHtml(af.field.label)}</option>`).join('')}
+      </select></div><div class="field"><label>Equals</label>${target && target.field.options && target.field.options.length ?
+        `<select onchange="setConditionValue('${stage.id}','${f.id}',this.value)">${target.field.options.map(o=>`<option ${f.condition.value===o?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>` :
+        `<input type="text" value="${escapeAttr(f.condition.value)}" oninput="setConditionValue('${stage.id}','${f.id}',this.value)">`
+      }</div></div>`;
+  }
+  html += `</div>
+  <div class="row">
+    <div class="field"><label>Repeats For</label><input type="text" value="${escapeAttr(f.repeatsFor)}" oninput="updateField('${stage.id}','${f.id}','repeatsFor',this.value,false)" placeholder="e.g. Father, Mother"></div>
+    <div class="field"><label>Filled By</label><select onchange="updateField('${stage.id}','${f.id}','filledBy',this.value,false)">${['Parent','Staff','System'].map(v=>`<option ${f.filledBy===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label>Confidential?</label><div class="radio-row">
+      <label><input type="radio" name="restr_${f.id}" ${f.restricted?'checked':''} onchange="updateField('${stage.id}','${f.id}','restricted',true,false)"> Yes</label>
+      <label><input type="radio" name="restr_${f.id}" ${!f.restricted?'checked':''} onchange="updateField('${stage.id}','${f.id}','restricted',false,false)"> No</label>
+    </div></div>
+  </div>
+  <div class="field"><label>Notes</label><textarea oninput="updateField('${stage.id}','${f.id}','notes',this.value,false)">${escapeHtml(f.notes)}</textarea></div>
+  </details>
+  <button class="primary" onclick="saveFieldEditor('${stage.id}','${f.id}')">Save</button>`;
+  return html;
+}
+function saveFieldEditor(stageId, fieldId){ const f=getField(stageId,fieldId); if(f) f._open=false; saveState(); renderAll(); }
+function onMoreToggle(stageId, fieldId, open){ const f=getField(stageId,fieldId); f._moreOpen=open; saveState(); }
+function updateField(stageId, fieldId, prop, value, rerender){ const f=getField(stageId,fieldId); if(!f) return; f[prop]=value; saveState(); if(rerender) renderAll(); }
+function addOption(stageId, fieldId){ const input=document.getElementById('optin_'+fieldId); const val=(input.value||'').trim(); if(!val) return; getField(stageId,fieldId).options.push(val); input.value=''; saveState(); renderAll(); }
+function removeOption(stageId, fieldId, idx){ const f=getField(stageId,fieldId); const removed=f.options[idx]; f.options.splice(idx,1); if(f.defaultValue===removed) f.defaultValue=''; saveState(); renderAll(); }
+function toggleCondition(stageId, fieldId, on){
+  const f = getField(stageId, fieldId);
+  if(on){ const other=ap().stages.flatMap(s=>s.fields).find(x=>x.id!==fieldId); if(!other){ showToast('Add another field first.'); return; } f.condition={targetId:other.id, value:(other.options[0]||'')}; }
+  else { f.condition=null; }
+  saveState(); renderAll();
+}
+function setConditionTarget(stageId, fieldId, targetId){ const f=getField(stageId,fieldId); const target=ap().stages.flatMap(s=>s.fields).find(x=>x.id===targetId); f.condition={targetId, value:(target&&target.options[0])||''}; saveState(); renderAll(); }
+function setConditionValue(stageId, fieldId, value){ getField(stageId,fieldId).condition.value=value; saveState(); }
+
+function renderApPreviewPhase(){
+  if(ap().currentStageIndex>=ap().stages.length) ap().currentStageIndex=0;
+  const idx = ap().currentStageIndex;
+  const stage = ap().stages[idx];
+  if(!stage) return `<p class="empty">No stages.</p>`;
+  let html = `<h2 class="title">Preview</h2>`;
+  html += `<div class="stepper-scroll" style="margin-bottom:16px;"><div class="stepper">` + ap().stages.map((s,i)=>{
+    const cls=['stepper-item']; if(i===idx) cls.push('active');
+    const line = i<ap().stages.length-1 ? '<div class="stepper-line"></div>' : '';
+    return `<div class="${cls.join(' ')}" onclick="apJumpPreview(${i})"><div class="stepper-circle">${i+1}</div><div class="stepper-label">${escapeHtml(s.name)}</div></div>${line}`;
+  }).join('') + `</div></div>`;
+  if(stage.status) html += `<div class="status-banner">After this stage, status becomes: “${escapeHtml(stage.status)}”</div>`;
+  html += `<div class="box">`;
+  if(stage.fields.length===0) html += `<p class="empty">No fields in this stage.</p>`;
+  else stage.fields.forEach(f=>{ html += renderPreviewField(f); });
+  html += `</div>`;
+  html += `<div class="pager"><button data-keep onclick="apGoPhase('fields')">← Back to Fields</button>
+    <span><button data-keep onclick="exportOne('json')">Download JSON</button> <button data-keep class="primary" onclick="exportOne('csv')">Download CSV</button></span></div>`;
+  return html;
+}
+function apJumpPreview(i){ ap().currentStageIndex=i; if(!readOnly()) saveState(); renderAll(); }
+function renderPreviewField(f){
+  const ti = typeInfo(f.type);
+  const star = f.mandatory?' <span class="req">*</span>':'';
+  let inner='';
+  if(ti.file){ inner = `<div class="pv-file">${f.type==='SystemGenerated'?'Filled automatically by the system':'Click to upload'}</div>`; }
+  else if(f.type==='Dropdown'||f.type==='Choice'){ inner = `<select id="pvin_${f.id}" onchange="onPreviewChange()"><option value="">-- Select --</option>${f.options.map(o=>`<option ${f.defaultValue===o?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`; }
+  else if(f.type==='MultiSelect'){ inner = `<div class="choice-row">${f.options.map(o=>`<label><input type="checkbox" value="${escapeAttr(o)}"> ${escapeHtml(o)}</label>`).join('')}</div>`; }
+  else if(f.type==='Checkbox'){ inner = `<div class="choice-row"><label><input type="checkbox" id="pvin_${f.id}" onchange="onPreviewChange()"> Yes</label></div>`; }
+  else if(f.type==='Textarea'){ inner = `<textarea id="pvin_${f.id}" oninput="onPreviewChange()">${escapeHtml(f.defaultValue)}</textarea>`; }
+  else { const it=f.type==='Number'?'number':(f.type==='Date'?'date':(f.type==='Email'?'email':(f.type==='Phone'?'tel':'text'))); inner = `<input type="${it}" id="pvin_${f.id}" value="${escapeAttr(f.defaultValue)}" oninput="onPreviewChange()">`; }
+  const rep = f.repeatsFor ? `<div style="color:var(--dim);font-size:12px;margin-bottom:6px;">Repeats for: ${escapeHtml(f.repeatsFor)}</div>` : '';
+  return `<div class="pv-field" id="pvwrap_${f.id}"><label>${escapeHtml(f.label)}${star}</label>${rep}${inner}</div>`;
+}
+function readPreviewValue(fieldId){ const el=document.getElementById('pvin_'+fieldId); if(!el) return ''; if(el.type==='checkbox') return el.checked?'Yes':'No'; return el.value; }
+function wireConditionals(){
+  const stage = ap().stages[ap().currentStageIndex]; if(!stage) return;
+  stage.fields.filter(f=>f.condition).forEach(f=>{ const wrap=document.getElementById('pvwrap_'+f.id); if(!wrap) return; wrap.style.display=(readPreviewValue(f.condition.targetId)===f.condition.value)?'':'none'; });
+}
+function onPreviewChange(){ wireConditionals(); }
+
+function slugify(str){ return (str||'').toString().trim().toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/(^-|-$)/g,'')||'STATUS'; }
+function buildApRows(){
+  const rows=[];
+  ap().stages.forEach((stage,i)=>{
+    const comm = [stage.commEmail&&'Email', stage.commSMS&&'SMS', stage.commWhatsApp&&'WhatsApp'].filter(Boolean).join(', ')||'None';
+    const base = { 'Stage No.':i+1, 'Stage Type':stage.type, 'Stage Name':stage.name, 'Approval Required? (Y/N)':stage.approvalRequired?'Y':'N',
+      'Approver / Counsellor':stage.approverName||'', 'Status Code':slugify(stage.status), 'Status Label':stage.status, 'Communication Channel':comm,
+      'Email Template':stage.emailTemplate||'', 'SMS Template':stage.smsTemplate||'', 'WhatsApp Template':stage.whatsappTemplate||'' };
+    if(stage.fields.length===0){ rows.push(Object.assign({},base,{'Field Name':'','Field Type':'','Filled By':'','Mandatory? (Y/N)':'','Repeats For':'','Options':'','Default Value':'','Conditional Rule':'','Confidential? (Y/N)':'','Notes':''})); return; }
+    stage.fields.forEach(f=>{
+      let cond='';
+      if(f.condition){ const t=ap().stages.flatMap(s=>s.fields).find(x=>x.id===f.condition.targetId); cond=t?`Show only if "${t.label}" = "${f.condition.value}"`:''; }
+      rows.push(Object.assign({},base,{'Field Name':f.label,'Field Type':typeInfo(f.type).l,'Filled By':f.filledBy,'Mandatory? (Y/N)':f.mandatory?'Y':'N','Repeats For':f.repeatsFor,'Options':f.options.join(', '),'Default Value':f.defaultValue,'Conditional Rule':cond,'Confidential? (Y/N)':f.restricted?'Y':'N','Notes':f.notes}));
+    });
+  });
+  return rows;
+}
+function toCSV(rows){
+  if(!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const esc = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const lines = [headers.map(esc).join(',')];
+  rows.forEach(r=>lines.push(headers.map(h=>esc(r[h])).join(',')));
+  return lines.join('\r\n');
+}
+function offerDownload(filename, text){
+  try{
+    const blob = new Blob([text], {type:'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }catch(e){ showToast('Could not start the download.'); }
+}
+function exportOne(kind){
+  const slug = slugify(state.institute.name||'school').toLowerCase();
+  if(kind==='json') offerDownload(`${slug}-application-process.json`, JSON.stringify(ap().stages,null,2));
+  else offerDownload(`${slug}-application-process.csv`, toCSV(buildApRows()));
+}
+function exportAll(){
+  const slug = slugify(state.institute.name||'admission-prereq').toLowerCase();
+  offerDownload(`${slug}-pre-requisite.json`, JSON.stringify(state, null, 2));
+}
+
+/* ============================= 5. INTEGRATIONS ============================= */
+registerTable('integrations', ()=>state.integrations, ()=>({category:'', integration:'', required:'No', note:''}));
+function renderIntegrations(){
+  return `<h2 class="title">Integrations Required</h2><div class="box">${renderDTable('integrations', [
+    {key:'category', label:'Category', type:'text'}, {key:'integration', label:'Integration', type:'text'},
+    {key:'required', label:'Required', type:'select', options:['Yes','No']}, {key:'note', label:'Note', type:'text'},
+  ])}</div>`;
+}
+
+/* ============================= 6. WHATSAPP SETUP ============================= */
+registerTable('whatsappChecklist', ()=>state.whatsappChecklist, ()=>({item:'', provided:false}));
+function renderWhatsapp(){
+  return `<h2 class="title">WhatsApp Setup Checklist</h2><div class="box">${renderDTable('whatsappChecklist', [
+    {key:'item', label:'Document / Requirement', type:'text'}, {key:'provided', label:'Provided', type:'checkbox'},
+  ])}</div>`;
+}
+
+/* ============================= 7. ACADEMIC DETAILS ============================= */
+registerTable('academic', ()=>state.academic, ()=>({wing:'', class:'', sections:''}));
+function renderAcademic(){
+  return `<h2 class="title">Academic Details</h2><div class="box">${renderDTable('academic', [
+    {key:'wing', label:'Wing', type:'text'}, {key:'class', label:'Class', type:'text'}, {key:'sections', label:'Sections', type:'text'},
+  ])}</div>`;
+}
+
+/* ============================= 8. FAQ & QUERY CATEGORIES ============================= */
+registerTable('faqs', ()=>state.faqs, ()=>({q:'', a:''}));
+registerTable('queryCategories', ()=>state.queryCategories, null);
+registerTable('queryCategories2', ()=>state.queryCategories2, null);
+function renderFaq(){
+  const sub = getSub('faq');
+  if(sub===0) return `<h2 class="title">FAQs</h2><div class="box">${renderDTable('faqs', [{key:'q',label:'Question',type:'text'},{key:'a',label:'Answer',type:'textarea'}])}</div>`;
+  return `<h2 class="title">Query Categories</h2>
+  <div class="box"><label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px;">Query Category</label>${renderChipList('queryCategories')}</div>
+  <div class="box"><label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px;">Query Category (commonly used by school)</label>${renderChipList('queryCategories2')}</div>`;
+}
+
+/* ============================= 9. ENQUIRY SOURCES & NUMBERING ============================= */
+registerTable('enquirySources', ()=>state.enquirySources, null);
+registerTable('autoNumbers', ()=>state.autoNumbers, null);
+function renderSources(){
+  const sub = getSub('sources');
+  if(sub===0) return `<h2 class="title">Enquiry Sources</h2><div class="box">${renderChipList('enquirySources')}</div>`;
+  return `<h2 class="title">Auto-Numbering Format</h2><div class="box">${renderDTable('autoNumbers', [
+    {key:'type', label:'Type', type:'readonly'}, {key:'example', label:'Example', type:'readonly'}, {key:'proposed', label:'Your Format', type:'text'},
+  ])}</div>`;
+}
+
+/* ============================= 10. FEE & DOCUMENTS ============================= */
+registerTable('feeClasses', ()=>state.feeClasses, ()=>({class:'', feeRequired:'Yes', amount:0}));
+registerTable('feeDocuments', ()=>state.feeDocuments, ()=>({name:'', applicableClass:'All'}));
+function renderFee(){
+  const sub = getSub('fee');
+  if(sub===0) return `<h2 class="title">Fee by Class</h2><div class="box">${renderDTable('feeClasses', [
+    {key:'class', label:'Class', type:'readonly'}, {key:'feeRequired', label:'Fee Required', type:'select', options:['Yes','No']}, {key:'amount', label:'Amount', type:'number'},
+  ])}</div>`;
+  return `<h2 class="title">Documents Required</h2><div class="box">${renderDTable('feeDocuments', [
+    {key:'name', label:'Document Name', type:'text'}, {key:'applicableClass', label:'Applicable Class', type:'text'},
+  ])}</div>`;
+}
+
+/* ============================= 11. ASSIGNMENT RULES ============================= */
+registerTable('assignRules', ()=>state.assignRules, ()=>({rule:'', enabled:'No', description:'', detail:''}));
+function toggleRRCounsellor(name, checked){
+  if(checked){ if(!state.roundRobinCounsellors.includes(name)) state.roundRobinCounsellors.push(name); }
+  else { state.roundRobinCounsellors = state.roundRobinCounsellors.filter(n=>n!==name); }
+  saveState();
+}
+function renderAssign(){
+  const people = getAllPeople();
+  let html = `<h2 class="title">Enquiry Assignment Rules</h2><div class="box">${renderDTable('assignRules', [
+    {key:'rule', label:'Rule', type:'readonly'}, {key:'enabled', label:'Choose', type:'select', options:['Yes','No']},
+    {key:'description', label:'Description', type:'readonly'}, {key:'detail', label:'Note', type:'text'},
+  ])}</div>`;
+  html += `<h3 style="font-size:14.5px;margin-bottom:8px;">Round Robin — Select Counsellors</h3><div class="box">`;
+  if(people.length===0){ html += `<p class="empty">Add employees under "Institute &amp; Employees" first.</p>`; }
+  else { html += `<div class="check-row" style="flex-direction:column;align-items:flex-start;gap:8px;">` +
+    people.map(p=>`<label><input type="checkbox" ${state.roundRobinCounsellors.includes(p.name)?'checked':''} onchange="toggleRRCounsellor('${p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}',this.checked)"> ${escapeHtml(p.label)}</label>`).join('') + `</div>`; }
+  html += `</div>`;
+  return html;
+}
+
+/* ============================= 12. FORMS & LANDING PAGE ============================= */
+function updForms(key, value){ state.formsDetail[key]=value; saveState(); }
+function renderForms(){
+  const f = state.formsDetail;
+  return `<h2 class="title">Forms &amp; Landing Page</h2><div class="box">
+    <div class="field"><label>Enquiry Form — details / format / link</label><textarea oninput="updForms('enquiryForm',this.value)">${escapeHtml(f.enquiryForm)}</textarea></div>
+    <div class="field"><label>Application / Registration Form — details / format / link</label><textarea oninput="updForms('appForm',this.value)">${escapeHtml(f.appForm)}</textarea></div>
+    <div class="field"><label>Output Form Design — notes</label><textarea oninput="updForms('outputFormNote',this.value)">${escapeHtml(f.outputFormNote)}</textarea></div>
+    <div class="field"><label>Sample Landing Pages</label><input type="text" value="${escapeAttr(f.landingPage)}" oninput="updForms('landingPage',this.value)">
+      <div style="margin-top:4px;"><a href="${escapeAttr(f.landingPage)}" target="_blank" rel="noopener">Open sample landing pages ↗</a></div>
+    </div>
+  </div>`;
+}
+
+/* ============================= 13. COMMUNICATION TEMPLATES ============================= */
+function updTemplate(idx, key, value){ state.templates[idx][key]=value; saveState(); }
+function renderTemplates(){
+  const cats = [...new Set(state.templates.map(t=>t.category))];
+  const sub = getSub('templates');
+  const cat = cats[sub] || cats[0];
+  const rows = state.templates.map((t,i)=>({...t, _i:i})).filter(t=>t.category===cat);
+  let html = `<h2 class="title">${escapeHtml(cat)} Templates</h2>`;
+  rows.forEach(t=>{
+    html += `<div class="box"><label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:10px;">${escapeHtml(t.event)}</label>
+      <div class="row">
+        <div class="field"><label>SMS</label><textarea placeholder="SMS text using {Student Name}, {Status}..." oninput="updTemplate(${t._i},'sms',this.value)">${escapeHtml(t.sms)}</textarea></div>
+        <div class="field"><label>WhatsApp</label><textarea placeholder="WhatsApp message..." oninput="updTemplate(${t._i},'whatsapp',this.value)">${escapeHtml(t.whatsapp)}</textarea></div>
+        <div class="field"><label>Email</label><textarea placeholder="Subject + body..." oninput="updTemplate(${t._i},'email',this.value)">${escapeHtml(t.email)}</textarea></div>
+      </div>
+    </div>`;
+  });
+  return html;
+}
+
+/* ============================= 14. PREVIEW & SUBMIT ============================= */
+function kv(label, val){ return `<div style="margin-bottom:5px;font-size:13px;"><b>${escapeHtml(label)}:</b> ${escapeHtml(val||'—')}</div>`; }
+function plainTable(headers, rows){
+  if(!rows.length) return '<p class="empty">None added.</p>';
+  let html = `<div class="dtable-wrap"><table class="dtable"><thead><tr>` + headers.map(h=>`<th>${escapeHtml(h)}</th>`).join('') + `</tr></thead><tbody>`;
+  rows.forEach(r=>{ html += '<tr>' + r.map(c=>`<td>${escapeHtml(c)}</td>`).join('') + '</tr>'; });
+  html += `</tbody></table></div>`;
+  return html;
+}
+function renderSubmitBox(){
+  if(readOnly()) return '';
+  const pending = REQUIRED_SECTIONS.filter(s=>!SAVED_SECTIONS[s.key]);
+  return `<div class="box" style="border-color:var(--accent);">
+    <h3 style="font-size:15px;margin-bottom:6px;">Final Submit</h3>
+    <p style="margin:0 0 12px;color:var(--dim);font-size:13px;">After submitting, the details are locked and can no longer be changed. Until then you can come back to this link and edit anything.</p>
+    ${pending.length ? `<div class="pending-list"><b>Not saved yet:</b> ${pending.map(s=>`<a href="javascript:void(0)" onclick="goSection('${s.key}')">${escapeHtml(s.label)}</a>`).join(', ')}</div>` : ''}
+    <div class="row">
+      <div class="field"><label>Your name <span class="req">*</span></label><input type="text" id="subName" autocomplete="name"></div>
+      <div class="field"><label>Your email</label><input type="email" id="subEmail" autocomplete="email"></div>
+    </div>
+    <label class="check-row" style="margin-bottom:12px;"><span style="display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" id="subConfirm"> I confirm the details above are correct.</span></label>
+    <button class="primary" id="subBtn" onclick="finalSubmit()">Final Submit</button>
+  </div>`;
+}
+async function finalSubmit(){
+  const name = document.getElementById('subName').value.trim();
+  const email = document.getElementById('subEmail').value.trim();
+  if(!name){ showToast('Enter your name'); document.getElementById('subName').focus(); return; }
+  if(!document.getElementById('subConfirm').checked){ showToast('Tick the confirmation box'); return; }
+  const btn = document.getElementById('subBtn'); btn.disabled = true; btn.textContent = 'Submitting…';
+  try{
+    clearTimeout(saveTimer);
+    const out = await api('POST', PUBLIC_URL + '/submit', { data: state, name, email });
+    applyServer(out);
+    dirty = false;
+    renderAll(); window.scrollTo(0,0);
+    showToast('Submitted — thank you!');
+  }catch(e){
+    if(e.status === 409){ await boot(); return; }
+    showToast(e.message || 'Could not submit'); btn.disabled = false; btn.textContent = 'Final Submit';
+  }
+}
+function renderPreviewAll(){
+  const it = state.institute;
+  let html = `<h2 class="title">Preview &amp; Submit</h2>
+  <div style="margin-bottom:16px;"><button data-keep class="primary" onclick="window.print()">Download / Print PDF</button></div>
+  ${renderSubmitBox()}
+  <div id="printArea">`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Institute</h3>
+    ${kv('URL', it.url)}${kv('Name', it.name)}${kv('Contact', it.contact)}${kv('Email', it.email)}${kv('Website', it.website)}
+    ${kv('Address', it.address)}${kv('City / State / Country', [it.city,it.state,it.country].filter(Boolean).join(', '))}
+    ${kv('Sender Email', it.senderEmail)}
+    <div style="margin-top:10px;font-weight:600;font-size:13px;">Employees</div>
+    ${plainTable(['Role','Salutation','Name','Gender','Mobile','Email'], it.employees.filter(e=>e.name).map(e=>[e.role,e.salutation,e.name,e.gender,e.mobile,e.email]))}
+  </div>`;
+
+  if(state.branches.length){
+    state.branches.forEach(b=>{
+      html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Branch — ${escapeHtml(b.name)}</h3>
+        ${kv('Contact', b.contact)}${kv('Email', b.email)}${kv('Website', b.website)}${kv('Address', b.address)}
+        ${kv('City / State / Country', [b.city,b.state,b.country].filter(Boolean).join(', '))}
+        <div style="margin-top:10px;font-weight:600;font-size:13px;">Employees</div>
+        ${plainTable(['Role','Salutation','Name','Gender','Mobile','Email'], (b.employees||[]).filter(e=>e.name).map(e=>[e.role,e.salutation,e.name,e.gender,e.mobile,e.email]))}
+      </div>`;
+    });
+  }
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Enquiry Stages</h3>
+    ${plainTable(['Stage','Substages','Followup','Remark'], state.enquiryStages.map(r=>[r.stage,r.substages,r.followup,r.remark]))}
+  </div>`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Application Process</h3>`;
+  if(ap().stages.length===0) html += `<p class="empty">No stages added.</p>`;
+  ap().stages.forEach((s,i)=>{
+    const comm = [s.commEmail&&'Email', s.commSMS&&'SMS', s.commWhatsApp&&'WhatsApp'].filter(Boolean).join(', ')||'None';
+    html += `<div style="margin-bottom:12px;padding-bottom:10px;${i<ap().stages.length-1?'border-bottom:1px solid var(--border);':''}">
+      <div style="font-weight:700;font-size:13.5px;">${i+1}. ${escapeHtml(s.name)} <span style="font-weight:400;color:var(--dim);">(${escapeHtml(s.type)})</span></div>
+      <div style="font-size:12px;color:var(--dim);margin:4px 0 8px;">Approval: ${s.approvalRequired?('Yes — '+escapeHtml(s.approverName||'—')):'No'} &middot; Status: ${escapeHtml(s.status||'—')} &middot; Notify: ${comm}</div>
+      ${plainTable(['Field','Type','Mandatory'], s.fields.map(f=>[f.label, typeInfo(f.type).l, f.mandatory?'Yes':'No']))}
+    </div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Integrations</h3>
+    ${plainTable(['Category','Integration','Required','Note'], state.integrations.map(r=>[r.category,r.integration,r.required,r.note]))}
+  </div>`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">WhatsApp Setup</h3>
+    ${plainTable(['Requirement','Provided'], state.whatsappChecklist.map(r=>[r.item, r.provided?'Yes':'No']))}
+  </div>`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Academic Details</h3>
+    ${plainTable(['Wing','Class','Sections'], state.academic.map(r=>[r.wing,r.class,r.sections]))}
+  </div>`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">FAQs &amp; Query Categories</h3>
+    ${plainTable(['Question','Answer'], state.faqs.filter(f=>f.a).map(r=>[r.q,r.a]))}
+    <div style="margin-top:10px;">${kv('Query Categories', state.queryCategories.join(', '))}${kv('Query Categories (school)', state.queryCategories2.join(', '))}</div>
+  </div>`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Enquiry Sources &amp; Numbering</h3>
+    ${kv('Sources', state.enquirySources.join(', '))}
+    ${plainTable(['Type','Example','Proposed'], state.autoNumbers.map(r=>[r.type,r.example,r.proposed]))}
+  </div>`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Fee &amp; Documents</h3>
+    ${plainTable(['Class','Fee Required','Amount'], state.feeClasses.map(r=>[r.class,r.feeRequired,r.amount]))}
+    <div style="margin-top:10px;font-weight:600;font-size:13px;">Documents Required</div>
+    ${plainTable(['Document','Applicable Class'], state.feeDocuments.map(r=>[r.name,r.applicableClass]))}
+  </div>`;
+
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Assignment Rules</h3>
+    ${plainTable(['Rule','Chosen','Note'], state.assignRules.map(r=>[r.rule,r.enabled,r.detail]))}
+    ${kv('Round Robin Counsellors', state.roundRobinCounsellors.join(', '))}
+  </div>`;
+
+  const fd = state.formsDetail;
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Forms &amp; Landing Page</h3>
+    ${kv('Enquiry Form', fd.enquiryForm)}${kv('Application Form', fd.appForm)}${kv('Output Form Notes', fd.outputFormNote)}${kv('Landing Page', fd.landingPage)}
+  </div>`;
+
+  const filledTemplates = state.templates.filter(t=>t.sms||t.whatsapp||t.email);
+  html += `<div class="box"><h3 style="font-size:14.5px;margin-bottom:10px;">Communication Templates</h3>`;
+  if(!filledTemplates.length) html += `<p class="empty">None filled yet.</p>`;
+  else filledTemplates.forEach(t=>{
+    html += `<div style="margin-bottom:10px;font-size:13px;"><b>${escapeHtml(t.category)} — ${escapeHtml(t.event)}</b>
+      ${t.sms?kv('SMS',t.sms):''}${t.whatsapp?kv('WhatsApp',t.whatsapp):''}${t.email?kv('Email',t.email):''}
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  return html;
+}
+
+/* ============================= INIT ============================= */
+function applyServer(out){
+  LOCKED = out.status === 'submitted';
+  SUBMIT_INFO = LOCKED ? { at: out.submittedAt, name: (out.submittedBy && out.submittedBy.name) || '' } : null;
+  if(out.institute) INSTITUTE = out.institute;
+  if(out.sections) SAVED_SECTIONS = out.sections;
+  if('data' in out) adoptData(out.data);
+  if(out.lastSavedAt && !LOCKED) setSaveStatus('ok', 'Last saved ' + fmtDate(out.lastSavedAt));
+}
+function fatal(title, text){
+  document.getElementById('root').innerHTML = `<div class="center-msg"><div class="card"><h2 style="font-size:18px;margin-bottom:8px;">${escapeHtml(title)}</h2><div style="color:var(--dim);">${escapeHtml(text)}</div></div></div>`;
+}
+async function boot(){
+  try{
+    let out;
+    if(VIEW){
+      const d = await api('GET', `${API_BASE}/api/prerequisites/data`, null, true);
+      const meta = await api('GET', `${API_BASE}/api/prerequisites`, null, true);
+      out = { status: d.status, submittedAt: d.submittedAt, submittedBy: meta.submittedBy, institute: meta.institute, data: d.data,
+        sections: Object.fromEntries((meta.sections||[]).map(s=>[s.key, s.savedAt])) };
+    } else {
+      if(!TOKEN){ fatal('Link not valid', 'Please open the link exactly as it was sent to you.'); return; }
+      out = await api('GET', PUBLIC_URL);
+    }
+    applyServer(out);
+    if(readOnly()) { state.activeSection = state.activeSection || 'institute'; }
+    renderShell();
+    renderAll();
+  }catch(e){
+    if(e.status === 404) fatal('Link not valid', 'This link is not valid or has been replaced. Please ask for a new link.');
+    else if(VIEW && e.status === 401) fatal('Sign in required', 'Sign in to the CRM, then open this view again.');
+    else fatal('Could not load', e.message || 'Please check your connection and try again.');
+  }
+}
+boot();
+</script>
+</body>
+</html>

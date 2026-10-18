@@ -54,6 +54,8 @@ import {
   Network,
   LayoutTemplate,
   Palette,
+  Headset,
+  ListChecks,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -145,7 +147,7 @@ const projectsSubmenu = [
   { title: "Dashboard", path: "/modules/projects/dashboard", icon: LayoutDashboard, module: "pm_dashboard" },
   { title: "Projects", path: "/modules/projects/list", icon: Layers, module: "pm_projects", also: "/modules/projects/p", alsoExact: "/modules/projects/new" },
   // one entry for my tasks, team tasks, daily plan and team calendar (tabs on the page); it opens the first tab the user may see
-  { title: "Planner", path: "/modules/projects/my-work", icon: ListTodo, tabs: [["pm_my_tasks", "/modules/projects/my-work"], ["pm_tasks", "/modules/projects/my-work"], ["pm_daily_plan", "/modules/projects/daily-plan"], ["pm_team_calendar", "/modules/projects/team-calendar"]], alsoPaths: ["/modules/projects/tasks", "/modules/projects/daily-plan", "/modules/projects/team-calendar"] },
+  { title: "Task Planner", path: "/modules/projects/my-work", icon: ListTodo, tabs: [["pm_my_tasks", "/modules/projects/my-work"], ["pm_tasks", "/modules/projects/my-work"], ["pm_daily_plan", "/modules/projects/daily-plan"], ["pm_team_calendar", "/modules/projects/team-calendar"]], alsoPaths: ["/modules/projects/tasks", "/modules/projects/daily-plan", "/modules/projects/team-calendar"] },
   { title: "Meetings & Trainings", path: "/modules/projects/meetings", icon: Users, module: "pm_meetings" },
   { title: "Tickets", path: "/modules/projects/tickets", icon: Bell, module: "pm_tickets" },
   { title: "Clients", path: "/modules/projects/clients", icon: Building2, module: "pm_clients" },
@@ -175,6 +177,9 @@ const crmSubmenu = [
       { title: "Dashboard", path: "/crm", icon: LayoutDashboard, module: "dashboard", exact: true },
       { title: "Leads", path: "/crm/leads", icon: Flag, module: "leads" },
       { title: "Follow-ups", path: "/crm/followups", icon: Bell, module: "followups" },
+      { title: "Activities", path: "/crm/activities", icon: Activity, module: "leads" },
+      { title: "Queries", path: "/crm/queries", icon: Headset, module: "leads" },
+      { title: "Lead Lists", path: "/crm/lists", icon: ListChecks, module: "leads" },
       { title: "Conversion", path: "/crm/conversion", icon: TrendingUp, module: "conversion" },
       { title: "Applications", path: "/crm/applications", icon: ClipboardCheck, module: "leads" },
       { title: "Targets", path: "/crm/targets", icon: BarChart3, module: "leads" },

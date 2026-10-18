@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBots } from '../context/BotContext.jsx';
 import { systemApi } from '../../api';
 import '../flowchat.css';
+import { PageHeader } from '../../components/ui';
 
 export default function FlowChatDashboard() {
   const { clients = [], bots = [], addClient, createBot, deleteBot, duplicateBot } = useBots() || {};
@@ -70,41 +71,35 @@ export default function FlowChatDashboard() {
 
   return (
     <div className="flowchat-dashboard">
-      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-          <h4 className="fw-bold mb-1 d-flex align-items-center gap-2">
-            <span className="brand-logo" style={{ width: 32, height: 32, fontSize: 16 }}>
-              <i className="bi bi-diagram-3-fill"></i>
-            </span>
-            Chatbot Visual Flow Builder (FlowChat Studio)
+      <PageHeader
+        title={
+          <span className="d-inline-flex align-items-center gap-2">
+            Chatbot Flows
             <span className={`badge rounded-pill border ${statusClass}`} style={{ fontSize: 11 }}>
               <i className={`bi ${isMetaLive ? 'bi-meta' : isSimulation ? 'bi-cpu' : 'bi-plug'} me-1`}></i>
               {statusText}
             </span>
-          </h4>
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-brand btn-sm rounded-pill px-3" onClick={() => setShowBotModal(true)}>
-            <i className="bi bi-plus-lg me-1"></i> New Chatbot Flow
+          </span>
+        }
+        actions={
+          <button className="btn btn-brand btn-sm" onClick={() => setShowBotModal(true)}>
+            <i className="bi bi-plus-lg me-1"></i>New Flow
           </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="row g-4">
         {/* Bots list (full width) */}
         <div className="col-12">
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-            <div>
-              <h5 className="fw-bold mb-0">Chatbot Flows</h5>
-              <div className="text-muted small">{clientBots.length} active chatbot flow(s)</div>
-            </div>
+            <div className="text-muted small">{clientBots.length} flows</div>
             <div className="d-flex align-items-center gap-2">
               <div className="input-group input-group-sm search-input-group" style={{ width: 220 }}>
-                <span className="input-group-text bg-white"><i className="bi bi-search"></i></span>
+                <span className="input-group-text"><i className="bi bi-search"></i></span>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Search flows…"
+                  placeholder="Search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -124,6 +119,11 @@ export default function FlowChatDashboard() {
                     </tr>
                   </thead>
                   <tbody>
+                    {!clientBots.length && (
+                      <tr>
+                        <td colSpan={5} className="text-center text-muted py-5">No flows</td>
+                      </tr>
+                    )}
                     {clientBots.map((bot) => {
                       if (!bot) return null;
                       const nodeCount = Object.keys(bot.nodes || {}).length;
@@ -200,7 +200,7 @@ export default function FlowChatDashboard() {
 
 function Modal({ title, children, onClose }) {
   return (
-    <div className="modal d-block" style={{ background: 'rgba(15,23,42,.45)', zIndex: 1060 }} onClick={onClose}>
+    <div className="modal d-block" style={{ background: 'rgba(37,51,56,.45)', zIndex: 1060 }} onClick={onClose}>
       <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
         <div className="modal-content rounded-4 border-0 p-2 shadow">
           <div className="modal-header border-0">

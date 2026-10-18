@@ -402,6 +402,14 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      const el = document.activeElement;
+      const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+      if (mod && e.key.toLowerCase() === "s") { e.preventDefault(); save(); return; }
+      if (!typing && mod && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) handleRedo(); else handleUndo(); return; }
+      if (!typing && mod && e.key.toLowerCase() === "y") { e.preventDefault(); handleRedo(); return; }
+      if (!typing && mod && e.key.toLowerCase() === "d" && selectedCompId) { e.preventDefault(); cloneComponent(selectedCompId, { stopPropagation() {} }); return; }
+      if (e.key === "Escape" && selectedCompId && !typing) { setSelectedCompId(null); return; }
       if (!selectedCompId) return;
 
       // Skip deletion if user is typing inside input/textarea fields
@@ -427,7 +435,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
                 components: page.components.filter((c) => c.id !== selectedCompId)
               });
               setSelectedCompId(null);
-              toast.show("Component removed", "success");
+              toast("Element removed");
             }
           });
           return;
@@ -438,7 +446,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
           components: page.components.filter((c) => c.id !== selectedCompId)
         });
         setSelectedCompId(null);
-        toast.show("Component removed", "success");
+        toast("Element removed");
       }
     };
 
@@ -446,7 +454,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedCompId, page.components, page]);
+  }, [selectedCompId, page.components, page, history, redoStack]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pushState = (nextPage) => {
     setHistory((prev) => [...prev.slice(-30), page]);
@@ -968,136 +976,74 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
   }
 
   return (
-    <div className="d-flex flex-column h-100 bg-white" style={{ minHeight: "85vh", borderRadius: "14px", overflow: "hidden" }}>
-      {/* Top Toolbar Header */}
-      <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
-        <div className="d-flex align-items-center gap-3">
-          <div className="d-flex align-items-center gap-2">
-            <button className="btn btn-xs btn-outline-secondary d-flex align-items-center py-0.5 px-2" onClick={(e) => {
-              if (history.length > 0) {
-                setConfirmDialog({
-                  title: "Unsaved Changes",
-                  message: "You have unsaved changes. Are you sure you want to go back?",
-                  onConfirm: onCancel
-                });
-              } else {
-                onCancel();
-              }
-            }} style={{ borderRadius: "6px", fontSize: "10px", height: "22px" }}>
-              <i className="bi bi-chevron-left me-1"></i>Back
-            </button>
-            <i className="bi bi-grid-1x2-fill text-wa" style={{ fontSize: "14px" }}></i>
-            <input
-              type="text"
-              className="form-control form-control-sm fw-bold py-0"
-              value={page.name}
-              onChange={(e) => updatePageTitle(e.target.value)}
-              style={{ width: "180px", border: "1px solid #cbd5e1", borderRadius: "6px", height: "22px", fontSize: "11px" }}
-              placeholder="Landing Page Name"
-            />
+    <div className="lp-builder d-flex flex-column bg-white border" style={{ height: "calc(100vh - 120px)", minHeight: 560, borderRadius: "14px", overflow: "hidden" }}>
+      {/* Top toolbar */}
+      <div className="lp-toolbar">
+        <div className="lp-toolbar-group" style={{ minWidth: 0, flex: "1 1 220px" }}>
+          <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" title="Back" onClick={() => {
+            if (history.length > 0) {
+              setConfirmDialog({ title: "Unsaved changes", message: "Leave without saving?", onConfirm: onCancel });
+            } else {
+              onCancel();
+            }
+          }}>
+            <i className="bi bi-chevron-left"></i>Back
+          </button>
+          <input
+            type="text"
+            className="ui-input"
+            aria-label="Page name"
+            value={page.name}
+            onChange={(e) => updatePageTitle(e.target.value)}
+            style={{ flex: "1 1 160px", minWidth: 120, maxWidth: 280, fontWeight: 600 }}
+          />
+        </div>
+
+        <div className="lp-toolbar-group">
+          <div className="lp-seg" role="group" aria-label="Viewport">
+            {[["desktop", "display", "Desktop"], ["tablet", "tablet-landscape", "Tablet"], ["mobile", "phone", "Mobile"]].map(([v, icon, label]) => (
+              <button key={v} type="button" title={label} className={viewportMode === v ? "active" : ""} onClick={() => setViewportMode(v)}>
+                <i className={`bi bi-${icon}`}></i>
+              </button>
+            ))}
+          </div>
+          <div className="lp-seg">
+            <button type="button" title="Undo" disabled={history.length === 0} onClick={handleUndo}><i className="bi bi-arrow-counterclockwise"></i></button>
+            <button type="button" title="Redo" disabled={redoStack.length === 0} onClick={handleRedo}><i className="bi bi-arrow-clockwise"></i></button>
           </div>
         </div>
 
-        {/* Viewport frames & Canvas Size toolbar */}
-        <div className="d-flex align-items-center gap-3">
-          {/* Viewport toggle */}
-          <div className="d-flex align-items-center gap-1 bg-white p-1 rounded-3 border">
-            <button
-              type="button"
-              className={`btn btn-sm px-3 py-1 ${viewportMode === "desktop" ? "bg-accent-soft text-wa font-semibold" : "text-muted"}`}
-              onClick={() => setViewportMode("desktop")}
-              title="Desktop view"
-              style={{ borderRadius: "6px", border: "none" }}
-            >
-              <i className="bi bi-display"></i>
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm px-3 py-1 ${viewportMode === "tablet" ? "bg-accent-soft text-wa font-semibold" : "text-muted"}`}
-              onClick={() => setViewportMode("tablet")}
-              title="Tablet view"
-              style={{ borderRadius: "6px", border: "none" }}
-            >
-              <i className="bi bi-tablet-landscape"></i>
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm px-3 py-1 ${viewportMode === "mobile" ? "bg-accent-soft text-wa font-semibold" : "text-muted"}`}
-              onClick={() => setViewportMode("mobile")}
-              title="Mobile view"
-              style={{ borderRadius: "6px", border: "none" }}
-            >
-              <i className="bi bi-phone"></i>
-            </button>
-          </div>
-
-          {/* Quick Canvas Size Controls */}
-          <div className="d-flex align-items-center gap-2 bg-white px-2 py-1 rounded-3 border small">
-            <span className="text-muted fw-bold" style={{ fontSize: "9px", letterSpacing: "0.3px" }}>CANVAS SIZE</span>
-            <div className="d-flex align-items-center gap-1">
-              <span className="text-muted" style={{ fontSize: "10px" }}>W:</span>
-              <input
-                type="text"
-                className="form-control form-control-xs text-center py-0"
-                style={{ width: "55px", height: "20px", fontSize: "10px", padding: "1px", border: "1px solid #cbd5e1", borderRadius: "4px" }}
-                value={page.canvasWidth || "100%"}
-                onChange={(e) => updateCanvasWidth(e.target.value)}
-                placeholder="100%"
-              />
-            </div>
-            <div className="d-flex align-items-center gap-1">
-              <span className="text-muted" style={{ fontSize: "10px" }}>H:</span>
-              <input
-                type="text"
-                className="form-control form-control-xs text-center py-0"
-                style={{ width: "55px", height: "20px", fontSize: "10px", padding: "1px", border: "1px solid #cbd5e1", borderRadius: "4px" }}
-                value={page.canvasHeight || "750px"}
-                onChange={(e) => updateCanvasHeight(e.target.value)}
-                placeholder="750px"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Action Controls */}
-        <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-sm btn-outline-secondary px-2" disabled={history.length === 0} onClick={handleUndo} title="Undo">
-            <i className="bi bi-arrow-counterclockwise"></i>
-          </button>
-          <button className="btn btn-sm btn-outline-secondary px-2" disabled={redoStack.length === 0} onClick={handleRedo} title="Redo">
-            <i className="bi bi-arrow-clockwise"></i>
-          </button>
-          <button className="btn btn-sm btn-outline-info" onClick={() => {
+        <div className="lp-toolbar-group" style={{ justifyContent: "flex-end" }}>
+          <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" title={page.components.some((c) => c.type === "custom-html") ? "Edit HTML" : "Add HTML"} onClick={() => {
             const customHtmlComp = page.components.find((c) => c.type === "custom-html");
             setCustomHtmlCode(customHtmlComp?.content?.htmlCode || "");
             setShowHtmlModal(true);
           }}>
-            <i className="bi bi-file-earmark-code me-1"></i>
-            {page.components.some((c) => c.type === "custom-html") ? "Edit HTML" : "Add HTML"}
+            <i className="bi bi-file-earmark-code"></i><span className="lp-hide-sm">HTML</span>
           </button>
-          <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowPreview(true)}>
-            <i className="bi bi-eye me-1"></i>Preview
+          <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" title="JSON" onClick={openJsonModal}>
+            <i className="bi bi-braces"></i><span className="lp-hide-sm">JSON</span>
           </button>
-          <button className="btn btn-sm btn-outline-primary" onClick={openJsonModal}>
-            <i className="bi bi-code-slash me-1"></i>JSON
+          <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => setShowPreview(true)}>
+            <i className="bi bi-eye"></i>Preview
           </button>
-          <button className="btn btn-sm btn-wa" onClick={save}>
-            <i className="bi bi-cloud-arrow-up me-1"></i>Save Page
+          <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" onClick={save}>
+            <i className="bi bi-cloud-arrow-up"></i>Save
           </button>
         </div>
       </div>
 
       {/* Main Builder layout columns */}
-      <div className="row g-0 flex-grow-1" style={{ minHeight: "75vh" }}>
+      <div className="d-flex flex-grow-1" style={{ minHeight: 0 }}>
         {/* Left Toolbox Panel Wrapper */}
-        <div style={{ width: "16%", flexShrink: 0, position: "relative" }} className="border-end bg-light d-flex flex-column" onMouseLeave={handleMouseLeaveCard}>
+        <div style={{ width: 248, flexShrink: 0, position: "relative" }} className="lp-pane border-end d-flex flex-column" onMouseLeave={handleMouseLeaveCard}>
           {/* Scrollable Toolbox Content */}
-          <div style={{ maxHeight: "calc(100vh - 130px)", overflowY: "auto" }} className="p-2 flex-grow-1 hide-scrollbar">
-            <div className="d-flex flex-column gap-3 text-start">
-              <span className="text-secondary small fw-bold text-uppercase" style={{ letterSpacing: "0.5px", fontSize: "10px" }}>Drag Elements onto Canvas</span>
+          <div style={{ overflowY: "auto" }} className="p-3 flex-grow-1 hide-scrollbar">
+            <div className="d-flex flex-column gap-2 text-start">
+              <span className="lp-pane-title">Elements</span>
 
               {/* Category selection tabs */}
-              <div className="d-flex flex-wrap gap-1 mb-2 border-bottom pb-2">
+              <div className="lp-chips mb-1">
                 {[
                   { id: "presets", label: "Sections" },
                   { id: "basic", label: "Basic" },
@@ -1110,8 +1056,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
                   <button
                     key={cat.id}
                     type="button"
-                    className={`btn btn-xs py-1 px-2 ${activeCategory === cat.id ? "btn-wa text-white font-semibold" : "btn-outline-secondary"}`}
-                    style={{ fontSize: "10px", borderRadius: "4px" }}
+                    className={activeCategory === cat.id ? "active" : ""}
                     onClick={() => setActiveCategory(cat.id)}
                   >
                     {cat.label}
@@ -1139,31 +1084,12 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
                       onDragEnd={() => setIsDraggingActive(false)}
                       onMouseEnter={() => handleMouseEnterCard(item)}
                       onMouseLeave={handleMouseLeaveCard}
-                      className={`card border-dashed ${
-                        hoveredPresetItem?.type === item.type 
-                          ? "border-primary bg-light shadow-sm" 
-                          : ""
-                      } ${activeCategory === "presets" ? "p-2 d-flex flex-row align-items-center justify-content-start px-3 text-start" : "p-1 text-center align-items-center justify-content-center d-flex flex-column"}`}
-                      style={{ 
-                        cursor: "grab", 
-                        minHeight: activeCategory === "presets" ? "auto" : "75px", 
-                        borderRadius: "8px", 
-                        margin: "0", 
-                        overflow: "hidden", 
-                        width: "100%", 
-                        gap: activeCategory === "presets" ? "12px" : "0px",
-                        borderColor: hoveredPresetItem?.type === item.type ? "#2249b7" : undefined,
-                        backgroundColor: hoveredPresetItem?.type === item.type ? "#eff6ff" : undefined,
-                        boxShadow: hoveredPresetItem?.type === item.type ? "0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06)" : undefined,
-                        transform: hoveredPresetItem?.type === item.type ? "scale(1.02)" : undefined,
-                        transition: "all 0.2s ease-in-out"
-                      }}
+                      className={`lp-tile ${activeCategory === "presets" ? "row-tile" : ""} ${hoveredPresetItem?.type === item.type ? "hover" : ""}`}
                       onClick={() => activeCategory !== "presets" && addComponent(item)}
                     >
-                      <i className={`bi ${item.icon} fs-5 text-wa`}></i>
-                      <div className={activeCategory === "presets" ? "text-start flex-grow-1" : "text-center w-100 px-1"}>
-                        <span className="fw-semibold d-block text-truncate-custom" style={{ fontSize: "9.5px", lineHeight: "1.15", wordBreak: "break-word", whiteSpace: "normal" }}>{item.name}</span>
-                      </div>
+                      <i className={`bi ${item.icon}`}></i>
+                      <span className="lp-tile-label">{item.name}</span>
+                      {activeCategory === "presets" && <i className="bi bi-chevron-right ms-auto text-muted" style={{ fontSize: 11 }}></i>}
                     </div>
                   ))}
                 </div>
@@ -1180,7 +1106,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
               left: "100%",
               top: "0",
               bottom: "0",
-              width: "280px",
+              width: "340px",
               zIndex: 1050,
               backgroundColor: "#f8fafc",
               boxShadow: "5px 0 15px rgba(0,0,0,0.06)",
@@ -1222,38 +1148,23 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
                     { id: "type10", name: "Style 10: Clean Borderless" },
                     { id: "type11", name: "Style 11: Dark High-Contrast" }
                   ].map((style) => (
-                    <div
+                    <button
                       key={style.id}
-                      className="card p-2.5 border border-light shadow-xs"
-                      style={{
-                        borderRadius: "8px",
-                        background: "#ffffff"
+                      type="button"
+                      className="lp-style-card"
+                      title="Apply this style"
+                      onClick={() => {
+                        addComponent(hoveredPresetItem, { ...(hoveredPresetItem.defaultContent || {}), presetType: style.id });
+                        setHoveredPresetItem(null);
                       }}
                     >
-                      <div className="d-flex flex-column gap-2">
-                        {/* Wireframe Mockup UI of Hovered Preset Style */}
-                        {renderStyleMockup(hoveredPresetItem.type, style.id)}
-
-                        <div className="text-center">
-                          <span className="fw-semibold text-dark d-block" style={{ fontSize: "10px" }}>{getStyleName(hoveredPresetItem.type, style.id).split(":")[0]}</span>
-                          <div className="text-muted mb-1" style={{ fontSize: "8px", marginTop: "2px", lineHeight: "1.1" }}>{getStyleName(hoveredPresetItem.type, style.id).split(":")[1]?.trim()}</div>
-                          <button
-                            className="btn btn-sm btn-primary w-100 fw-medium shadow-xs"
-                            style={{ fontSize: "10px", padding: "3px 6px" }}
-                            onClick={() => {
-                              const customContent = {
-                                ...(hoveredPresetItem.defaultContent || {}),
-                                presetType: style.id
-                              };
-                              addComponent(hoveredPresetItem, customContent);
-                              setHoveredPresetItem(null);
-                            }}
-                          >
-                            Apply Style
-                          </button>
-                        </div>
+                      <PresetThumb item={hoveredPresetItem} presetType={style.id} theme={page.theme} formsList={formsList} />
+                      <div className="lp-style-card-foot">
+                        <span className="fw-semibold">{getStyleName(hoveredPresetItem.type, style.id).split(":")[0]}</span>
+                        <span className="text-muted text-truncate">{getStyleName(hoveredPresetItem.type, style.id).split(":")[1]?.trim()}</span>
+                        <span className="lp-style-apply"><i className="bi bi-plus-lg"></i>Add</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </>
@@ -1262,7 +1173,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
         </div>
 
         {/* Center Frame Dropzone */}
-        <div style={{ width: "66%", maxHeight: "calc(100vh - 130px)", overflowY: "auto", background: "#f1f5f9" }} className="bg-slate-light p-4 d-flex justify-content-center align-items-start hide-scrollbar">
+        <div style={{ flex: "1 1 auto", minWidth: 0, overflow: "auto", background: "var(--muted-background, #f1f5f9)" }} className="p-4 d-flex justify-content-center align-items-start hide-scrollbar" onClick={(e) => { if (e.target === e.currentTarget) setSelectedCompId(null); }}>
           {/* Canvas frame container */}
           <div
             ref={canvasRef}
@@ -1306,8 +1217,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
                 style={{ borderRadius: "12px", minHeight: "350px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
               >
                 <i className="bi bi-box-arrow-in-down fs-1 mb-2 text-wa" style={{ opacity: 0.5 }}></i>
-                <h5>Empty Visual Workspace</h5>
-                <p className="small">Drag element cards from the left panel and drop them inside this area, or click them to append!</p>
+                <div className="fw-semibold">Drop elements here</div>
               </div>
             ) : (
               <div className="d-flex flex-column text-start" style={{ fontFamily: page.theme.fontFamily || "system-ui" }}>
@@ -1366,27 +1276,20 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
         </div>
 
         {/* Right Properties Configuration Panel */}
-        <div style={{ width: "18%", maxHeight: "calc(100vh - 130px)", overflowY: "auto" }} className="border-start bg-light p-3 text-start hide-scrollbar">
+        <div style={{ width: 300, flexShrink: 0, overflowY: "auto" }} className="lp-pane border-start p-3 text-start hide-scrollbar">
           {selectedComp ? (
             <div className="d-flex flex-column gap-3">
               <div className="d-flex justify-content-between align-items-center pb-2 border-bottom">
-                <span className="fw-bold text-dark text-uppercase small" style={{ letterSpacing: "0.5px", fontSize: "11px" }}>
-                  Properties: {COMPONENT_TYPES.find((c) => c.type === selectedComp.type)?.name || selectedComp.type}
+                <span className="lp-pane-title text-truncate">
+                  {COMPONENT_TYPES.find((c) => c.type === selectedComp.type)?.name || selectedComp.type}
                 </span>
-                <button className="btn btn-xs btn-outline-secondary" onClick={() => setSelectedCompId(null)}>Deselect</button>
+                <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" title="Close" onClick={() => setSelectedCompId(null)}><i className="bi bi-x-lg"></i></button>
               </div>
 
               {/* Tab Navigation */}
-              <div className="d-flex border-bottom mb-2">
+              <div className="lp-tabs">
                 {["Content", "Style", "Layout", "Animate"].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setRightTab(t)}
-                    className={`btn btn-xs pb-2 pt-1 font-semibold rounded-0 flex-grow-1 text-center ${rightTab === t ? "border-bottom border-2 border-dark text-dark" : "text-muted"}`}
-                    style={{ borderBottom: rightTab === t ? "2px solid #2249b7" : "none", fontSize: "11px", padding: "4px 8px" }}
-                  >
-                    {t}
-                  </button>
+                  <button key={t} type="button" onClick={() => setRightTab(t)} className={rightTab === t ? "active" : ""}>{t}</button>
                 ))}
               </div>
 
@@ -1766,11 +1669,11 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
             </div>
           ) : (
             <div className="d-flex flex-column gap-3">
-              <h5 className="fw-bold text-dark mb-1 pb-2 border-bottom small text-uppercase" style={{ fontSize: "11px" }}>Global Settings</h5>
+              <span className="lp-pane-title">Page</span>
 
               <div>
                 <label className="form-label mb-1">Canvas Width</label>
-                <div className="d-flex gap-1 mb-2">
+                <div className="d-flex flex-column gap-1">
                   <select
                     className="form-select form-select-sm"
                     value={["100%", "1200px", "960px", "768px"].includes(page.canvasWidth) ? page.canvasWidth : "custom"}
@@ -1791,8 +1694,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
                     <input
                       type="text"
                       className="form-control form-control-sm"
-                      style={{ width: "80px" }}
-                      placeholder="e.g. 850px"
+                      aria-label="Custom width"
                       value={page.canvasWidth || "100%"}
                       onChange={(e) => updateCanvasWidth(e.target.value)}
                     />
@@ -1802,7 +1704,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
 
               <div>
                 <label className="form-label mb-1">Canvas Height</label>
-                <div className="d-flex gap-1">
+                <div className="d-flex flex-column gap-1">
                   <select
                     className="form-select form-select-sm"
                     value={["750px", "1000px", "1200px", "1500px", "2000px"].includes(page.canvasHeight) ? page.canvasHeight : "custom"}
@@ -1824,8 +1726,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
                     <input
                       type="text"
                       className="form-control form-control-sm"
-                      style={{ width: "80px" }}
-                      placeholder="e.g. 750px"
+                      aria-label="Custom height"
                       value={page.canvasHeight || "750px"}
                       onChange={(e) => updateCanvasHeight(e.target.value)}
                     />
@@ -1833,10 +1734,7 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
                 </div>
               </div>
 
-              <div className="alert bg-accent-soft text-wa px-3 py-2 small border-0 mt-3" style={{ borderRadius: "8px" }}>
-                <i className="bi bi-info-circle-fill me-2"></i>
-                Click on any canvas block elements in the center window to inspect and edit details.
-              </div>
+              <div className="small text-muted mt-2"><i className="bi bi-cursor me-1"></i>Select a block to edit it</div>
             </div>
           )}
         </div>
@@ -2049,28 +1947,71 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
 
-        .hover-builder-block {
-          border: 1px solid transparent;
-          transition: all 0.2s ease;
-        }
-        .hover-builder-block:hover {
-          border: 2px dashed var(--accent);
-          background-color: rgba(34, 73, 183, 0.01);
-        }
-        .border-builder-selected {
-          border: 2.5px solid var(--accent) !important;
-          background-color: rgba(34, 73, 183, 0.03) !important;
-        }
+        .hover-builder-block { outline: 1px solid transparent; outline-offset: -1px; transition: outline-color .15s ease; }
+        .hover-builder-block:hover { outline: 1.5px dashed color-mix(in srgb, var(--primary) 60%, transparent); }
+        .border-builder-selected { outline: 2px solid var(--primary) !important; }
         .builder-component-actions {
           display: none;
           position: absolute;
-          right: 2px;
-          top: -24px;
-          border-top-left-radius: 6px;
-          border-top-right-radius: 6px;
+          right: 6px;
+          top: 6px;
           z-index: 100;
           align-items: center;
+          gap: 2px;
+          padding: 3px 4px 3px 8px;
+          border-radius: 8px;
+          background: var(--primary);
+          color: var(--primary-foreground, #fff);
+          box-shadow: 0 4px 12px rgba(0,0,0,.15);
+          font-size: 11px;
+          line-height: 1;
+          white-space: nowrap;
         }
+        .builder-component-actions .lp-act {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 24px; height: 24px; border: 0; border-radius: 6px;
+          background: transparent; color: inherit; cursor: pointer; font-size: 12px;
+        }
+        .builder-component-actions .lp-act:hover { background: rgba(255,255,255,.18); }
+
+        /* ---- builder chrome ---- */
+        .lp-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--card); }
+        .lp-toolbar-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .lp-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--card); }
+        .lp-seg button { width: 34px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--muted-foreground); cursor: pointer; }
+        .lp-seg button + button { border-left: 1px solid var(--border); }
+        .lp-seg button:hover:not(:disabled) { color: var(--foreground); background: color-mix(in srgb, var(--foreground) 5%, transparent); }
+        .lp-seg button.active { background: var(--primary); color: var(--primary-foreground, #fff); }
+        .lp-seg button:disabled { opacity: .4; cursor: default; }
+        .lp-pane { background: var(--card); }
+        .lp-pane-title { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-foreground); }
+        .lp-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+        .lp-chips button { border: 1px solid var(--border); background: var(--card); color: var(--foreground); border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+        .lp-chips button:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); }
+        .lp-chips button.active { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground, #fff); }
+        .lp-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 72px; padding: 8px 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); cursor: grab; text-align: center; transition: border-color .15s, box-shadow .15s, transform .15s; user-select: none; }
+        .lp-tile .bi { font-size: 18px; color: var(--primary); }
+        .lp-tile:hover, .lp-tile.hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,.06); transform: translateY(-1px); }
+        .lp-tile:active { cursor: grabbing; }
+        .lp-tile.row-tile { flex-direction: row; justify-content: flex-start; min-height: 0; padding: 10px 12px; gap: 10px; text-align: left; }
+        .lp-tile-label { font-size: 12px; font-weight: 500; line-height: 1.2; color: var(--foreground); }
+        .lp-tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .lp-tabs button { flex: 1; border: 0; background: transparent; padding: 8px 4px; font-size: 12.5px; font-weight: 500; color: var(--muted-foreground); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+        .lp-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+        /* Bootstrap buttons inside the builder: no forced teal fill on plain .btn, compact sizes */
+        .lp-builder .btn:not(.btn-wa):not(.btn-primary):not(.btn-success):not(.btn-dark):not([class*="btn-outline-"]):not(.btn-light):not(.btn-secondary):not(.btn-link):not(.btn-danger):not([style*="background"]) {
+          background: transparent !important; box-shadow: none !important; color: inherit; border-color: transparent;
+        }
+        .lp-builder .btn.btn-xs { height: 26px !important; min-height: 26px !important; padding: 0 8px !important; font-size: 11.5px !important; }
+        .lp-builder .form-label { font-size: 12px; font-weight: 500; color: var(--muted-foreground); }
+        @media (max-width: 1100px) { .lp-hide-sm { display: none; } }
+        .lp-style-card { display: block; width: 100%; padding: 0; text-align: left; border: 1px solid var(--border); border-radius: 10px; background: var(--card); overflow: hidden; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+        .lp-style-card:hover { border-color: var(--primary); box-shadow: 0 6px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+        .lp-style-card-foot { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--border); font-size: 12px; }
+        .lp-style-apply { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--primary); font-weight: 600; white-space: nowrap; opacity: 0; transition: opacity .15s; }
+        .lp-style-card:hover .lp-style-apply { opacity: 1; }
+        .lp-thumb { position: relative; overflow: hidden; background: #fff; }
+        .lp-thumb-inner { position: absolute; top: 0; left: 0; transform-origin: top left; pointer-events: none; }
         .hover-builder-block:hover .builder-component-actions,
         .border-builder-selected .builder-component-actions {
           display: flex !important;
@@ -2122,341 +2063,106 @@ export default function LandingPageBuilder({ initialPage, formsList, onSave, onC
   );
 }
 
-// Helper to render type-specific style mockups visually
-const renderStyleMockup = (type, styleId) => {
-  const isDark = styleId === "type5" || styleId === "type11";
-  
-  if (type === "header-nav") {
-    switch (styleId) {
-      case "type1": // Style 1: Left Logo + Right Menu & CTA button
-        return (
-          <div className="w-100 bg-white border rounded p-1.5 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px" }}>
-            <span className="fw-bold text-dark" style={{ fontSize: "8px" }}>Brand</span>
-            <div className="d-flex gap-1" style={{ fontSize: "5.5px", color: "#64748b" }}>
-              <span>Home</span>
-              <span>About</span>
-            </div>
-            <div className="text-white bg-primary px-1.5 py-0.5 rounded fw-semibold" style={{ fontSize: "5.5px", background: "#3b82f6" }}>CTA</div>
-          </div>
-        );
-      case "type2": // Style 2: Centered links menu, right CTA
-        return (
-          <div className="w-100 bg-white border rounded p-1.5 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px" }}>
-            <span className="fw-bold text-dark" style={{ fontSize: "8px" }}>Brand</span>
-            <div className="d-flex gap-1 mx-auto" style={{ fontSize: "5.5px", color: "#64748b" }}>
-              <span>Home • Services • About</span>
-            </div>
-            <div className="text-white bg-primary px-1.5 py-0.5 rounded fw-semibold" style={{ fontSize: "5.5px", background: "#3b82f6" }}>CTA</div>
-          </div>
-        );
-      case "type3": // Style 3: Minimal centered stacked logo and menu links below (no cta)
-        return (
-          <div className="w-100 bg-white border rounded p-1.5 d-flex flex-column align-items-center justify-content-center gap-1 shadow-xs" style={{ height: "65px" }}>
-            <span className="fw-bold text-dark" style={{ fontSize: "8.5px" }}>Brand Logo</span>
-            <div className="d-flex gap-2" style={{ fontSize: "5.5px", color: "#64748b" }}>
-              <span>HOME</span>
-              <span>SERVICES</span>
-              <span>ABOUT</span>
-            </div>
-          </div>
-        );
-      case "type4": // Style 4: Double Decker utility top-bar + main menu header
-        return (
-          <div className="w-100 bg-white border rounded p-0 d-flex flex-column shadow-xs overflow-hidden" style={{ height: "65px" }}>
-            <div className="bg-light px-2 py-0.5 d-flex justify-content-between border-bottom text-muted" style={{ height: "14px", fontSize: "5px" }}>
-              <span>📞 Phone | ✉ Email</span>
-              <span>🔗 Socials</span>
-            </div>
-            <div className="p-1.5 d-flex justify-content-between align-items-center flex-grow-1">
-              <span className="fw-bold text-dark" style={{ fontSize: "7px" }}>Brand</span>
-              <div className="d-flex gap-1" style={{ fontSize: "5.5px", color: "#64748b" }}>
-                <span>Home</span>
-                <span>About</span>
-              </div>
-            </div>
-          </div>
-        );
-      case "type5": // Style 5: Glassmorphic Floating Header
-        return (
-          <div className="w-100 rounded p-1.5 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px", background: "#f8fafc", border: "1px solid #cbd5e1" }}>
-            <div className="w-100 h-90 rounded-pill border shadow-xs d-flex justify-content-between align-items-center px-2 bg-white" style={{ background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(2.5px)", borderColor: "#e2e8f0" }}>
-              <span className="fw-bold text-dark" style={{ fontSize: "7px" }}>Brand</span>
-              <span style={{ fontSize: "5px", color: "#64748b" }}>Home • About</span>
-              <div className="text-white bg-primary px-1.5 py-0.5 rounded-pill fw-semibold" style={{ fontSize: "5px", background: "#3b82f6" }}>CTA</div>
-            </div>
-          </div>
-        );
-      case "type6": // Style 6: Glassmorphic Overlay
-        return (
-          <div className="w-100 border rounded p-1.5 d-flex align-items-center justify-content-center position-relative shadow-xs" style={{ height: "65px", background: "linear-gradient(135deg, #ec4899 0%, #3b82f6 100%)", overflow: "hidden", borderColor: "transparent" }}>
-            <div className="w-90 h-80 rounded shadow-xs d-flex justify-content-between align-items-center px-2" style={{ background: "rgba(255, 255, 255, 0.45)", backdropFilter: "blur(2.5px)", border: "1px solid rgba(255,255,255,0.3)" }}>
-              <span className="fw-bold text-white" style={{ fontSize: "7px" }}>Brand</span>
-              <span className="text-white" style={{ fontSize: "5px" }}>Home • About</span>
-              <div className="text-primary bg-white px-1.5 py-0.5 rounded fw-semibold" style={{ fontSize: "5px" }}>CTA</div>
-            </div>
-          </div>
-        );
-      case "type7": // Style 7: Neumorphic Soft Bordered
-        return (
-          <div className="w-100 rounded p-1.5 d-flex align-items-center justify-content-between shadow-xs" style={{ height: "65px", background: "#f1f5f9" }}>
-            <div className="rounded bg-light shadow-xs d-flex justify-content-between align-items-center px-2 w-100" style={{ height: "36px", boxShadow: "inset 2px 2px 5px #cbd5e1, inset -2px -2px 5px #ffffff", border: "1px solid #e2e8f0" }}>
-              <span style={{ fontSize: "6px", color: "#475569" }}>Brand</span>
-              <span style={{ fontSize: "5px", color: "#64748b" }}>Home • About</span>
-              <div className="text-white bg-primary px-1.5 py-0.5 rounded fw-semibold" style={{ fontSize: "5px", background: "#3b82f6" }}>CTA</div>
-            </div>
-          </div>
-        );
-      case "type8": // Style 8: Left Heavy Bold Sidebar-Style
-        return (
-          <div className="w-100 bg-white border rounded p-1.5 d-flex align-items-center shadow-xs" style={{ height: "65px", borderLeft: "4px solid #2249b7" }}>
-            <div className="d-flex justify-content-between align-items-center w-100 ms-1">
-              <span className="fw-bold" style={{ fontSize: "8px", color: "#1e293b" }}>BRAND</span>
-              <div className="border border-dark rounded px-1.5 py-0.5 fw-semibold" style={{ fontSize: "5px" }}>Outline</div>
-            </div>
-          </div>
-        );
-      case "type9": // Style 9: Gradient Highlight Banner
-        return (
-          <div className="w-100 border rounded p-1.5 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px", background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", borderColor: "transparent" }}>
-            <span className="fw-bold text-white" style={{ fontSize: "8px" }}>Brand</span>
-            <span className="text-white opacity-75" style={{ fontSize: "5.5px" }}>Home • About</span>
-            <div className="text-primary bg-white px-1.5 py-0.5 rounded fw-semibold" style={{ fontSize: "6px" }}>Join</div>
-          </div>
-        );
-      case "type10": // Style 10: Clean Borderless Grid
-        return (
-          <div className="w-100 bg-white border rounded p-1.5 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px" }}>
-            <span className="fw-bold text-secondary" style={{ fontSize: "8px" }}>Brand</span>
-            <div className="d-flex gap-1.5" style={{ fontSize: "6px", color: "#64748b" }}>
-              <span>Home</span>
-              <span>About</span>
-            </div>
-          </div>
-        );
-      case "type11": // Style 11: High-Contrast Dark Accent
-        return (
-          <div className="w-100 bg-black border rounded p-1.5 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px", borderColor: "#eab308" }}>
-            <span className="fw-bold text-white" style={{ fontSize: "8px" }}>Brand</span>
-            <div className="text-warning border border-warning px-1.5 py-0.5 rounded fw-semibold" style={{ fontSize: "5.5px" }}>Alert</div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  }
 
-  // For Hero sections
-  if (type && type.includes("hero")) {
-    switch (styleId) {
-      case "type1": // Default Style 1: Left Text + Right Form Solid Card Box
-        return (
-          <div className="w-100 bg-white border rounded p-2 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px" }}>
-            <div className="d-flex flex-column gap-1 w-55 text-start">
-              <span className="fw-bold text-dark" style={{ fontSize: "8px", lineHeight: "1" }}>Grow Sales</span>
-              <span className="text-muted" style={{ fontSize: "5.5px", lineHeight: "1" }}>Smart Leads CRM</span>
-            </div>
-            <div className="border rounded bg-light p-1 d-flex flex-column gap-1" style={{ width: "38%", height: "90%" }}>
-              <div className="bg-white border rounded" style={{ width: "100%", height: "6px" }}></div>
-              <div className="bg-primary text-white text-center rounded d-flex align-items-center justify-content-center fw-semibold" style={{ width: "100%", height: "9px", fontSize: "5px", background: "#3b82f6" }}>Send</div>
-            </div>
-          </div>
-        );
-      case "type2": // Style 2: Parallax photo background with Blur panel Form on right
-        return (
-          <div className="w-100 border rounded p-2 d-flex justify-content-between align-items-center shadow-xs overflow-hidden position-relative" style={{ height: "65px", backgroundImage: "linear-gradient(rgba(15,23,42,0.65), rgba(15,23,42,0.65)), url(https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=120&q=80)", backgroundSize: "cover" }}>
-            <div className="d-flex flex-column gap-1 w-55 text-start text-white">
-              <span className="fw-bold" style={{ fontSize: "7px", lineHeight: "1" }}>Image Hero</span>
-              <span style={{ fontSize: "5px", opacity: 0.8 }}>Parallax theme</span>
-            </div>
-            <div className="rounded p-1 d-flex flex-column gap-1 text-white" style={{ width: "38%", height: "90%", background: "rgba(255,255,255,0.2)", backdropFilter: "blur(1.5px)", border: "1px solid rgba(255,255,255,0.3)" }}>
-              <div className="bg-white rounded" style={{ width: "100%", height: "4px", opacity: 0.8 }}></div>
-              <div className="bg-primary text-white text-center rounded d-flex align-items-center justify-content-center" style={{ width: "100%", height: "8px", fontSize: "4.5px" }}>Submit</div>
-            </div>
-          </div>
-        );
-      case "type3": // Style 3: Flipped Column Layout (Form on Left, Text/Intro on Right)
-        return (
-          <div className="w-100 bg-white border rounded p-2 d-flex flex-row-reverse justify-content-between align-items-center shadow-xs" style={{ height: "65px" }}>
-            <div className="d-flex flex-column gap-1 w-55 text-start">
-              <span className="fw-bold" style={{ fontSize: "8px", color: "#8b5cf6", lineHeight: "1" }}>Scale Team</span>
-              <span className="text-muted" style={{ fontSize: "5.5px", lineHeight: "1" }}>Get productivity</span>
-            </div>
-            <div className="border rounded bg-light p-1 d-flex flex-column gap-1" style={{ width: "38%", height: "90%" }}>
-              <div className="bg-white border rounded" style={{ width: "100%", height: "6px" }}></div>
-              <div className="bg-purple text-white text-center rounded d-flex align-items-center justify-content-center fw-semibold" style={{ width: "100%", height: "9px", fontSize: "5px", background: "#8b5cf6" }}>Submit</div>
-            </div>
-          </div>
-        );
-      case "type4": // Style 4: Left Text + Right Video Embed Split (No Form)
-        return (
-          <div className="w-100 bg-white border rounded p-2 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px" }}>
-            <div className="d-flex flex-column gap-1 w-55 text-start">
-              <span className="fw-bold" style={{ fontSize: "8px", lineHeight: "1" }}>Watch Demo</span>
-              <span className="text-muted" style={{ fontSize: "5.5px" }}>Video preview</span>
-            </div>
-            <div className="bg-dark border rounded position-relative d-flex align-items-center justify-content-center shadow-xs" style={{ width: "38%", height: "90%", background: "#475569" }}>
-              <div className="bg-danger rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{ width: "12px", height: "12px" }}>
-                <i className="bi bi-play-fill text-white" style={{ fontSize: "8px", marginLeft: "0.5px" }}></i>
-              </div>
-            </div>
-          </div>
-        );
-      case "type5": // Style 5: Full Width Centered Hero with Wave Overlay (No Split)
-        return (
-          <div className="w-100 border rounded p-2 d-flex flex-column align-items-center justify-content-center gap-1 shadow-xs text-white" style={{ height: "65px", background: "linear-gradient(135deg, #6366f1 0%, #1e1b4b 100%)", borderColor: "transparent" }}>
-            <span className="fw-bold text-center text-warning" style={{ fontSize: "8px", lineHeight: "1" }}>Gradient Centered</span>
-            <span className="text-center" style={{ fontSize: "5px", opacity: 0.9 }}>Wave overlay preview</span>
-            <div className="bg-white text-primary text-center rounded px-2 fw-bold" style={{ height: "9px", fontSize: "5.5px", lineHeight: "1.6", color: "#6366f1" }}>Action CTA</div>
-          </div>
-        );
-      case "type6": // Style 6: Glassmorphic Overlay Hero
-        return (
-          <div className="w-100 border rounded p-1.5 d-flex align-items-center justify-content-center position-relative shadow-xs" style={{ height: "65px", background: "linear-gradient(135deg, #ec4899 0%, #3b82f6 100%)", overflow: "hidden", borderColor: "transparent" }}>
-            <div className="w-90 h-90 rounded p-1 d-flex flex-column align-items-center justify-content-center gap-1 shadow-xs" style={{ background: "rgba(255, 255, 255, 0.4)", backdropFilter: "blur(3.5px)", border: "1px solid rgba(255,255,255,0.25)" }}>
-              <span className="fw-bold text-white text-center" style={{ fontSize: "7.5px", lineHeight: "1" }}>Modern App</span>
-              <span className="text-white text-center" style={{ fontSize: "5px", opacity: 0.9 }}>Frosted layout</span>
-            </div>
-          </div>
-        );
-      case "type7": // Style 7: Neumorphic Soft Bordered Hero
-        return (
-          <div className="w-100 rounded p-2 d-flex align-items-center justify-content-between shadow-xs" style={{ height: "65px", background: "#f1f5f9" }}>
-            <span className="fw-bold text-secondary" style={{ fontSize: "7px", lineHeight: "1" }}>Soft UI Hero</span>
-            <div className="rounded bg-light shadow-xs d-flex align-items-center justify-content-center" style={{ width: "45%", height: "30px", boxShadow: "2px 2px 4px #cbd5e1, -2px -2px 4px #ffffff" }}>
-              <span style={{ fontSize: "5px", color: "#2249b7" }}>Soft CTA</span>
-            </div>
-          </div>
-        );
-      case "type8": // Style 8: Left Heavy Bold Sidebar-Style
-        return (
-          <div className="w-100 bg-white border rounded p-2 d-flex align-items-center shadow-xs" style={{ height: "65px", borderLeft: "4px solid #2249b7" }}>
-            <div className="d-flex flex-column gap-1 w-100 ms-1 text-start">
-              <span className="fw-bold text-dark" style={{ fontSize: "8px", lineHeight: "1" }}>Enterprise Hero</span>
-              <span className="text-muted" style={{ fontSize: "5.5px" }}>Accent border style</span>
-            </div>
-          </div>
-        );
-      case "type9": // Style 9: Gradient Highlight Banner
-        return (
-          <div className="w-100 border rounded p-2 d-flex align-items-center justify-content-center shadow-xs" style={{ height: "65px", background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", borderColor: "transparent" }}>
-            <div className="d-flex flex-column align-items-center justify-content-center gap-1 text-center">
-              <span className="fw-bold text-white" style={{ fontSize: "8px", lineHeight: "1" }}>Gradient Accent</span>
-              <div className="bg-white text-primary text-center rounded px-2" style={{ height: "9px", fontSize: "5.5px", lineHeight: "1.6" }}>Action</div>
-            </div>
-          </div>
-        );
-      case "type10": // Style 10: Clean Borderless Grid
-        return (
-          <div className="w-100 bg-white border rounded p-2 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px" }}>
-            <div className="d-flex flex-column gap-1 w-55 text-start">
-              <span className="fw-bold" style={{ fontSize: "8px", lineHeight: "1" }}>Minimalist Layout</span>
-              <span className="text-muted" style={{ fontSize: "5.5px" }}>Clean borders</span>
-            </div>
-            <div className="border-bottom border-dark text-dark text-center fw-semibold" style={{ fontSize: "6.5px" }}>Read More →</div>
-          </div>
-        );
-      case "type11": // Style 11: High-Contrast Dark Accent
-        return (
-          <div className="w-100 bg-black border rounded p-2 d-flex justify-content-between align-items-center shadow-xs" style={{ height: "65px", borderColor: "#eab308" }}>
-            <div className="d-flex flex-column gap-1 w-55 text-start">
-              <span className="fw-bold text-warning" style={{ fontSize: "8px", lineHeight: "1" }}>Contrast Alert</span>
-              <span className="text-secondary" style={{ fontSize: "5.5px" }}>Yellow black theme</span>
-            </div>
-            <div className="text-warning border border-warning text-center rounded px-1 fw-semibold" style={{ fontSize: "6px" }}>Warning</div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  }
+// Helper to execute embedded scripts inside custom HTML blocks
+class ThumbBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? <div className="d-flex align-items-center justify-content-center text-muted small" style={{ height: 120 }}><i className="bi bi-image"></i></div> : this.props.children; }
+}
 
-  // Default layout for other components (cards, pricing, testimonials, FAQ, footer, etc.)
-  const themeColor = styleId === "type1" ? "#3b82f6" : styleId === "type2" ? "#10b981" : styleId === "type3" ? "#8b5cf6" : styleId === "type5" ? "#f59e0b" : styleId === "type8" ? "#2249b7" : styleId === "type11" ? "#eab308" : "#6366f1";
-  const cardBg = isDark ? "#1e293b" : "#ffffff";
-  const borderCol = isDark ? "#475569" : "#e2e8f0";
-  const textCol = isDark ? "#94a3b8" : "#64748b";
+/** Live, scaled-down render of a section in one preset style, so the drawer shows the real look. */
+const THUMB_RENDER_WIDTH = 1200;
+function PresetThumb({ item, presetType, theme, formsList }) {
+  const boxRef = React.useRef(null);
+  const innerRef = React.useRef(null);
+  const [scale, setScale] = React.useState(0.25);
+  const [h, setH] = React.useState(150);
+  const comp = React.useMemo(() => ({ id: `thumb-${item.type}-${presetType}`, type: item.type, content: { ...(item.defaultContent || {}), presetType }, styles: {} }), [item, presetType]);
 
-  if (styleId === "type6") {
-    return (
-      <div className="w-100 border rounded p-1.5 d-flex align-items-center justify-content-center shadow-xs" style={{ height: "65px", background: "linear-gradient(135deg, #a855f7 0%, #ec4899 100%)", borderColor: "transparent" }}>
-        <div className="w-100 h-100 rounded d-flex flex-column gap-1 p-1.5 text-white text-start justify-content-center" style={{ background: "rgba(255, 255, 255, 0.4)", backdropFilter: "blur(2.5px)", border: "1px solid rgba(255,255,255,0.2)" }}>
-          <span className="fw-bold" style={{ fontSize: "7.5px", lineHeight: "1" }}>Glass Card</span>
-          <span style={{ fontSize: "5.5px", opacity: 0.9 }}>Interactive modern style</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (styleId === "type7") {
-    return (
-      <div className="w-100 rounded p-1.5 d-flex gap-1.5 align-items-center shadow-xs" style={{ height: "65px", background: "#f1f5f9" }}>
-        <div className="rounded bg-light shadow-xs flex-grow-1 p-1.5 text-start d-flex flex-column justify-content-center" style={{ height: "45px", boxShadow: "2px 2px 4px #cbd5e1, -2px -2px 4px #ffffff" }}>
-          <span className="fw-bold" style={{ fontSize: "7px", color: "#475569", lineHeight: "1" }}>Soft Card</span>
-          <span style={{ fontSize: "5.5px", color: "#64748b" }}>Neumorphic style preview</span>
-        </div>
-      </div>
-    );
-  }
+  React.useLayoutEffect(() => {
+    const box = boxRef.current, inner = innerRef.current;
+    if (!box || !inner) return undefined;
+    const fit = () => {
+      const sc = box.clientWidth / THUMB_RENDER_WIDTH;
+      setScale(sc);
+      setH(Math.max(90, Math.min(260, Math.round(inner.scrollHeight * sc))));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [comp]);
 
   return (
-    <div 
-      className="w-100 border rounded p-2 d-flex gap-2 align-items-center shadow-xs" 
-      style={{ 
-        height: "65px", 
-        background: cardBg, 
-        borderColor: styleId === "type11" ? "#eab308" : borderCol,
-        borderLeft: styleId === "type8" ? `4px solid ${themeColor}` : undefined
-      }}
-    >
-      <div className="rounded d-flex align-items-center justify-content-center text-white" style={{ width: "16px", height: "16px", background: themeColor, fontSize: "8px" }}>
-        ★
-      </div>
-      <div className="flex-grow-1 d-flex flex-column gap-1 text-start">
-        <span className="fw-bold" style={{ fontSize: "7.5px", color: isDark ? "#ffffff" : "#1e293b", lineHeight: "1" }}>Feature Card</span>
-        <span style={{ fontSize: "5.5px", color: textCol, lineHeight: "1" }}>Style preview details</span>
+    <div ref={boxRef} className="lp-thumb" style={{ height: h }}>
+      <div ref={innerRef} className="lp-thumb-inner" style={{ width: THUMB_RENDER_WIDTH, transform: `scale(${scale})`, fontFamily: theme?.fontFamily || "system-ui" }}>
+        <ThumbBoundary>
+          {renderComponentLive(
+            comp,
+            theme,
+            formsList,
+            {},
+            () => {},
+            (co, f) => co.content?.[f] || "",
+            (co, f, cl, st) => <img src={co.content?.[f]} className={cl} style={st} alt="" />,
+            (co, i) => co.content?.menuLinks?.[i]?.label || ""
+          )}
+        </ThumbBoundary>
       </div>
     </div>
   );
-};
+}
 
-// Helper to execute embedded scripts inside custom HTML blocks
+/**
+ * Custom HTML rendered in its own self-sizing iframe: its CSS can't clash with the app
+ * and its scripts (animations, sliders) run against its own document.
+ * In the builder the frame ignores the mouse so clicks select / drag the block.
+ */
 function CustomHtmlBlock({ html }) {
-  const containerRef = React.useRef(null);
-  const shadowRootRef = React.useRef(null);
+  const ref = React.useRef(null);
+  const [height, setHeight] = React.useState(200);
+
+  const doc = React.useMemo(() => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<base target="_blank">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>html,body{margin:0;overflow:hidden;background:transparent}</style></head><body>${html}</body></html>`, [html]);
 
   React.useEffect(() => {
-    if (!containerRef.current) return;
+    const frame = ref.current;
+    if (!frame) return undefined;
+    let ro = null;
+    let updates = 0;
+    const measure = () => {
+      const d = frame.contentDocument;
+      if (!d?.body) return;
+      const h = Math.min(20000, Math.max(d.body.scrollHeight, d.documentElement.scrollHeight));
+      // guard against 100vh content growing with the frame forever
+      if (h && Math.abs(h - (frame._h || 0)) > 2 && updates < 40) { updates++; frame._h = h; setHeight(h); }
+    };
+    const onLoad = () => {
+      measure();
+      try {
+        ro = new (frame.contentWindow.ResizeObserver || ResizeObserver)(measure);
+        ro.observe(frame.contentDocument.body);
+      } catch { /* measure on load only */ }
+      setTimeout(measure, 400);
+      setTimeout(measure, 1500);
+    };
+    frame.addEventListener("load", onLoad);
+    return () => { frame.removeEventListener("load", onLoad); ro?.disconnect(); };
+  }, [doc]);
 
-    if (!shadowRootRef.current) {
-      shadowRootRef.current = containerRef.current.attachShadow({ mode: "open" });
-    }
-
-    const shadowRoot = shadowRootRef.current;
-    shadowRoot.innerHTML = `
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-      <style>
-        :host {
-          display: block;
-          width: 100%;
-        }
-      </style>
-      <div class="w-100 h-100">${html}</div>
-    `;
-
-    const scripts = shadowRoot.querySelectorAll("script");
-    scripts.forEach((oldScript) => {
-      const newScript = document.createElement("script");
-      Array.from(oldScript.attributes).forEach((attr) => {
-        newScript.setAttribute(attr.name, attr.value);
-      });
-      newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-      document.body.appendChild(newScript);
-      document.body.removeChild(newScript);
-    });
-  }, [html]);
-
-  return <div ref={containerRef} className="w-100" style={{ height: "auto" }} />;
+  return (
+    <iframe
+      ref={ref}
+      title="Custom HTML"
+      srcDoc={doc}
+      sandbox="allow-scripts allow-same-origin allow-popups"
+      style={{ display: "block", width: "100%", height, border: 0, pointerEvents: "none", background: "transparent" }}
+    />
+  );
 }
 
 // Render component inside live canvas preview
@@ -5593,24 +5299,14 @@ function VisualBlock({
       style={wrapperStyle}
     >
       {/* Hover Overlay controls - Draggable bar */}
-      <div 
-        className="builder-component-actions bg-wa text-white px-2 py-1 gap-1 shadow-sm animate-fade-in"
-        style={{ cursor: "move", borderRadius: "6px 6px 0 0", display: "flex", alignItems: "center", zIndex: 100 }}
-      >
-        <span className="me-2 d-flex align-items-center">
-          <i className="bi bi-arrows-move me-1 fs-6"></i>
-          <span className="small fw-bold text-uppercase" style={{ fontSize: "9px" }}>
-            {COMPONENT_TYPES.find((ct) => ct.type === comp.type)?.name || comp.type}
-          </span>
-          <span className="badge bg-dark text-warning ms-2 font-monospace" style={{ fontSize: "8px", padding: "2px 4px" }}>
-            X: {localPos ? localPos.x : posX}px Y: {localPos ? localPos.y : posY}px
-          </span>
-        </span>
-        
-        <button className="btn btn-xs p-0 text-white" onClick={(e) => { e.stopPropagation(); cloneComponent(comp.id, e); }} title="Duplicate">
+      <div className="builder-component-actions" style={{ cursor: "move" }}>
+        <i className="bi bi-arrows-move me-1"></i>
+        <span className="fw-semibold me-1">{COMPONENT_TYPES.find((ct) => ct.type === comp.type)?.name || comp.type}</span>
+        {isDragging && <span className="font-monospace opacity-75 me-1">{localPos ? localPos.x : posX}, {localPos ? localPos.y : posY}</span>}
+        <button type="button" className="lp-act" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); cloneComponent(comp.id, e); }} title="Duplicate">
           <i className="bi bi-copy"></i>
         </button>
-        <button className="btn btn-xs p-0 text-white" onClick={(e) => { e.stopPropagation(); removeComponent(comp.id, e); }} title="Delete">
+        <button type="button" className="lp-act" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeComponent(comp.id, e); }} title="Delete">
           <i className="bi bi-trash"></i>
         </button>
       </div>

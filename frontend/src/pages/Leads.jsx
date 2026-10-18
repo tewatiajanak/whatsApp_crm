@@ -31,7 +31,7 @@ const VIEWS = [
   { key: "stale", label: "Going cold", params: { view: "stale" } },
   { key: "unassigned", label: "Unassigned", params: { view: "unassigned" } },
 ];
-const NO_FILTERS = { q: "", status: "", source: "", owner: "", priority: "", tag: "", service: "", branch: "", course: "", createdFrom: "", createdTo: "" };
+const NO_FILTERS = { q: "", list: "", status: "", source: "", owner: "", priority: "", tag: "", service: "", branch: "", course: "", createdFrom: "", createdTo: "" };
 const SORTS = [
   ["-createdAt", "Newest first"], ["createdAt", "Oldest first"], ["-score", "Highest score"],
   ["nextFollowUp", "Follow-up soonest"], ["-lastActivity", "Recently active"], ["lastActivity", "Longest idle"], ["name", "Name A–Z"],
@@ -48,7 +48,7 @@ export default function Leads() {
   const { can } = useAuth();
   const [search, setSearch] = useSearchParams();
   const [view, setView] = useState(() => (VIEWS.some((v) => v.key === search.get("view")) ? search.get("view") : "all"));
-  const [filters, setFilters] = useState(NO_FILTERS);
+  const [filters, setFilters] = useState(() => ({ ...NO_FILTERS, list: search.get("list") || "" }));
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("-createdAt");
   const [page, setPage] = useState(1);
@@ -77,6 +77,8 @@ export default function Leads() {
   }, [view, filters]);
 
   const meta = useApi(() => leadsApi.meta(), []);
+  const lists = useApi(() => (filters.list ? crmApi.lists() : Promise.resolve({ data: [] })), [filters.list]);
+  const listName = (lists.data || []).find((x) => x._id === filters.list)?.name;
   const counts = useApi(() => leadsApi.viewCounts(), []);
   const leads = useApi(() => leadsApi.list({ ...listParams, sort, page, perPage }), [listParams, sort, page, perPage]);
   const total = leads.raw?.total || 0;
@@ -118,6 +120,14 @@ export default function Leads() {
   const toggleRow = (id) => { setAllMatching(false); setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; }); };
   const togglePage = () => { setAllMatching(false); setSelected((s) => { const n = new Set(s); rows.forEach((l) => (allOnPage ? n.delete(l._id) : n.add(l._id))); return n; }); };
   const selectedCount = allMatching ? total : selected.size;
+
+  // "Message all" on a lead list lands here with ?list=…&bulk=message
+  useEffect(() => {
+    if (search.get("bulk") !== "message" || !leads.raw) return;
+    search.delete("bulk"); setSearch(search, { replace: true });
+    if (total > 0 && can("blast", "create")) { setAllMatching(true); setBulk({ action: "message" }); }
+  }, [leads.raw]); // eslint-disable-line react-hooks/exhaustive-deps
+  const clearList = () => { setFilter("list", ""); if (search.get("list")) { search.delete("list"); setSearch(search, { replace: true }); } };
 
   const show = (c) => cols.includes(c);
   // the fixed columns, then one per custom field
@@ -202,6 +212,15 @@ export default function Leads() {
         </div>
       </div>
 
+      {filters.list && (
+        <div className="flex items-center gap-2 mb-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs text-foreground" style={{ borderColor: "var(--primary)" }}>
+            <i className="bi bi-collection" style={{ color: "var(--primary)" }}></i>List: {listName || "…"}
+            <button type="button" className="text-muted-foreground" title="Show all leads" onClick={clearList}><i className="bi bi-x"></i></button>
+          </span>
+        </div>
+      )}
+
       {showMore && (
         <div className="rounded-xl border bg-card p-3 mb-2 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 items-end">
           <div className="md:hidden"><label className={labelCls}>Owner</label>
@@ -256,7 +275,7 @@ export default function Leads() {
               <span className="text-sm font-medium text-foreground">{selectedCount} selected</span>
               {!allMatching && allOnPage && total > rows.length && <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => setAllMatching(true)}>Select all {total}</button>}
               <span className="flex flex-wrap gap-1.5 ms-auto">
-                {[["assign", "person-check", "Assign"], ["status", "flag", "Status"], ["followup", "calendar-plus", "Follow-up"], ["addTag", "tag", "Tag"], ["priority", "thermometer-half", "Priority"]].map(([action, icon, label]) => (
+                {[["assign", "person-check", "Assign"], ["status", "flag", "Status"], ["followup", "calendar-plus", "Follow-up"], ["addTag", "tag", "Tag"], ["priority", "thermometer-half", "Priority"], ["list", "collection", "Add to list"]].map(([action, icon, label]) => (
                   <button key={action} type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => setBulk({ action })}><i className={`bi bi-${icon}`}></i>{label}</button>
                 ))}
                 {can("blast", "create") && <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => setBulk({ action: "message" })}><i className="bi bi-send"></i>Message</button>}
@@ -361,7 +380,11 @@ export default function Leads() {
         <BulkMessage count={selectedCount} canSms={m.canSms} target={allMatching ? { allMatching: true, filters: listParams } : { ids: [...selected] }}
           onClose={() => setBulk(null)} onDone={() => { setBulk(null); clearSelection(); reload(); }} />
       )}
-      {bulk && bulk.action !== "message" && (
+      {bulk?.action === "list" && (
+        <AddToList count={selectedCount} target={allMatching ? { allMatching: true, filters: listParams } : { leadIds: [...selected] }}
+          onClose={() => setBulk(null)} onDone={() => { setBulk(null); clearSelection(); }} />
+      )}
+      {bulk && !["message", "list"].includes(bulk.action) && (
         <BulkDialog
           action={bulk.action} count={selectedCount} meta={m}
           target={allMatching ? { allMatching: true, filters: listParams } : { ids: [...selected] }}
@@ -581,5 +604,41 @@ function BulkDialog({ action, count, meta, target, onClose, onDone }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ───────────── put the selected leads on a list ───────────── */
+function AddToList({ count, target, onClose, onDone }) {
+  const toast = useToast();
+  const lists = useApi(() => crmApi.lists(), []);
+  const statics = (lists.data || []).filter((l) => l.kind === "static");
+  const [pick, setPick] = useState("");
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const isNew = pick === "__new" || (!statics.length && lists.data);
+  async function save() {
+    setSaving(true);
+    try {
+      if (isNew) { const r = await crmApi.createList({ name: name.trim(), kind: "static", ...target }); toast(`List "${r.data.name}" made with ${r.data.count} lead${r.data.count === 1 ? "" : "s"}`); }
+      else { const r = await crmApi.listMembers(pick, target); toast(`${r.data.changed} added · ${r.data.count} on the list`); }
+      onDone();
+    } catch (e) { toast(e.message, "error"); }
+    finally { setSaving(false); }
+  }
+  return (
+    <Modal title={`Add ${count} lead${count === 1 ? "" : "s"} to a list`} onClose={onClose}
+      footer={<><button type="button" className="ui-btn ui-btn-outline" onClick={onClose}>Cancel</button><button type="button" className="ui-btn ui-btn-primary" disabled={saving || (isNew ? !name.trim() : !pick)} onClick={save}>{saving ? "Saving…" : "Add"}</button></>}>
+      {lists.loading && !lists.data ? <Spinner /> : (
+        <div className="space-y-3">
+          {!!statics.length && (
+            <div><label className={labelCls}>List</label>
+              <select className="ui-input w-full" value={pick} onChange={(e) => setPick(e.target.value)}>
+                <option value="">Choose…</option>{statics.map((l) => <option key={l._id} value={l._id}>{l.name} ({l.count})</option>)}<option value="__new">+ New list</option>
+              </select></div>
+          )}
+          {isNew && <div><label className={labelCls}>New list name *</label><input className="ui-input w-full" autoFocus value={name} onChange={(e) => setName(e.target.value)} /></div>}
+        </div>
+      )}
+    </Modal>
   );
 }
