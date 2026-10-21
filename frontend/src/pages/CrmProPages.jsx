@@ -4,7 +4,7 @@ import { crmApi, leadsApi } from "../api";
 import { useApi } from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { PageHeader, Spinner, ErrorBox, EmptyState, Chip, Modal, Confirm, Tabs, StatCard, Avatar } from "../components/ui";
+import { PageHeader, Spinner, ErrorBox, EmptyState, Chip, Modal, Confirm, Tabs, StatCard, Avatar, SearchBox, FilterSummary } from "../components/ui";
 import DateInput from "../components/DateInput";
 import { formatDate, formatDateTime } from "../utils/dateFormat";
 import { labelCls, PRIORITY, idOf, timeAgo } from "../components/lead/leadUtils";
@@ -75,24 +75,29 @@ export function Queries() {
         <button type="button" className="ui-btn ui-btn-outline" disabled={exporting || !rows.length} onClick={exportAll}><i className="bi bi-file-earmark-excel"></i>Export Excel</button>
         {can("leads", "create") && <button type="button" className="ui-btn ui-btn-primary" onClick={() => setAdding(true)}><i className="bi bi-plus-lg"></i>New query</button>}
       </>} />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-        <StatCard label="Open" value={num.format(stats.open || 0)} icon="inbox" tone="info" active={status === "open"} onClick={() => { setStatus("open"); setPage(1); }} />
-        <StatCard label="Waiting on customer" value={num.format(stats.pending || 0)} icon="hourglass-split" tone="warning" active={status === "pending"} onClick={() => { setStatus("pending"); setPage(1); }} />
-        <StatCard label="Overdue" value={num.format(stats.overdue || 0)} icon="alarm" tone="destructive" active={f.overdue === "1"} onClick={() => setFilter("overdue", f.overdue ? "" : "1")} />
-        <StatCard label="Resolved" value={num.format((stats.resolved || 0) + (stats.closed || 0))} icon="check2-circle" tone="success" active={status === "resolved"} onClick={() => { setStatus("resolved"); setPage(1); }} />
-      </div>
-      <Tabs value={status} onChange={(v) => { setStatus(v); setPage(1); }} tabs={[{ value: "active", label: "Active" }, { value: "open", label: "Open" }, { value: "pending", label: "Waiting" }, { value: "resolved", label: "Resolved" }, { value: "closed", label: "Closed" }, { value: "all", label: "All" }]} />
-      <div className="flex flex-wrap gap-2 mb-3">
-        <input className="ui-input flex-1" style={{ minWidth: 180 }} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="ui-input" style={{ width: "auto" }} value={f.category} onChange={(e) => setFilter("category", e.target.value)} aria-label="Category"><option value="">All categories</option>{(meta.data?.categories || []).map((c) => <option key={c.name}>{c.name}</option>)}</select>
-        <select className="ui-input" style={{ width: "auto" }} value={f.priority} onChange={(e) => setFilter("priority", e.target.value)} aria-label="Priority"><option value="">Any priority</option>{Object.entries(QUERY_PRIORITY).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}</select>
-        <select className="ui-input" style={{ width: "auto" }} value={f.assignedTo} onChange={(e) => setFilter("assignedTo", e.target.value)} aria-label="Assigned to"><option value="">Anyone</option><option value="me">Me</option><option value="Unassigned">Unassigned</option>{(meta.data?.owners || []).map((o) => <option key={o}>{o}</option>)}</select>
+      <Tabs value={status} onChange={(v) => { setStatus(v); setPage(1); }} tabs={[
+        { value: "active", label: "Active", count: (stats.open || 0) + (stats.pending || 0) },
+        { value: "open", label: "Open", count: stats.open || 0 },
+        { value: "pending", label: "Waiting", count: stats.pending || 0 },
+        { value: "resolved", label: "Resolved", count: stats.resolved || 0 },
+        { value: "closed", label: "Closed", count: stats.closed || 0 },
+        { value: "all", label: "All", count: (stats.open || 0) + (stats.pending || 0) + (stats.resolved || 0) + (stats.closed || 0) },
+      ]} />
+      <div className="flex flex-wrap items-center gap-3 mb-3">
+        <SearchBox value={q} onChange={setQ} />
+        <select className="ui-input min-w-[150px]" style={{ width: "auto" }} value={f.category} onChange={(e) => setFilter("category", e.target.value)} aria-label="Category"><option value="">All categories</option>{(meta.data?.categories || []).map((c) => <option key={c.name}>{c.name}</option>)}</select>
+        <select className="ui-input min-w-[130px]" style={{ width: "auto" }} value={f.priority} onChange={(e) => setFilter("priority", e.target.value)} aria-label="Priority"><option value="">Any priority</option>{Object.entries(QUERY_PRIORITY).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}</select>
+        <select className="ui-input min-w-[130px]" style={{ width: "auto" }} value={f.assignedTo} onChange={(e) => setFilter("assignedTo", e.target.value)} aria-label="Assigned to"><option value="">Anyone</option><option value="me">Me</option><option value="Unassigned">Unassigned</option>{(meta.data?.owners || []).map((o) => <option key={o}>{o}</option>)}</select>
+        <button type="button" className={"ui-btn " + (f.overdue ? "ui-btn-danger" : "ui-btn-outline")} onClick={() => setFilter("overdue", f.overdue ? "" : "1")} aria-pressed={!!f.overdue}>
+          <i className="bi bi-alarm"></i>Overdue<span className="text-[10px] font-semibold tabular-nums opacity-70">{stats.overdue || 0}</span>
+        </button>
+        <FilterSummary onClear={q || f.category || f.priority || f.assignedTo || f.overdue ? () => { setQ(""); setF({ category: "", priority: "", assignedTo: "", overdue: "" }); setPage(1); } : undefined} text={list.loading ? "Loading…" : `${num.format(list.raw?.total ?? rows.length)} ${(list.raw?.total ?? rows.length) === 1 ? "query" : "queries"}`} />
       </div>
       <ErrorBox error={list.error} />
 
       {/* phones: cards */}
       <div className="md:hidden space-y-2">
-        {list.loading && !rows.length ? <Spinner /> : !rows.length ? <div className="rounded-xl border bg-card"><EmptyState icon="question-circle" text="No queries." /></div> : rows.map((x) => {
+        {list.loading && !rows.length ? <Spinner /> : !rows.length ? <div className="rounded-xl border bg-card"><EmptyState icon="question-circle" text="No queries" />{can("leads", "create") && <div className="text-center pb-8 -mt-10"><button type="button" className="ui-btn ui-btn-primary" onClick={() => setAdding(true)}><i className="bi bi-plus-lg"></i>New query</button></div>}</div> : rows.map((x) => {
           const due = dueText(x);
           return (
             <button key={x._id} type="button" className="w-full text-left rounded-xl border bg-card p-3" onClick={() => setOpen(x._id)}>
@@ -109,7 +114,7 @@ export function Queries() {
           <table className="w-full text-sm">
             <thead><tr className={tableHead} style={{ background: "var(--muted-background)" }}><Th>#</Th><Th>Subject</Th><Th>From</Th><Th>Category</Th><Th>Priority</Th><Th>Status</Th><Th>Assigned to</Th><Th>Due</Th></tr></thead>
             <tbody>
-              {list.loading && !rows.length ? <tr><td colSpan={99}><Spinner /></td></tr> : !rows.length ? <tr><td colSpan={99}><EmptyState icon="question-circle" text="No queries." /></td></tr> : rows.map((x) => {
+              {list.loading && !rows.length ? <tr><td colSpan={99}><Spinner /></td></tr> : !rows.length ? <tr><td colSpan={99}><EmptyState icon="question-circle" text="No queries" />{can("leads", "create") && <div className="text-center pb-8 -mt-10"><button type="button" className="ui-btn ui-btn-primary" onClick={() => setAdding(true)}><i className="bi bi-plus-lg"></i>New query</button></div>}</td></tr> : rows.map((x) => {
                 const due = dueText(x);
                 return (
                   <tr key={x._id} className="border-t hover:bg-accent/30 cursor-pointer" onClick={() => setOpen(x._id)}>

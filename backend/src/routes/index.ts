@@ -66,6 +66,11 @@ import { newToken } from "../services/leadFees";
 import crmPublicRoutes from "./crmPublic";
 import crm2Routes from "./crm2";
 import crm3Routes from "./crm3";
+import crmFormRoutes, { publicFormRoutes } from "./crmForms";
+import crmApplicationRoutes from "./crmApplications";
+import crmReportRoutes from "./crmReports";
+import crmApprovalRoutes from "./crmApprovals";
+import crmSalesRoutes, { publicSalesRoutes } from "./crmSales";
 import campaignRoutes from "./campaigns";
 import websiteRoutes, { websitePublicRoutes } from "./website";
 import websiteDataRoutes, { websiteDataPublicRoutes } from "./websiteData";
@@ -177,6 +182,9 @@ r.use(websitePublicRoutes);
 r.use(websiteDataPublicRoutes);
 // Admission pre-requisite form a client fills from a link (Setup › Implementation › Pre-requisites)
 r.use(prereqPublicRoutes);
+// CRM → Forms filled from a link, and quotations a customer opens from a link
+r.use(publicFormRoutes);
+r.use(publicSalesRoutes);
 
 /* ---- everything below requires auth ---- */
 r.use(authenticate);
@@ -411,9 +419,14 @@ r.delete("/flowchat/media/:id", require_("workflows", "del"), flowMediaC.deleteF
 
 /* ---- Lead CRM extras: settings, automation, documents, fees, calling, targets, capture, applications, reports … ----
    Mounted before the lead routes so fixed paths like /leads/report are never read as a lead id. */
+r.use(crmApplicationRoutes);
+r.use(crmReportRoutes);
+r.use(crmApprovalRoutes);
 r.use(crmRoutes);
 r.use(crm2Routes);
 r.use(crm3Routes);
+r.use(crmFormRoutes);
+r.use(crmSalesRoutes);
 r.use(websiteRoutes);
 r.use(websiteDataRoutes);
 

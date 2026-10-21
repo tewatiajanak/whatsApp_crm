@@ -434,7 +434,7 @@ function SaveView({ disabled, onSave }) {
   if (name === null) return <button type="button" className="ui-btn ui-btn-ghost" disabled={disabled} onClick={() => setName("")}><i className="bi bi-bookmark-plus"></i>Save view</button>;
   return (
     <span className="inline-flex gap-1">
-      <input className="ui-input" style={{ width: 140 }} autoFocus placeholder="View name" value={name} onChange={(e) => setName(e.target.value)}
+      <input className="ui-input" style={{ width: 140 }} autoFocus aria-label="View name" title="View name" value={name} onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { onSave(name.trim()); setName(null); } if (e.key === "Escape") setName(null); }} />
       <button type="button" className="ui-btn ui-btn-primary" disabled={!name.trim()} onClick={() => { onSave(name.trim()); setName(null); }}>Save</button>
     </span>
@@ -580,10 +580,10 @@ function BulkDialog({ action, count, meta, target, onClose, onDone }) {
         )}
         {action === "status" && <>
           <select className="ui-input w-full" value={v.statusId} onChange={(e) => set("statusId", e.target.value)}><option value="">Choose a status</option>{(meta.statuses || []).map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}</select>
-          {lost && <><input className="ui-input w-full" list="bulk-lost" placeholder="Lost reason" value={v.lostReason} onChange={(e) => set("lostReason", e.target.value)} /><datalist id="bulk-lost">{LOST_REASONS.map((r) => <option key={r} value={r} />)}</datalist></>}
+          {lost && <><input className="ui-input w-full" list="bulk-lost" aria-label="Lost reason" title="Lost reason" value={v.lostReason} onChange={(e) => set("lostReason", e.target.value)} /><datalist id="bulk-lost">{LOST_REASONS.map((r) => <option key={r} value={r} />)}</datalist></>}
         </>}
         {action === "addTag" && <>
-          <input className="ui-input w-full" list="bulk-tags" autoFocus placeholder="Tag" value={v.tag} onChange={(e) => set("tag", e.target.value)} />
+          <input className="ui-input w-full" list="bulk-tags" autoFocus aria-label="Tag" title="Tag" value={v.tag} onChange={(e) => set("tag", e.target.value)} />
           <datalist id="bulk-tags">{(meta.tags || []).map((t) => <option key={t} value={t} />)}</datalist>
           <label className="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" checked={v.remove} onChange={(e) => set("remove", e.target.checked)} />Remove this tag instead</label>
         </>}
@@ -596,7 +596,7 @@ function BulkDialog({ action, count, meta, target, onClose, onDone }) {
             <DateInput className="ui-input w-full" value={v.date} onChange={(e) => set("date", e.target.value)} />
             <input type="time" className="ui-input w-full" value={v.time} onChange={(e) => set("time", e.target.value)} />
           </div>
-          <input className="ui-input w-full" placeholder="What to do" value={v.note} onChange={(e) => set("note", e.target.value)} />
+          <input className="ui-input w-full" aria-label="What to do" title="What to do" value={v.note} onChange={(e) => set("note", e.target.value)} />
         </>}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" className="ui-btn ui-btn-outline" onClick={onClose} disabled={busy}>Cancel</button>

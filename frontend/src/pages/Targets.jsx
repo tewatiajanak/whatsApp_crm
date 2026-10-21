@@ -64,7 +64,7 @@ export default function Targets() {
                       <div className="flex justify-between text-[11px] text-muted-foreground mb-1"><span>{label}</span>
                         <span><span className="font-semibold text-foreground">{show(k, r.achieved[k])}</span>{target ? ` / ${show(k, target)}` : ""}</span></div>
                       {editing ? (
-                        <input className="ui-input w-full" type="number" min="0" placeholder="Target" value={draft[r.owner]?.[k] || ""} onChange={(e) => setDraft((d) => ({ ...d, [r.owner]: { ...d[r.owner], [k]: Number(e.target.value) || 0 } }))} />
+                        <input className="ui-input w-full" type="number" min="0" aria-label="Target" title="Target" value={draft[r.owner]?.[k] || ""} onChange={(e) => setDraft((d) => ({ ...d, [r.owner]: { ...d[r.owner], [k]: Number(e.target.value) || 0 } }))} />
                       ) : (
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--muted-background)" }}><div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--success)" : "var(--primary)" }} /></div>
                       )}

@@ -1635,3 +1635,12 @@ input[type="checkbox"]:not(.form-check-input), input[type="radio"]:not(.form-che
   .ui-btn.ui-btn-sm, .btn.btn-sm { min-height: 36px !important; }
   .ui-btn.ui-btn-icon, .btn.border-0 { min-width: 36px; min-height: 36px !important; }
 }
+
+/* Bootstrap's reboot sets button { border-radius: 0 }, which beats Tailwind's layered rounded-* classes.
+   Buttons used as cards / chips keep the radius their class asks for. */
+button.rounded-sm { border-radius: 0.25rem; }
+button.rounded, button.rounded-md { border-radius: 0.375rem; }
+button.rounded-lg { border-radius: 0.5rem; }
+button.rounded-xl { border-radius: 0.75rem; }
+button.rounded-2xl { border-radius: 1rem; }
+button.rounded-full { border-radius: 9999px; }

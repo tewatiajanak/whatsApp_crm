@@ -30,8 +30,13 @@ import CrmSettings from "./pages/CrmSettings";
 import Targets from "./pages/Targets";
 import Applications from "./pages/Applications";
 import { PublicPayPage, PublicApplicationPage, PublicPartnerPage, PublicBookingPage, ApplicantLoginPage } from "./pages/PublicCrmPages";
-import { Approvals, Partners, Reports } from "./pages/CrmMorePages";
+import { Approvals, Partners } from "./pages/CrmMorePages";
+import ReportBuilder from "./pages/ReportBuilder";
 import { Queries, LeadLists, ActivityRegister } from "./pages/CrmProPages";
+import { FormsPage, FormWorkspace } from "./pages/Forms";
+import { PublicFormPage, FormReceiptPage } from "./pages/PublicFormPages";
+import { Deals, Companies, Products, Quotes } from "./pages/Sales";
+import PublicQuotePage from "./pages/PublicQuotePage";
 
 // FlowChat Studio Builder
 import BotBuilder from "./flowchat/pages/BotBuilder";
@@ -239,6 +244,9 @@ export default function App() {
         {/* Lead CRM links sent to a lead: pay a fee, follow an application (public) */}
         <Route path="/pay/:token" element={<PublicPayPage />} />
         <Route path="/application/:token" element={<PublicApplicationPage />} />
+        <Route path="/f/receipt/:token" element={<FormReceiptPage />} />
+        <Route path="/f/:slug" element={<PublicFormPage />} />
+        <Route path="/quote/:token" element={<PublicQuotePage />} />
         <Route path="/partner/:token" element={<PublicPartnerPage />} />
         <Route path="/applicant" element={<ApplicantLoginPage />} />
         <Route path="/book/:token" element={<PublicBookingPage />} />
@@ -413,12 +421,18 @@ export default function App() {
           <Route path="contacts" element={<Contacts />} />
           <Route path="applications" element={<Applications />} />
           <Route path="targets" element={<Targets />} />
-          <Route path="reports" element={<Reports />} />
+          <Route path="reports" element={<ReportBuilder />} />
           <Route path="approvals" element={<Approvals />} />
           <Route path="partners" element={<Partners />} />
           <Route path="queries" element={<Queries />} />
           <Route path="lists" element={<LeadLists />} />
           <Route path="activities" element={<ActivityRegister />} />
+          <Route path="forms" element={<FormsPage />} />
+          <Route path="forms/:id" element={<FormWorkspace />} />
+          <Route path="deals" element={<Deals />} />
+          <Route path="companies" element={<Companies />} />
+          <Route path="products" element={<Products />} />
+          <Route path="quotes" element={<Quotes />} />
           <Route path="automation" element={<Automation />} />
           <Route path="settings" element={<CrmSettings />} />
           <Route path="chat" element={<Conversations />} />

@@ -83,6 +83,8 @@ export const crmApi = {
   applications: (params) => http.get("/crm/applications" + qs(params)),
   setApplicationStage: (id, stage, note) => http.patch(`/crm/applications/${id}`, { stage, note }),
   makeOffer: (id, b) => http.post(`/crm/applications/${id}/offer`, b),
+  application: (id) => http.get(`/crm/applications/${id}`),
+  applicationTemplates: () => http.get("/crm/applications/templates"),
   customFields: () => http.get("/custom-fields?module=crm&perPage=200"),
   createCustomField: (b) => http.post("/custom-fields", { ...b, module: "crm" }),
   updateCustomField: (id, b) => http.patch(`/custom-fields/${id}`, b),
@@ -133,8 +135,14 @@ export const crmApi = {
   // spend per source, approvals
   spend: (month) => http.get("/crm/spend" + qs({ month })),
   saveSpend: (month, rows) => http.put("/crm/spend", { month, rows }),
-  approvals: (status) => http.get("/crm/approvals" + qs({ status })),
+  approvals: (status, params = {}) => http.get("/crm/approvals" + qs({ status, ...params })),
   decideApproval: (id, approve, note) => http.post(`/crm/approvals/${id}/decide`, { approve, note }),
+  bulkDecide: (ids, approve, note) => http.post("/crm/approvals/bulk", { ids, approve, note }),
+  cancelApproval: (id) => http.post(`/crm/approvals/${id}/cancel`, {}),
+  approvalRules: () => http.get("/crm/approvals/rules"),
+  saveApprovalRules: (b) => http.put("/crm/approvals/rules", b),
+  requestRefund: (feeId, amount, reason) => http.post(`/lead-fees/${feeId}/refund-request`, { amount, reason }),
+  requestQuoteApproval: (quoteId, reason) => http.post(`/crm/quotes/${quoteId}/request-approval`, { reason }),
   // fees: part payment, refund, plan, concession
   refundFee: (feeId, b) => http.post(`/lead-fees/${feeId}/refund`, b),
   feePlan: (leadId, b) => http.post(`/leads/${leadId}/fee-plan`, b),
@@ -659,4 +667,75 @@ export const portalApi = {
     return http.postForm(`/pm/portal/tickets/${id}/files`, fd);
   },
   ticketFile: (id, fileId) => http.blob(`/pm/portal/tickets/${id}/files/${fileId}`),
+};
+
+// CRM → Forms: builder, submissions, analytics, and the public fill-in page
+export const formsApi = {
+  templates: () => http.get("/crm/forms/templates"),
+  meta: () => http.get("/crm/forms/meta"),
+  list: (params) => http.get("/crm/forms" + qs(params)),
+  create: (b) => http.post("/crm/forms", b),
+  get: (id) => http.get(`/crm/forms/${id}`),
+  update: (id, b) => http.patch(`/crm/forms/${id}`, b),
+  duplicate: (id) => http.post(`/crm/forms/${id}/duplicate`),
+  remove: (id) => http.del(`/crm/forms/${id}`),
+  submissions: (id, params) => http.get(`/crm/forms/${id}/submissions` + qs(params)),
+  analytics: (id, params) => http.get(`/crm/forms/${id}/analytics` + qs(params)),
+  submission: (sid) => http.get(`/crm/form-submissions/${sid}`),
+  updateSubmission: (sid, b) => http.patch(`/crm/form-submissions/${sid}`, b),
+  removeSubmission: (sid) => http.del(`/crm/form-submissions/${sid}`),
+  bulk: (ids, action) => http.post("/crm/form-submissions/bulk", { ids, action }),
+  file: (sid, fileId) => http.blob(`/crm/form-submissions/${sid}/files/${fileId}`),
+  // public
+  publicForm: (slug, params) => http.get(`/public/forms/${slug}` + qs(params)),
+  start: (slug) => http.post(`/public/forms/${slug}/start`, {}),
+  draft: (slug, b) => http.post(`/public/forms/${slug}/draft`, b),
+  submit: (slug, fd) => http.postForm(`/public/forms/${slug}/submit`, fd),
+  receipt: (token) => http.get(`/public/form-receipt/${token}`),
+};
+
+// Sales: companies, deals, products, quotations
+export const salesApi = {
+  companies: (params) => http.get("/crm/companies" + qs(params)),
+  company: (id) => http.get(`/crm/companies/${id}`),
+  createCompany: (b) => http.post("/crm/companies", b),
+  updateCompany: (id, b) => http.patch(`/crm/companies/${id}`, b),
+  removeCompany: (id) => http.del(`/crm/companies/${id}`),
+  stages: () => http.get("/crm/deal-stages"),
+  createStage: (b) => http.post("/crm/deal-stages", b),
+  updateStage: (id, b) => http.patch(`/crm/deal-stages/${id}`, b),
+  removeStage: (id) => http.del(`/crm/deal-stages/${id}`),
+  orderStages: (ids) => http.put("/crm/deal-stages/order", { ids }),
+  deals: (params) => http.get("/crm/deals" + qs(params)),
+  board: (params) => http.get("/crm/deals/board" + qs(params)),
+  summary: (params) => http.get("/crm/deals/summary" + qs(params)),
+  deal: (id) => http.get(`/crm/deals/${id}`),
+  createDeal: (b) => http.post("/crm/deals", b),
+  updateDeal: (id, b) => http.patch(`/crm/deals/${id}`, b),
+  removeDeal: (id) => http.del(`/crm/deals/${id}`),
+  products: (params) => http.get("/crm/products" + qs(params)),
+  createProduct: (b) => http.post("/crm/products", b),
+  updateProduct: (id, b) => http.patch(`/crm/products/${id}`, b),
+  removeProduct: (id) => http.del(`/crm/products/${id}`),
+  quotes: (params) => http.get("/crm/quotes" + qs(params)),
+  quote: (id) => http.get(`/crm/quotes/${id}`),
+  createQuote: (b) => http.post("/crm/quotes", b),
+  updateQuote: (id, b) => http.patch(`/crm/quotes/${id}`, b),
+  duplicateQuote: (id) => http.post(`/crm/quotes/${id}/duplicate`),
+  sendQuote: (id, b) => http.post(`/crm/quotes/${id}/send`, b),
+  removeQuote: (id) => http.del(`/crm/quotes/${id}`),
+  publicQuote: (token, params) => http.get(`/public/quote/${token}` + qs(params)),
+  respondQuote: (token, b) => http.post(`/public/quote/${token}/respond`, b),
+};
+
+// CRM → Report builder: reports, dashboards, cards
+export const reportsApi = {
+  meta: () => http.get("/crm/reports/meta"),
+  run: (spec) => http.post("/crm/reports/run", spec),
+  exportRows: (spec) => http.post("/crm/reports/export", spec),
+  saved: (kind) => http.get("/crm/reports/saved" + qs({ kind })),
+  get: (id) => http.get(`/crm/reports/saved/${id}`),
+  create: (b) => http.post("/crm/reports/saved", b),
+  update: (id, b) => http.patch(`/crm/reports/saved/${id}`, b),
+  remove: (id) => http.del(`/crm/reports/saved/${id}`),
 };

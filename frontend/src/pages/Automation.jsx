@@ -120,6 +120,17 @@ export default function Automation() {
   );
 }
 
+const VARS = [["{{name}}", "Name"], ["{{first_name}}", "First name"], ["{{course}}", "Course"], ["{{city}}", "City"], ["{{owner}}", "Owner"]];
+/** click a chip to put it where the cursor is */
+function insertAt(id, token, value, set) {
+  const el = document.getElementById(id);
+  const at = el && typeof el.selectionStart === "number" ? el.selectionStart : (value || "").length;
+  const end = el && typeof el.selectionEnd === "number" ? el.selectionEnd : at;
+  const next = `${(value || "").slice(0, at)}${token}${(value || "").slice(end)}`;
+  set(next);
+  setTimeout(() => { if (el) { el.focus(); el.setSelectionRange(at + token.length, at + token.length); } }, 0);
+}
+
 function RuleEditor({ rule, cfg, meta, extra, onClose, onSaved }) {
   const toast = useToast();
   const [f, setF] = useState(() => ({ ...rule, conditions: (rule.conditions || []).map((c) => ({ ...c })), actions: (rule.actions || []).map((a) => ({ ...a, params: { ...(a.params || {}) } })) }));
@@ -131,6 +142,7 @@ function RuleEditor({ rule, cfg, meta, extra, onClose, onSaved }) {
   const setCond = (i, patch) => setF((x) => ({ ...x, conditions: x.conditions.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
   const setAct = (i, patch) => setF((x) => ({ ...x, actions: x.actions.map((a, j) => (j === i ? { ...a, ...patch } : a)) }));
   const setParam = (i, k, v) => setF((x) => ({ ...x, actions: x.actions.map((a, j) => (j === i ? { ...a, params: { ...a.params, [k]: v } } : a)) }));
+  const moveStep = (i, d) => setF((x) => { const j = i + d; if (j < 0 || j >= x.actions.length) return x; const a = [...x.actions]; [a[i], a[j]] = [a[j], a[i]]; return { ...x, actions: a }; });
 
   // what a condition can be compared against, by the kind of field
   const choices = useMemo(() => ({
@@ -152,87 +164,152 @@ function RuleEditor({ rule, cfg, meta, extra, onClose, onSaved }) {
     } catch (e) { toast(e.message, "error"); setSaving(false); }
   }
 
-  const text = (i, k, placeholder, rows) => rows
-    ? <textarea className="ui-input w-full" style={{ height: "auto", padding: "8px 12px" }} rows={rows} placeholder={placeholder} value={f.actions[i].params[k] || ""} onChange={(e) => setParam(i, k, e.target.value)} />
-    : <input className="ui-input w-full" placeholder={placeholder} value={f.actions[i].params[k] || ""} onChange={(e) => setParam(i, k, e.target.value)} />;
+  /** a labelled box; message boxes get the variable chips */
+  const text = (i, k, label, rows, { vars = false, hint } = {}) => {
+    const id = `rule-${i}-${k}`;
+    const value = f.actions[i].params[k] || "";
+    return (
+      <div>
+        <label htmlFor={id} className={labelCls}>{label}</label>
+        {rows
+          ? <textarea id={id} className="ui-input w-full" style={{ height: "auto", padding: "8px 12px" }} rows={rows} value={value} onChange={(e) => setParam(i, k, e.target.value)} />
+          : <input id={id} className="ui-input w-full" value={value} onChange={(e) => setParam(i, k, e.target.value)} />}
+        {vars && (
+          <div className="flex flex-wrap items-center gap-1 mt-1.5">
+            <span className="text-[11px] text-muted-foreground me-0.5">Insert</span>
+            {VARS.map(([t, l]) => <button key={t} type="button" className="ui-btn ui-btn-outline ui-btn-sm" style={{ height: 24, padding: "0 8px", fontSize: 11 }} title={t} onClick={() => insertAt(id, t, value, (v) => setParam(i, k, v))}>{l}</button>)}
+          </div>
+        )}
+        {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
+      </div>
+    );
+  };
 
   const paramInputs = (a, i) => {
     switch (a.kind) {
       case "whatsapp": return <>
-        <select className="ui-input w-full" value={a.params.template || ""} onChange={(e) => setParam(i, "template", e.target.value)}>
-          <option value="">Free text (only inside the 24-hour window)</option>
-          {(extra.templates || []).filter((t) => (t.channel || "whatsapp") === "whatsapp").map((t) => <option key={t._id} value={t.name}>Template: {t.name}</option>)}
-        </select>
-        {!a.params.template && text(i, "message", "Message", 2)}
+        <div><label className={labelCls}>Message</label>
+          <select className="ui-input w-full" value={a.params.template || ""} onChange={(e) => setParam(i, "template", e.target.value)}>
+            <option value="">Free text</option>
+            {(extra.templates || []).filter((t) => (t.channel || "whatsapp") === "whatsapp").map((t) => <option key={t._id} value={t.name}>Template: {t.name}</option>)}
+          </select>
+        </div>
+        {!a.params.template && text(i, "message", "Text", 3, { vars: true, hint: "Free text reaches only leads who messaged you in the last 24 hours. Use a template for everyone." })}
       </>;
-      case "email": return <>{text(i, "subject", "Subject")}{text(i, "template", "Email text", 3)}</>;
-      case "sms": return <>{text(i, "message", "SMS text", 2)}{text(i, "templateId", "DLT template id (if your gateway needs it)")}</>;
-      case "notify": return <>{text(i, "message", "What to tell the owner")}<label className="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" checked={!!a.params.alsoManager} onChange={(e) => setParam(i, "alsoManager", e.target.checked)} />Tell their manager too</label></>;
-      case "followup": return <div className="grid grid-cols-[110px_90px_1fr] gap-2">
-        <select className="ui-input w-full" value={a.params.type || "Call"} onChange={(e) => setParam(i, "type", e.target.value)}>{FU_TYPES.map((t) => <option key={t.value}>{t.value}</option>)}</select>
-        <input className="ui-input w-full" type="number" min="1" title="Days from then" value={a.params.daysFromNow || 1} onChange={(e) => setParam(i, "daysFromNow", Number(e.target.value))} />
+      case "email": return <>{text(i, "subject", "Subject", 0, { vars: true })}{text(i, "template", "Email text", 4, { vars: true })}</>;
+      case "sms": return <>{text(i, "message", "SMS text", 3, { vars: true })}{text(i, "templateId", "DLT template ID", 0, { hint: "Only if your SMS gateway needs it" })}</>;
+      case "notify": return <>{text(i, "message", "Message to the owner", 2, { vars: true })}<label className="flex items-center gap-2 text-sm text-foreground cursor-pointer"><input type="checkbox" className="form-check-input m-0" checked={!!a.params.alsoManager} onChange={(e) => setParam(i, "alsoManager", e.target.checked)} />Tell their manager too</label></>;
+      case "followup": return <>
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className={labelCls}>Type</label><select className="ui-input w-full" value={a.params.type || "Call"} onChange={(e) => setParam(i, "type", e.target.value)}>{FU_TYPES.map((t) => <option key={t.value}>{t.value}</option>)}</select></div>
+          <div><label className={labelCls}>Due after (days)</label><input className="ui-input w-full" type="number" min="1" value={a.params.daysFromNow || 1} onChange={(e) => setParam(i, "daysFromNow", Number(e.target.value))} /></div>
+        </div>
         {text(i, "note", "What to do")}
-      </div>;
-      case "status": return <select className="ui-input w-full" value={a.params.statusId || ""} onChange={(e) => setParam(i, "statusId", e.target.value)}><option value="">Choose a status</option>{(meta.statuses || []).map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}</select>;
-      case "assign_lead": return <select className="ui-input w-full" value={a.params.userId || ""} onChange={(e) => setParam(i, "userId", e.target.value)}><option value="">Choose a person</option>{(extra.users || []).map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}</select>;
+      </>;
+      case "status": return <div><label className={labelCls}>New status</label><select className="ui-input w-full" value={a.params.statusId || ""} onChange={(e) => setParam(i, "statusId", e.target.value)}><option value="">Choose a status</option>{(meta.statuses || []).map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}</select></div>;
+      case "assign_lead": return <div><label className={labelCls}>Give the lead to</label><select className="ui-input w-full" value={a.params.userId || ""} onChange={(e) => setParam(i, "userId", e.target.value)}><option value="">Choose a person</option>{(extra.users || []).map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}</select></div>;
       case "tag": return text(i, "tag", "Tag");
-      case "priority": return <select className="ui-input w-full" value={a.params.priority || ""} onChange={(e) => setParam(i, "priority", e.target.value)}><option value="">Choose</option>{Object.entries(PRIORITY).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}</select>;
+      case "priority": return <div><label className={labelCls}>Priority</label><select className="ui-input w-full" value={a.params.priority || ""} onChange={(e) => setParam(i, "priority", e.target.value)}><option value="">Choose</option>{Object.entries(PRIORITY).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}</select></div>;
       default: return null;
     }
   };
 
+  const eventLabel = (cfg.WORKFLOW_EVENTS || []).find((e) => e.key === f.event)?.label || "this happens";
+  const sectionHead = (n, title, action) => (
+    <div className="flex items-center justify-between mb-2">
+      <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <span className="inline-flex h-6 w-6 items-center justify-center text-[11px] font-bold" style={{ borderRadius: 999, background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}>{n}</span>{title}
+      </span>
+      {action}
+    </div>
+  );
+
   return (
-    <Modal title={f._id ? "Edit rule" : "New rule"} size="lg" onClose={onClose}
-      footer={<><button type="button" className="ui-btn ui-btn-outline" onClick={onClose}>Cancel</button><button type="button" className="ui-btn ui-btn-primary" disabled={saving || !f.name.trim() || !f.actions.length} onClick={save}>{saving ? "Saving…" : "Save rule"}</button></>}>
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div><label className={labelCls}>Rule name *</label><input className="ui-input w-full" autoFocus value={f.name} onChange={(e) => setF((x) => ({ ...x, name: e.target.value }))} /></div>
-          <div><label className={labelCls}>When this happens</label>
-            <select className="ui-input w-full" value={f.event} onChange={(e) => setF((x) => ({ ...x, event: e.target.value }))}>{(cfg.WORKFLOW_EVENTS || []).map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}</select></div>
-        </div>
+    <Modal title={f._id ? "Edit rule" : "New rule"} size="wide" onClose={onClose}
+      footer={<>
+        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer me-auto"><input type="checkbox" className="form-check-input m-0" checked={f.active !== false} onChange={(e) => setF((x) => ({ ...x, active: e.target.checked }))} />Active</label>
+        <button type="button" className="ui-btn ui-btn-outline" onClick={onClose}>Cancel</button>
+        <button type="button" className="ui-btn ui-btn-primary" disabled={saving || !f.name.trim() || !f.actions.length} onClick={save}>{saving ? "Saving…" : "Save rule"}</button>
+      </>}>
+      <div className="space-y-5">
+        <div><label className={labelCls}>Rule name *</label><input className="ui-input w-full" autoFocus value={f.name} onChange={(e) => setF((x) => ({ ...x, name: e.target.value }))} /></div>
 
         <section>
-          <div className="flex items-center justify-between mb-1.5"><span className={labelCls + " mb-0"}>Only if</span>
-            <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => setF((x) => ({ ...x, conditions: [...x.conditions, { field: "source", operator: "equals", value: "", logic: "and" }] }))}><i className="bi bi-plus-lg"></i>Condition</button></div>
-          {!f.conditions.length && <div className="text-xs text-muted-foreground">Runs for every lead.</div>}
-          {f.conditions.map((c, i) => {
-            const type = fields.find((x) => x.key === c.field)?.type || "text";
-            const list = choices[type];
-            const noValue = c.operator === "is_empty" || c.operator === "is_not_empty";
-            return (
-              <div key={i} className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_1fr_76px_32px] gap-2 mb-2 items-center">
-                <select className="ui-input w-full" value={c.field} onChange={(e) => setCond(i, { field: e.target.value, value: "" })}>{fields.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</select>
-                <select className="ui-input w-full" value={c.operator} onChange={(e) => setCond(i, { operator: e.target.value })}>{opsFor(type).map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
-                {noValue ? <span /> : list ? (
-                  <select className="ui-input w-full" value={c.value || ""} onChange={(e) => setCond(i, { value: e.target.value })}><option value="">Choose</option>{list.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-                ) : <input className="ui-input w-full" type={type === "number" ? "number" : "text"} placeholder="Value" value={c.value ?? ""} onChange={(e) => setCond(i, { value: e.target.value })} />}
-                {i < f.conditions.length - 1 ? <select className="ui-input w-full" value={c.logic || "and"} onChange={(e) => setCond(i, { logic: e.target.value })}><option value="and">and</option><option value="or">or</option></select> : <span />}
-                <button type="button" className="ui-btn ui-btn-sm ui-btn-icon ui-btn-ghost" title="Remove" onClick={() => setF((x) => ({ ...x, conditions: x.conditions.filter((_, j) => j !== i) }))}><i className="bi bi-x-lg"></i></button>
-              </div>
-            );
-          })}
+          {sectionHead(1, "When")}
+          <select className="ui-input w-full" aria-label="When this happens" value={f.event} onChange={(e) => setF((x) => ({ ...x, event: e.target.value }))}>{(cfg.WORKFLOW_EVENTS || []).map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}</select>
         </section>
 
         <section>
-          <div className="flex items-center justify-between mb-1.5"><span className={labelCls + " mb-0"}>Then do</span>
-            <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => setF((x) => ({ ...x, actions: [...x.actions, { kind: "whatsapp", params: {}, delayMinutes: 0 }] }))}><i className="bi bi-plus-lg"></i>Step</button></div>
-          {f.actions.map((a, i) => {
-            const [n, unit] = splitDelay(a.delayMinutes);
-            const per = Object.fromEntries(UNITS)[unit];
-            return (
-              <div key={i} className="rounded-lg border p-2.5 mb-2 space-y-2">
-                <div className="grid grid-cols-[1fr_70px_100px_32px] gap-2 items-center">
-                  <select className="ui-input w-full" value={a.kind} onChange={(e) => setAct(i, { kind: e.target.value, params: {} })}>{actionTypes.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</select>
-                  <input className="ui-input w-full" type="number" min="0" title="Wait before this step" value={n} onChange={(e) => setAct(i, { delayMinutes: (Number(e.target.value) || 0) * per })} />
-                  <select className="ui-input w-full" value={unit} onChange={(e) => setAct(i, { delayMinutes: n * Object.fromEntries(UNITS)[e.target.value] })}>{UNITS.map(([u]) => <option key={u} value={u}>{u} later</option>)}</select>
-                  <button type="button" className="ui-btn ui-btn-sm ui-btn-icon ui-btn-ghost" title="Remove step" onClick={() => setF((x) => ({ ...x, actions: x.actions.filter((_, j) => j !== i) }))}><i className="bi bi-x-lg"></i></button>
+          {sectionHead(2, "Only if", <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => setF((x) => ({ ...x, conditions: [...x.conditions, { field: "source", operator: "equals", value: "", logic: "and" }] }))}><i className="bi bi-plus-lg"></i>Condition</button>)}
+          {!f.conditions.length ? <div className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">Every lead</div> : (
+            <div className="space-y-2">
+              {f.conditions.map((c, i) => {
+                const type = fields.find((x) => x.key === c.field)?.type || "text";
+                const list = choices[type];
+                const noValue = c.operator === "is_empty" || c.operator === "is_not_empty";
+                return (
+                  <div key={i}>
+                    <div className="rounded-lg border p-2 grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_32px] gap-2 items-center">
+                      <select className="ui-input w-full" aria-label="Field" value={c.field} onChange={(e) => setCond(i, { field: e.target.value, value: "" })}>{fields.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</select>
+                      <select className="ui-input w-full" aria-label="Condition" value={c.operator} onChange={(e) => setCond(i, { operator: e.target.value })}>{opsFor(type).map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
+                      {noValue ? <span className="hidden sm:block" /> : list ? (
+                        <select className="ui-input w-full" aria-label="Value" value={c.value || ""} onChange={(e) => setCond(i, { value: e.target.value })}><option value="">Choose</option>{list.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+                      ) : <input className="ui-input w-full" aria-label="Value" title="Value" type={type === "number" ? "number" : "text"} value={c.value ?? ""} onChange={(e) => setCond(i, { value: e.target.value })} />}
+                      <button type="button" className="ui-btn ui-btn-sm ui-btn-icon ui-btn-ghost justify-self-end" title="Remove" onClick={() => setF((x) => ({ ...x, conditions: x.conditions.filter((_, j) => j !== i) }))}><i className="bi bi-x-lg"></i></button>
+                    </div>
+                    {i < f.conditions.length - 1 && (
+                      <div className="flex justify-center py-1">
+                        <div className="inline-flex rounded-lg border p-0.5">{["and", "or"].map((l) => <button key={l} type="button" className={"ui-btn ui-btn-sm " + ((c.logic || "and") === l ? "ui-btn-primary" : "ui-btn-ghost")} style={{ height: 24 }} onClick={() => setCond(i, { logic: l })}>{l.toUpperCase()}</button>)}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section>
+          {sectionHead(3, "Then do", <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => setF((x) => ({ ...x, actions: [...x.actions, { kind: "whatsapp", params: {}, delayMinutes: x.actions.length ? 60 : 0 }] }))}><i className="bi bi-plus-lg"></i>Step</button>)}
+          {!f.actions.length && <div className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">Add at least one step</div>}
+          <div className="space-y-0">
+            {f.actions.map((a, i) => {
+              const [n, unit] = splitDelay(a.delayMinutes);
+              const later = Number(a.delayMinutes) > 0;
+              return (
+                <div key={i} className="relative">
+                  {i > 0 && <div className="ms-5 h-3 border-s-2" style={{ borderColor: "var(--border)" }} />}
+                  <div className="rounded-xl border bg-card">
+                    <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b" style={{ background: "var(--muted-background)", borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+                      <span className="text-xs font-semibold text-muted-foreground">Step {i + 1}</span>
+                      <select className="ui-input" style={{ width: 170 }} aria-label="Action" value={a.kind} onChange={(e) => setAct(i, { kind: e.target.value, params: {} })}>{actionTypes.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</select>
+                      <select className="ui-input" style={{ width: 130 }} aria-label="When" value={later ? "later" : "now"} onChange={(e) => setAct(i, { delayMinutes: e.target.value === "later" ? 60 : 0 })}><option value="now">Right away</option><option value="later">After a wait</option></select>
+                      {later && <>
+                        <input className="ui-input" style={{ width: 70 }} type="number" min="1" aria-label="Wait" value={n} onChange={(e) => setAct(i, { delayMinutes: Math.max(1, Number(e.target.value) || 1) * Object.fromEntries(UNITS)[unit] })} />
+                        <select className="ui-input" style={{ width: 100 }} aria-label="Unit" value={unit} onChange={(e) => setAct(i, { delayMinutes: n * Object.fromEntries(UNITS)[e.target.value] })}>{UNITS.map(([u]) => <option key={u} value={u}>{u}</option>)}</select>
+                      </>}
+                      <span className="ms-auto flex gap-0.5">
+                        {f.actions.length > 1 && <>
+                          <button type="button" className="ui-btn ui-btn-sm ui-btn-icon ui-btn-ghost" title="Move up" disabled={i === 0} onClick={() => moveStep(i, -1)}><i className="bi bi-chevron-up"></i></button>
+                          <button type="button" className="ui-btn ui-btn-sm ui-btn-icon ui-btn-ghost" title="Move down" disabled={i === f.actions.length - 1} onClick={() => moveStep(i, 1)}><i className="bi bi-chevron-down"></i></button>
+                        </>}
+                        <button type="button" className="ui-btn ui-btn-sm ui-btn-icon ui-btn-ghost" title="Remove step" onClick={() => setF((x) => ({ ...x, actions: x.actions.filter((_, j) => j !== i) }))}><i className="bi bi-trash"></i></button>
+                      </span>
+                    </div>
+                    <div className="p-3 space-y-2.5">{paramInputs(a, i)}</div>
+                  </div>
                 </div>
-                {paramInputs(a, i)}
-              </div>
-            );
-          })}
-          <div className="text-[11px] text-muted-foreground">In messages: {"{{name}} {{first_name}} {{course}} {{city}} {{owner}}"}</div>
+              );
+            })}
+          </div>
         </section>
+
+        {f.name.trim() && f.actions.length > 0 && (
+          <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", color: "var(--foreground)" }}>
+            <i className="bi bi-lightning-charge me-1.5" style={{ color: "var(--primary)" }}></i>
+            When <b>{eventLabel.toLowerCase()}</b>{f.conditions.length ? ` and ${f.conditions.length} condition${f.conditions.length === 1 ? "" : "s"} match` : ""}: {f.actions.map((a, i) => `${(actionTypes.find((t) => t.key === a.kind)?.label || a.kind).toLowerCase()} ${delayText(a.delayMinutes)}`).join(", then ")}.
+          </div>
+        )}
       </div>
     </Modal>
   );

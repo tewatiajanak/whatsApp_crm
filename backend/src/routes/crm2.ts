@@ -16,6 +16,7 @@ import { AISettings } from "../models/AISettings";
 import { LeadFee, LeadDocument, crmSettingsFor, feeBalance, FEE_MODES } from "../models/CrmExtras";
 import { LeadTrash, Course, Branch, Partner, SourceSpend, Approval, WebVisit, EmailTrack, PushSub } from "../models/CrmMore";
 import { recordPayment, refundFee, newToken } from "../services/leadFees";
+import { requestApproval, approvalRules } from "./crmApprovals";
 import { logActivity, refreshLead, findLeadByPhone, assignableOwners, noteLeadMessaged, maskContacts, cleanPhone } from "../services/leadService";
 import { guardLead, canSeeLead, leadOwnerScope, scopeLeadFilter, scopeFollowUpFilter } from "../services/leadAccess";
 import { buildLeadFilter } from "../controllers/leadController";
@@ -202,6 +203,8 @@ const feeFor = async (req: any) => {
 };
 
 r.post("/lead-fees/:feeId/refund", require_("leads", "del"), asyncHandler(async (req: any, res: any) => {
+  const isAdmin = (req.perms || []).some((p: any) => p.module === "setup" && p.edit);
+  if ((await approvalRules(req.tenantId)).refund.enabled && !isAdmin) { const e: any = new ApiError(409, "Refunds need approval. Ask for approval instead."); e.details = { needsApproval: true }; throw e; }
   ok(res, await refundFee(await feeFor(req), { amount: Number(req.body?.amount), reason: str(req.body?.reason, 300), by: req.auth?.name }));
 }));
 
@@ -235,65 +238,14 @@ r.post("/lead-fees/:feeId/discount-request", require_("leads", "edit"), asyncHan
   const amount = Math.round(Number(req.body?.amount) * 100) / 100;
   if (!Number.isFinite(amount) || amount <= 0 || amount > feeBalance(fee)) throw new ApiError(400, `The concession must be between ₹1 and ${money(feeBalance(fee))}`);
   if (!str(req.body?.reason, 300)) throw new ApiError(400, "Say why the concession is needed");
-  if (await Approval.exists({ tenant: req.tenantId, fee: fee._id, status: "pending" })) throw new ApiError(400, "A concession on this fee is already waiting for approval");
+  if (await Approval.exists({ tenant: req.tenantId, fee: fee._id, kind: "fee_discount", status: "pending" })) throw new ApiError(400, "A concession on this fee is already waiting for approval");
   const lead: any = await Lead.findById(fee.lead).select("name").lean();
-  const approval = await Approval.create({
-    tenant: req.tenantId, lead: fee.lead, leadName: lead?.name || "", fee: fee._id, feeTitle: fee.title, amount, reason: str(req.body.reason, 300), requestedBy: req.auth?.name || "",
-  });
-  // ask the requester's manager, and everyone who may change CRM setup
-  const [me, admins] = await Promise.all([
-    User.findById(req.auth.uid).select("reportingManager").lean(),
-    User.find({ tenant: req.tenantId, status: "Active" }).populate("userType", "perms").select("userType").lean(),
-  ]);
-  const approvers = [(me as any)?.reportingManager, ...admins.filter((u: any) => (u.userType?.perms || []).some((p: any) => p.module === "setup" && p.edit)).map((u: any) => u._id)].filter(Boolean);
-  await notify({ tenantId: req.tenantId, users: approvers, except: req.auth.uid, category: "crm_lead", title: `Approve ${money(amount)} off for ${lead?.name || "a lead"}?`, body: `${fee.title} · asked by ${req.auth?.name}`, link: "/crm/approvals" });
-  await logActivity({ tenant: req.tenantId, lead: fee.lead, type: "approval", by: req.auth?.name, title: `Concession of ${money(amount)} requested`, detail: approval.reason });
-  ok(res, approval, 201);
+  // the approval rules decide: approved at once under the limit, or one / two approvers
+  const out = await requestApproval(req, { kind: "fee_discount", lead: fee.lead, leadName: lead?.name || "", fee: fee._id, feeTitle: fee.title, amount, reason: str(req.body.reason, 300), link: `/crm/leads?lead=${fee.lead}` });
+  ok(res, { ...out.approval.toObject(), auto: out.auto }, 201);
 }));
 
-/** May this user decide approvals? CRM setup editors, and the requester's reporting manager. */
-async function canDecide(req: any, approval: any) {
-  if ((req.perms || []).some((p: any) => p.module === "setup" && p.edit)) return true;
-  const requester: any = await User.findOne({ tenant: req.tenantId, name: approval.requestedBy }).select("reportingManager").lean();
-  return !!requester?.reportingManager && String(requester.reportingManager) === String(req.auth.uid);
-}
-
-r.get("/crm/approvals", require_("leads", "view"), asyncHandler(async (req: any, res: any) => {
-  const filter: any = { tenant: req.tenantId };
-  if (["pending", "approved", "rejected"].includes(str(req.query.status))) filter.status = str(req.query.status);
-  const all = await Approval.find(filter).sort({ createdAt: -1 }).limit(300).lean();
-  const mayDecideAll = (req.perms || []).some((p: any) => p.module === "setup" && p.edit);
-  const reports = mayDecideAll ? [] : (await User.find({ tenant: req.tenantId, reportingManager: req.auth.uid }).select("name").lean()).map((u: any) => u.name);
-  // you see what you asked for, and what is yours to decide
-  const items = all.filter((a) => mayDecideAll || a.requestedBy === req.auth?.name || reports.includes(a.requestedBy)).map((a) => ({ ...a, canDecide: a.status === "pending" && a.requestedBy !== req.auth?.name && (mayDecideAll || reports.includes(a.requestedBy)) }));
-  ok(res, { items, pending: items.filter((a) => a.status === "pending").length });
-}));
-
-r.post("/crm/approvals/:id/decide", require_("leads", "view"), asyncHandler(async (req: any, res: any) => {
-  const a = await Approval.findOne({ _id: req.params.id, tenant: req.tenantId });
-  if (!a) throw new ApiError(404, "Request not found");
-  if (a.status !== "pending") throw new ApiError(400, `This request was already ${a.status}`);
-  if (a.requestedBy === req.auth?.name) throw new ApiError(403, "You cannot approve your own request");
-  if (!(await canDecide(req, a))) throw new ApiError(403, "This request is not yours to decide");
-  const approve = !!req.body?.approve;
-  if (approve) {
-    const fee = await LeadFee.findOne({ _id: a.fee, tenant: req.tenantId });
-    if (!fee) throw new ApiError(404, "The fee no longer exists");
-    if (a.amount > feeBalance(fee)) throw new ApiError(400, "The fee has been paid down since; the concession is now more than what is left");
-    fee.discount = Math.round(((fee.discount || 0) + a.amount) * 100) / 100;
-    if (feeBalance(fee) <= 0 && fee.status === "pending") { fee.status = "paid"; fee.paidAt = new Date(); }
-    await fee.save();
-  }
-  a.status = approve ? "approved" : "rejected";
-  a.decidedBy = req.auth?.name || "";
-  a.decidedAt = new Date();
-  a.note = str(req.body?.note, 300);
-  await a.save();
-  await logActivity({ tenant: req.tenantId, lead: a.lead, type: "approval", by: req.auth?.name, title: `Concession of ${money(a.amount)} ${a.status}`, detail: a.note });
-  const requester: any = await User.findOne({ tenant: req.tenantId, name: a.requestedBy }).select("_id").lean();
-  if (requester) await notify({ tenantId: req.tenantId, users: [requester._id], category: "crm_lead", title: `Concession ${a.status}: ${a.leadName}`, body: `${money(a.amount)} · ${a.feeTitle}`, link: `/crm/leads?lead=${a.lead}` });
-  ok(res, a);
-}));
+/* approvals list and decisions: routes/crmApprovals.ts */
 
 /* ───────────── message many leads at once ───────────── */
 

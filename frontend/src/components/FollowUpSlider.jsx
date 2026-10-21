@@ -64,7 +64,7 @@ export default function FollowUpSlider({ lead, owners = [], onClose, onSaved }) 
           <div className="text-sm font-semibold text-foreground">What happened now</div>
           <div className="grid grid-cols-[130px_1fr] gap-2">
             {typeSelect(done.type, (v) => setDone((d) => ({ ...d, type: v })))}
-            <input className="ui-input w-full" placeholder="What was discussed? (optional)" value={done.remark} onChange={(e) => setDone((d) => ({ ...d, remark: e.target.value }))} />
+            <input className="ui-input w-full" aria-label="What was discussed" title="What was discussed" value={done.remark} onChange={(e) => setDone((d) => ({ ...d, remark: e.target.value }))} />
           </div>
         </section>
 

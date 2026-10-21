@@ -81,6 +81,7 @@ export default function LeadDrawer({ id, meta, onClose, onChanged, onFollowUp, o
               {can("blast", "create") && <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => onMessage?.(l)}><i className="bi bi-send"></i>Message</button>}
               {can("followups", "create") && <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => onFollowUp?.(l)}><i className="bi bi-calendar-plus"></i>Follow-up</button>}
               {canEdit && <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => navigate(`/crm/leads/registration/${l._id}`)}><i className="bi bi-clipboard-check"></i>Register</button>}
+              {can("leads", "create") && <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => navigate(`/crm/deals?lead=${l._id}`)}><i className="bi bi-briefcase"></i>Deal</button>}
               {can("leads", "del") && <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon ms-auto" title="Delete lead" onClick={() => setConfirmDelete(true)}><i className="bi bi-trash"></i></button>}
             </div>
 
@@ -151,7 +152,7 @@ export default function LeadDrawer({ id, meta, onClose, onChanged, onFollowUp, o
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40" onClick={() => setPendingLost(null)}>
           <div className="w-full max-w-sm rounded-xl border bg-card shadow-2xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="text-sm font-semibold text-foreground">Why was this lead lost?</div>
-            <input className="ui-input w-full" list="lost-reasons" autoFocus placeholder="Reason" value={pendingLost.reason} onChange={(e) => setPendingLost((p) => ({ ...p, reason: e.target.value }))} />
+            <input className="ui-input w-full" list="lost-reasons" autoFocus aria-label="Reason" title="Reason" value={pendingLost.reason} onChange={(e) => setPendingLost((p) => ({ ...p, reason: e.target.value }))} />
             <datalist id="lost-reasons">{[...new Set([...(meta?.lostReasons || []), ...LOST_REASONS])].map((r) => <option key={r} value={r} />)}</datalist>
             <div className="flex justify-end gap-2">
               <button type="button" className="ui-btn ui-btn-outline" onClick={() => setPendingLost(null)}>Cancel</button>
@@ -230,7 +231,7 @@ function Timeline({ id, items, loading, canEdit, onDone, activityTypes }) {
               <select className="ui-input w-full" value={call.outcome} onChange={(e) => setCall((c) => ({ ...c, outcome: e.target.value }))}>
                 {CALL_OUTCOMES.map((o) => <option key={o}>{o}</option>)}
               </select>
-              <input className="ui-input w-full" type="number" min="0" placeholder="Minutes" value={call.durationMin} onChange={(e) => setCall((c) => ({ ...c, durationMin: e.target.value }))} />
+              <input className="ui-input w-full" type="number" min="0" aria-label="Minutes" title="Minutes" value={call.durationMin} onChange={(e) => setCall((c) => ({ ...c, durationMin: e.target.value }))} />
             </div>
           )}
           {mode === "activity" ? <LogActivity leadId={id} types={activityTypes} onDone={onDone} /> : <>
@@ -311,7 +312,7 @@ function FollowUpList({ items, loading, onDone }) {
             {closing?.id === f._id && (
               <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-2 mt-2">
                 <select className="ui-input w-full" value={closing.outcome} onChange={(e) => setClosing((c) => ({ ...c, outcome: e.target.value }))}>{FU_OUTCOMES.map((o) => <option key={o}>{o}</option>)}</select>
-                <input className="ui-input w-full" placeholder="What happened?" value={closing.note} onChange={(e) => setClosing((c) => ({ ...c, note: e.target.value }))} />
+                <input className="ui-input w-full" aria-label="What happened" title="What happened" value={closing.note} onChange={(e) => setClosing((c) => ({ ...c, note: e.target.value }))} />
                 <button type="button" className="ui-btn ui-btn-primary" onClick={() => act(() => followUpsApi.complete(f._id, { outcome: closing.outcome, note: closing.note }), "Follow-up completed")}>Done</button>
               </div>
             )}
@@ -403,7 +404,7 @@ function Details({ lead, meta, canEdit, onSaved }) {
         </div>
         <div className="sm:col-span-2">
           <label className={labelCls}>Tags</label>
-          <input className="ui-input w-full" disabled={!canEdit} placeholder="Comma separated" value={form.tags} onChange={(e) => set("tags", e.target.value)} />
+          <input className="ui-input w-full" disabled={!canEdit} title="Comma separated" value={form.tags} onChange={(e) => set("tags", e.target.value)} />
         </div>
         <CustomFieldInputs fields={meta?.customFields} values={form.customFields} onChange={(v) => set("customFields", v)} disabled={!canEdit} />
         <div className="sm:col-span-2">

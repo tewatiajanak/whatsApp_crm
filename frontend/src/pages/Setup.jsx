@@ -70,6 +70,7 @@ const CATEGORIES = [
     title: "Forms",
     color: "var(--foreground)",
     items: [
+      { id: "application-forms", label: "Application & Registration Forms", to: "/crm/forms" },
       { id: "enquiry-form", label: "Enquiry Form" },
       { id: "registration-form", label: "Registration Form" },
       { id: "landing-page", label: "Landing Page" }
@@ -177,6 +178,7 @@ export default function Setup() {
   };
 
   const selectSection = (item) => {
+    if (item && item.to) return navigate(item.to);
     const id = typeof item === "string" ? item : item.id;
     setSelected(id);
     setMode("list");

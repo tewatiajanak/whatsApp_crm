@@ -25,7 +25,7 @@ export default function LeadFees({ lead, canEdit, onChanged }) {
   async function run(fn, msg) {
     setBusy(true);
     try { await fn(); toast(msg); setForm(null); setAct(null); fees.reload(); onChanged?.(); }
-    catch (e) { toast(e.message, "error"); }
+    catch (e) { if (e.quiet) { toast(e.message); setAct(null); fees.reload(); } else toast(e.message, "error"); }
     finally { setBusy(false); }
   }
   const copy = (link) => navigator.clipboard?.writeText(link).then(() => toast("Payment link copied"), () => toast("Could not copy the link", "error"));
@@ -39,8 +39,12 @@ export default function LeadFees({ lead, canEdit, onChanged }) {
   }
   function saveAct(f) {
     if (act.kind === "pay") return run(() => crmApi.payFee(f._id, { mode: act.mode, reference: act.reference, amount: act.amount }), "Payment recorded");
-    if (act.kind === "refund") return run(() => crmApi.refundFee(f._id, { amount: act.amount, reason: act.reason }), "Refund recorded");
-    return run(() => crmApi.requestDiscount(f._id, { amount: act.amount, reason: act.reason }), "Sent for approval");
+    // refunds go through approval when the rules ask for it
+    if (act.kind === "refund") return run(async () => {
+      try { await crmApi.refundFee(f._id, { amount: act.amount, reason: act.reason }); }
+      catch (e) { if (!e.details?.needsApproval) throw e; const r = await crmApi.requestRefund(f._id, act.amount, act.reason); if (!r.data?.auto) throw Object.assign(new Error("Refund sent for approval"), { quiet: true }); }
+    }, "Refund recorded").catch(() => undefined);
+    return run(async () => { const r = await crmApi.requestDiscount(f._id, { amount: act.amount, reason: act.reason }); if (r.data?.auto) toast("Within the limit, so the concession is applied"); }, "Concession requested");
   }
   const formReady = form && form.title.trim() && Number(form.amount) > 0 && (!form.plan || (form.dueDate && form.instalments >= 2));
 
@@ -58,9 +62,9 @@ export default function LeadFees({ lead, canEdit, onChanged }) {
             {[[false, "One fee"], [true, "Instalment plan"]].map(([v, label]) => <button key={label} type="button" className={"ui-btn ui-btn-sm " + (form.plan === v ? "ui-btn-primary" : "ui-btn-ghost")} onClick={() => setF("plan", v)}>{label}</button>)}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_140px] gap-2">
-            <input className="ui-input w-full" autoFocus placeholder="Fee for (e.g. Tuition fee)" value={form.title} onChange={(e) => setF("title", e.target.value)} />
-            <input className="ui-input w-full" type="number" min="1" placeholder={form.plan ? "Total ₹" : "Amount ₹"} value={form.amount} onChange={(e) => setF("amount", e.target.value)} />
-            <DateInput className="ui-input w-full" placeholder={form.plan ? "First due" : "Due date"} value={form.dueDate} onChange={(e) => setF("dueDate", e.target.value)} />
+            <div><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Fee for *</label><input className="ui-input w-full" autoFocus list="fee-titles" value={form.title} onChange={(e) => setF("title", e.target.value)} /><datalist id="fee-titles">{["Registration fee", "Application fee", "Tuition fee", "Admission fee", "Transport fee", "Hostel fee"].map((t) => <option key={t} value={t} />)}</datalist></div>
+            <div><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{form.plan ? "Total ₹ *" : "Amount ₹ *"}</label><input className="ui-input w-full" type="number" min="1" value={form.amount} onChange={(e) => setF("amount", e.target.value)} /></div>
+            <div><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{form.plan ? "First due *" : "Due date"}</label><DateInput className="ui-input w-full" value={form.dueDate} onChange={(e) => setF("dueDate", e.target.value)} /></div>
           </div>
           {form.plan ? (
             <div className="grid grid-cols-2 gap-2">
@@ -72,8 +76,8 @@ export default function LeadFees({ lead, canEdit, onChanged }) {
               <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={form.paid} onChange={(e) => setF("paid", e.target.checked)} />Already collected</label>
               {form.paid && (
                 <div className="grid grid-cols-2 gap-2">
-                  <select className="ui-input w-full" value={form.mode} onChange={(e) => setF("mode", e.target.value)}>{offline.map((m) => <option key={m}>{m}</option>)}</select>
-                  <input className="ui-input w-full" placeholder="Reference / UTR" value={form.reference} onChange={(e) => setF("reference", e.target.value)} />
+                  <div><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Mode</label><select className="ui-input w-full" value={form.mode} onChange={(e) => setF("mode", e.target.value)}>{offline.map((m) => <option key={m}>{m}</option>)}</select></div>
+                  <div><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reference / UTR</label><input className="ui-input w-full" value={form.reference} onChange={(e) => setF("reference", e.target.value)} /></div>
                 </div>
               )}
             </>
@@ -120,12 +124,12 @@ export default function LeadFees({ lead, canEdit, onChanged }) {
             </div>
 
             {act?.id === f._id && (
-              <div className="grid grid-cols-2 sm:grid-cols-[110px_130px_1fr_auto] gap-2 mt-2">
-                <input className="ui-input w-full" type="number" min="1" placeholder="Amount ₹" autoFocus value={act.amount} onChange={(e) => setA("amount", e.target.value)} />
+              <div className="grid grid-cols-2 sm:grid-cols-[110px_130px_1fr_auto] gap-2 mt-2 items-end">
+                <div><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Amount ₹ *</label><input className="ui-input w-full" type="number" min="1" autoFocus value={act.amount} onChange={(e) => setA("amount", e.target.value)} /></div>
                 {act.kind === "pay"
-                  ? <><select className="ui-input w-full" value={act.mode} onChange={(e) => setA("mode", e.target.value)}>{offline.map((m) => <option key={m}>{m}</option>)}</select>
-                      <input className="ui-input w-full" placeholder="Reference / UTR" value={act.reference} onChange={(e) => setA("reference", e.target.value)} /></>
-                  : <input className="ui-input w-full sm:col-span-2" placeholder={act.kind === "refund" ? "Why is it refunded?" : "Why is a concession needed?"} value={act.reason} onChange={(e) => setA("reason", e.target.value)} />}
+                  ? <><div><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Mode</label><select className="ui-input w-full" value={act.mode} onChange={(e) => setA("mode", e.target.value)}>{offline.map((m) => <option key={m}>{m}</option>)}</select></div>
+                      <div><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reference / UTR</label><input className="ui-input w-full" value={act.reference} onChange={(e) => setA("reference", e.target.value)} /></div></>
+                  : <div className="sm:col-span-2"><label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reason *</label><input className="ui-input w-full" value={act.reason} onChange={(e) => setA("reason", e.target.value)} /></div>}
                 <button type="button" className="ui-btn ui-btn-primary" disabled={busy || !(Number(act.amount) > 0) || (act.kind !== "pay" && !act.reason.trim())} onClick={() => saveAct(f)}>
                   {act.kind === "pay" ? "Save" : act.kind === "refund" ? "Refund" : "Ask approval"}
                 </button>

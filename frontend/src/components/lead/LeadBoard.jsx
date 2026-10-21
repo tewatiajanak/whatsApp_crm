@@ -110,7 +110,7 @@ export default function LeadBoard({ params, meta, reloadKey, onOpen, onChanged }
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40" onClick={() => setLost(null)}>
           <div className="w-full max-w-sm rounded-xl border bg-card shadow-2xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="text-sm font-semibold text-foreground">Why was {lost.lead.name} lost?</div>
-            <input className="ui-input w-full" list="board-lost" autoFocus placeholder="Reason" value={lost.reason} onChange={(e) => setLost((x) => ({ ...x, reason: e.target.value }))} />
+            <input className="ui-input w-full" list="board-lost" autoFocus aria-label="Reason" value={lost.reason} onChange={(e) => setLost((x) => ({ ...x, reason: e.target.value }))} />
             <datalist id="board-lost">{[...new Set([...(meta.lostReasons || []), ...LOST_REASONS])].map((r) => <option key={r} value={r} />)}</datalist>
             <div className="flex justify-end gap-2">
               <button type="button" className="ui-btn ui-btn-outline" onClick={() => setLost(null)}>Cancel</button>

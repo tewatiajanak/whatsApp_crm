@@ -9,6 +9,64 @@ Newest first. One entry per part.
 ### How to test
 -->
 
+## CRM: Report builder & dashboards, approvals, UI clean-up — 2026-10-22
+### Added
+- **Report builder** (CRM → Report builder), rebuilt on one query engine over Leads, Follow-ups, Applications, Deals, Quotations, Form submissions, Fees & payments, Queries and the lead timeline.
+  - Reports: summary (group by any field, dates by day / week / month / quarter / year, then by a second field; count, total, average, lowest, highest, unique) or a list of records with the columns you pick; filters by field type (is, is any of, contains, at least, between, is empty …); period presets (today … financial year, custom) on any date field; sort; up to 5,000 rows; bar / line / pie chart; totals row; **Export Excel**; save (private or shared); 8 ready-made reports.
+  - **Dashboards**: number cards (with change vs the previous period), bar, line, pie and table widgets, 1–4 columns wide; one period for the whole dashboard; edit mode to add, edit, move, resize, remove; a starter "Admissions overview" with 11 widgets; private or shared.
+  - Only whitelisted fields can be read; every source keeps the Leads page visibility (own / team / all, branches).
+- **Approvals** made a real workflow: fee concessions, **refunds** and **quotation discounts**.
+  - Rules (Approvals → Rules, CRM admins): approve on its own up to an amount; a second approver above an amount (named people, or CRM admins); extra first approvers; refunds and quotation discounts can be switched on, with the allowed discount %.
+  - Page: For me / My requests / All, type and status filters, approve or reject (reason required) one or many, withdraw your own request, a trail of who approved each step, who it is waiting on.
+  - Nothing changes until the last approval: then the concession is applied, the refund is paid, or the quotation can be sent. A quotation edited to a bigger discount needs approval again.
+- **Automation rule editor**: When → Only if → Then do, step cards with "Right away / After a wait", AND / OR toggle, move steps, labelled message boxes with click-to-insert name / course / city / owner, Active switch, and a one-line summary of the rule.
+- Buttons styled as cards keep their rounded corners everywhere (Bootstrap's reboot was resetting them); New form template picker restyled.
+- Fees, refunds, concessions, lost reason, follow-up notes, targets, saved views, custom fields: hints inside boxes replaced by labels.
+- API: `routes/crmReports.ts`, `routes/crmApprovals.ts`, model `models/CrmReport.ts`; tests `npm --prefix backend run reports:api-test` (13 checks).
+### Existing files changed (and why)
+- `models/CrmMore.ts` (Approval: kinds, levels, trail — additive; lead and fee no longer required for quotation requests), `models/CrmExtras.ts` (`approvals` rules), `models/CrmSales.ts` (quotation `approval`).
+- `routes/crm2.ts` — concession requests follow the rules; direct refunds need approval when the rule is on (CRM admins excepted); approval list/decide moved to `crmApprovals.ts` (same URLs). `routes/crmSales.ts` — send checks the discount rule.
+- Frontend: `pages/ReportBuilder.jsx` (new, replaces the fixed lead report at `/crm/reports`), `pages/CrmMorePages.jsx` (Approvals), `pages/Automation.jsx`, `pages/Sales.jsx`, `components/lead/LeadFees.jsx`, `styles.css`, `api/index.js`, `App.jsx`.
+### How to test
+- `npm --prefix backend run reports:api-test`, `forms:api-test`, `crm:api-test`.
+- CRM → Report builder → pick a ready-made report → change Group by → Export Excel → Save; Dashboards → Make a starter dashboard.
+- Approvals → Rules → set "approve on its own up to ₹100" and a second approver above ₹1,000 → ask for a concession on a lead's fee.
+
+## CRM: Applications made workable, offers by email and WhatsApp — 2026-10-21
+### Added
+- **Applications** list: stage tabs with counts, search, course / owner / date filters, Clear, Excel export; table on desktop, cards on phones; offer status and fee (paid / due) on every row.
+- **Application drawer** (row click or `?app=`): applicant, call / WhatsApp / lead / form links, stage move with a note and a stage bar, offer status, fees with pay links, the answers filled in, documents (open), stage history.
+- **Offer**: letter, fee to confirm, valid till; send by **Email** and/or **WhatsApp** using the CRM templates from Setup → Communication Templates. Each {{1}}, {{2}} is filled from applicant name, course, fee, valid till, offer link, payment link, organisation or your own text; live preview for both. A WhatsApp template goes as an approved WhatsApp template when Meta approved one with that name, otherwise as a normal message. Sending again updates the same fee instead of adding another. Do-not-contact settings are respected; each channel's result is shown.
+- API: `routes/crmApplications.ts` (list, `GET /crm/applications/templates`, `GET /crm/applications/:id`, stage, offer) — moved out of `routes/crm.ts`, same URLs.
+### How to test
+- `npm --prefix backend run forms:api-test` (21 checks; sends nothing).
+- Setup → Communication Templates → Email Template with {{1}} {{2}} → Applications → Offer → pick it → map the values → Make offer & send.
+
+## CRM: Forms builder, Sales (deals, companies, products, quotations) — 2026-10-21
+### Added
+- **Forms** (CRM → Forms, also Setup → Forms → Application & Registration Forms): one simple builder for enquiry, application, registration, event, feedback and other forms. Start from a template (Enquiry, Admission application, Event registration, Job application, Contact us, Feedback) or blank.
+  - **Build**: click or drag 18 field types (text, long text, email, phone, number, date, time, link, dropdown, single / multiple choice, yes/no, rating, file upload, signature, consent, section title, hidden value); multi-step forms; drag to reorder, move between steps, duplicate, delete; half / full width; required; options typed or taken from Courses / Branches / Grades / Academic sessions; each answer can fill a lead field; default value and URL name (prefill from the link); validation (min/max, length, PIN / PAN / Aadhaar / custom pattern with its own error text); file type, size and count; **show only if** conditions. Live preview on desktop and phone.
+  - **Settings**: heading, button text, progress bar, save and continue later (resume link, emailed when an email is given), thank-you message with {name} {ref}, redirect link, open / close time, most submissions, one per phone, closed message, reference prefix (ENQ-/APP-/REG-… by default), create/update lead (source, status, owner or auto-assign, course, tags), add to **Applications**, **fee** (fixed or by a dropdown answer → payment link through the existing gateway), notify the owner and other emails, email / WhatsApp a copy to the person, colour / background / logo / cover / width.
+  - **Share**: link, copy, open, WhatsApp, custom link name, campaign (UTM) link, QR code download, embed code (auto-height iframe), prefill parameters.
+  - **Submissions**: status tiles, search, status / payment / date filters, bulk mark / delete, Excel export of every answer; detail drawer with answers by step, file view / download (login only), lead and application links, payment status and pay link, receipt / resume links, notes and history.
+  - **Analytics**: views, starts, submissions, conversion, leads, money collected, per-day chart, sources, where unfinished forms stopped.
+  - Public pages: `/f/:slug` (mobile-first, steps, inline errors, signature pad, honeypot spam check) and `/f/receipt/:token` (printable copy, pay button, track application).
+  - Every answer is checked again on the server (types, options, conditions, patterns, files); files go to the lead's documents.
+- **Sales** (CRM → Sales):
+  - **Deals**: pipeline board with drag and drop (and a Move-to menu on phones), list view, deal stages as a master (name, colour, probability, open / won / lost — Deals → Stages), value from product lines, weighted forecast, expected close and overdue, days in stage, owner / priority / source / tags, lost reason required, notes and stage history, by-owner table, Excel export. **Deal** button on every lead opens a new deal from it.
+  - **Companies**: accounts with industry, size, GSTIN, address, owner, tags, people (with a main contact), notes, their deals and quotations.
+  - **Products**: catalogue with SKU, category, unit, price, GST %, HSN/SAC; used products are switched off instead of deleted.
+  - **Quotations**: from a deal or blank, product lines with discount and tax, adjustment / round off, valid till, terms, note; send by email or copy link; the customer opens `/quote/:token`, prints / saves PDF, accepts (with their name) or declines; views are counted; accepted / rejected quotations are locked (duplicate to change); the owner is notified.
+- API: `routes/crmForms.ts`, `routes/crmSales.ts`, models `models/CrmForm.ts`, `models/CrmSales.ts`; test `npm --prefix backend run forms:api-test` (20 checks, cleans up after itself).
+### Existing files changed (and why)
+- `backend/src/routes/index.ts` — mounts the new public and signed-in routes. `backend/package.json` — test script.
+- `frontend/src/App.jsx` — routes; `api/index.js` — `formsApi`, `salesApi`; sidebar (Forms under CRM, new Sales group); `BreadcrumbNav.jsx`; `Setup.jsx` — Forms group links to the new builder (old Registration Form builder kept); `LeadDrawer.jsx` — Deal button.
+- Rights: Forms building uses `setup`; submissions, deals, companies and quotations use `leads`, with the same lead visibility (own / team / all) by owner.
+### How to test
+- `npm --prefix backend run forms:api-test` with the API running.
+- CRM → Forms → New form → Admission application → Settings → Publish → Share → Open; fill it in on a phone, upload a file, sign, submit, pay. Back in Submissions / Analytics / Applications / the lead.
+- CRM → Deals → New deal with a product line → drag across the board → Quotation → Send → open the link → Accept.
+
 ## Bulk Campaigns: recipient lists, delivery report, resend — 2026-10-15
 ### Added
 - **Recipient Lists** tab (CRM → Bulk Campaigns): import a CSV / Excel file (pick the phone and name columns, check valid / invalid / duplicate, import), view, search, remove a number, add more numbers from another file, rename, Excel export, Send. Other columns are kept to fill template variables.

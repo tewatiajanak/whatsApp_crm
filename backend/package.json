@@ -17,7 +17,9 @@
     "website:test": "ts-node --transpile-only src/services/websiteData.test.ts",
     "website:api-test": "node src/tests/website.api.test.mjs",
     "crm:api-test": "node src/tests/crm.pro.api.test.mjs",
-    "prereq:api-test": "node src/tests/prerequisites.api.test.mjs"
+    "prereq:api-test": "node src/tests/prerequisites.api.test.mjs",
+    "forms:api-test": "node src/tests/forms.sales.api.test.mjs",
+    "reports:api-test": "node src/tests/reports.approvals.api.test.mjs"
   },
   "keywords": [
     "whatsapp",

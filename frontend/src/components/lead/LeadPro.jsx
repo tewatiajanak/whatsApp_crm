@@ -4,7 +4,7 @@ import { crmApi, leadsApi } from "../../api";
 import { useApi } from "../../hooks/useApi";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { Modal, Spinner, EmptyState, Chip, Confirm, Avatar } from "../ui";
+import { Modal, Spinner, EmptyState, Chip, Confirm, Avatar, SearchBox } from "../ui";
 import DateInput from "../DateInput";
 import { formatDate, formatDateTime } from "../../utils/dateFormat";
 import { labelCls, isoDay, timeAgo } from "./leadUtils";
@@ -76,7 +76,7 @@ export function LogActivity({ leadId, types, onDone }) {
         <input type="time" className="ui-input w-full" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Time" />
       </div>
       <ActivityFields type={type} values={values} onChange={setValues} />
-      <textarea className="ui-input w-full" style={{ height: "auto", padding: "8px 12px" }} rows={2} placeholder="Notes" value={note} onChange={(e) => setNote(e.target.value)} />
+      <textarea className="ui-input w-full" style={{ height: "auto", padding: "8px 12px" }} rows={2} aria-label="Notes" title="Notes" value={note} onChange={(e) => setNote(e.target.value)} />
       <div className="flex justify-end">
         <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" disabled={saving || !type || missing.length > 0} title={missing.length ? `Fill ${missing.join(", ")}` : undefined} onClick={save}>{saving ? "Saving…" : "Log activity"}</button>
       </div>
@@ -200,7 +200,7 @@ export function NewQuery({ lead, meta, onClose, onSaved }) {
         ) : (
           <div className="relative">
             <label className={labelCls}>Lead</label>
-            <input className="ui-input w-full" placeholder="Search" value={leadQ} onChange={(e) => setLeadQ(e.target.value)} />
+            <SearchBox value={leadQ} onChange={setLeadQ} className="w-full max-w-none" />
             {found.length > 0 && (
               <div className="absolute z-10 left-0 right-0 mt-1 rounded-lg border bg-card shadow-lg overflow-hidden">
                 {found.map((l) => <button key={l._id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent/40" onClick={() => setPicked(l)}>{l.name} <span className="text-xs text-muted-foreground">{l.phone}</span></button>)}

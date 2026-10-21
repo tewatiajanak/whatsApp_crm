@@ -66,12 +66,12 @@ export function ActivityTypesTab({ canEdit }) {
               {editing.fields.map((f, i) => (
                 <div key={i} className="rounded-lg border p-2 space-y-2">
                   <div className="grid grid-cols-[1fr_120px_auto_auto] gap-2 items-center">
-                    <input className="ui-input w-full" aria-label="Field name" placeholder="Field name" value={f.label} onChange={(e) => setField(i, "label", e.target.value)} />
+                    <input className="ui-input w-full" aria-label="Field name" aria-label="Field name" title="Field name" value={f.label} onChange={(e) => setField(i, "label", e.target.value)} />
                     <select className="ui-input w-full" value={f.type} onChange={(e) => setField(i, "type", e.target.value)}>{FIELD_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
                     <label className="flex items-center gap-1 text-xs text-foreground whitespace-nowrap"><input type="checkbox" checked={!!f.required} onChange={(e) => setField(i, "required", e.target.checked)} />Required</label>
                     <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon" title="Remove field" onClick={() => setEditing((x) => ({ ...x, fields: x.fields.filter((_, j) => j !== i) }))}><i className="bi bi-x-lg"></i></button>
                   </div>
-                  {f.type === "select" && <input className="ui-input w-full" aria-label="Choices" placeholder="Choices, comma separated" value={f.options} onChange={(e) => setField(i, "options", e.target.value)} />}
+                  {f.type === "select" && <input className="ui-input w-full" aria-label="Choices" aria-label="Choices" title="Choices, comma separated" value={f.options} onChange={(e) => setField(i, "options", e.target.value)} />}
                 </div>
               ))}
               {editing.fields.length < 15 && <button type="button" className="ui-btn ui-btn-outline ui-btn-sm" onClick={() => setEditing((x) => ({ ...x, fields: [...x.fields, blankField()] }))}><i className="bi bi-plus"></i>Add field</button>}

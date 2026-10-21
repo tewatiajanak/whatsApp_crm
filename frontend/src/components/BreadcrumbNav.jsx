@@ -201,6 +201,19 @@ export default function BreadcrumbNav() {
       ];
     }
 
+    if (pathname.startsWith("/crm/forms")) {
+      return [
+        { label: "Home", to: "/" },
+        { label: "CRM", to: "/crm" },
+        pathname === "/crm/forms" ? { label: "Forms" } : { label: "Forms", to: "/crm/forms" },
+        ...(pathname === "/crm/forms" ? [] : [{ label: "Form" }])
+      ];
+    }
+
+    for (const [path, label] of [["/crm/deals", "Deals"], ["/crm/companies", "Companies"], ["/crm/quotes", "Quotations"], ["/crm/products", "Products"]]) {
+      if (pathname === path) return [{ label: "Home", to: "/" }, { label: "CRM", to: "/crm" }, { label: "Sales" }, { label }];
+    }
+
     if (pathname === "/crm/queries") {
       return [
         { label: "Home", to: "/" },

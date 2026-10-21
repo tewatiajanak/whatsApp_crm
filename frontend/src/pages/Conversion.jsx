@@ -163,7 +163,7 @@ export default function Conversion() {
               {(meta.data?.sources || []).map((x) => (
                 <div key={x._id} className="grid grid-cols-[1fr_120px] gap-2 items-center">
                   <span className="text-sm text-foreground truncate">{x.name}</span>
-                  <input className="ui-input w-full" type="number" min="0" placeholder="₹" value={spending[x._id]} onChange={(e) => setSpending((v) => ({ ...v, [x._id]: e.target.value }))} />
+                  <input className="ui-input w-full" type="number" min="0" aria-label="Amount ₹" title="Amount ₹" value={spending[x._id]} onChange={(e) => setSpending((v) => ({ ...v, [x._id]: e.target.value }))} />
                 </div>
               ))}
             </div>

@@ -89,9 +89,10 @@ sourceSpendSchema.index({ tenant: 1, month: 1, source: 1 }, { unique: true });
 export const SourceSpend = model<ISourceSpend>("CrmSourceSpend", sourceSpendSchema);
 
 /* ───────────── approvals (fee discounts) ───────────── */
+export const APPROVAL_KINDS = ["fee_discount", "refund", "quote_discount"] as const;
 export interface IApproval extends Document {
   tenant: Types.ObjectId;
-  kind: "fee_discount";
+  kind: (typeof APPROVAL_KINDS)[number];
   lead: Types.ObjectId;
   leadName: string;
   fee: Types.ObjectId;
@@ -99,26 +100,45 @@ export interface IApproval extends Document {
   amount: number;
   reason: string;
   requestedBy: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "cancelled";
   decidedBy: string;
   decidedAt?: Date | null;
   note: string;
+  /** what the request is about when it is not a fee (a quotation) */
+  entity?: Types.ObjectId | null;
+  entityTitle: string;
+  link: string;
+  percent: number;
+  /** 1, or 2 when a second person must also approve */
+  level: number;
+  levels: number;
+  trail: Array<{ level: number; status: string; by: string; at: Date; note: string }>;
+  payload: any;
+  createdAt: Date;
 }
 const approvalSchema = new Schema<IApproval>(
   {
     tenant: T,
     kind: { type: String, default: "fee_discount" },
-    lead: { type: Schema.Types.ObjectId, ref: "Lead", required: true },
+    lead: { type: Schema.Types.ObjectId, ref: "Lead", default: null },
     leadName: String,
-    fee: { type: Schema.Types.ObjectId, ref: "LeadFee", required: true },
+    fee: { type: Schema.Types.ObjectId, ref: "LeadFee", default: null },
     feeTitle: String,
     amount: { type: Number, required: true },
     reason: { type: String, default: "" },
     requestedBy: { type: String, default: "" },
-    status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    status: { type: String, enum: ["pending", "approved", "rejected", "cancelled"], default: "pending" },
     decidedBy: { type: String, default: "" },
     decidedAt: { type: Date, default: null },
     note: { type: String, default: "" },
+    entity: { type: Schema.Types.ObjectId, default: null },
+    entityTitle: { type: String, default: "" },
+    link: { type: String, default: "" },
+    percent: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    levels: { type: Number, default: 1 },
+    trail: { type: [{ _id: false, level: Number, status: String, by: String, at: Date, note: String }], default: [] },
+    payload: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );

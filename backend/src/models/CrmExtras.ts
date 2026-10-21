@@ -30,6 +30,8 @@ export interface ICrmSettings extends Document {
   };
   queries: { categories: Array<{ name: string; slaHours: number }>; defaultSlaHours: number; assignToLeadOwner: boolean };
   trashDays: number;
+  /** approval rules (CRM → Approvals → Rules) */
+  approvals: any;
   lastDecayKey: string;
   lastDigestKey: string;
 }
@@ -162,6 +164,7 @@ const crmSettingsSchema = new Schema<ICrmSettings>(
       assignToLeadOwner: { type: Boolean, default: true },
     },
     trashDays: { type: Number, default: 30 },
+    approvals: { type: Schema.Types.Mixed, default: {} },
     lastDecayKey: { type: String, default: "" },
     lastDigestKey: { type: String, default: "" },
   },

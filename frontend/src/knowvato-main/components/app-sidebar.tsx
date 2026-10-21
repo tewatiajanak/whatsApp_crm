@@ -56,6 +56,10 @@ import {
   Palette,
   Headset,
   ListChecks,
+  ClipboardList,
+  Briefcase,
+  Package,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "../../context/AuthContext";
@@ -181,12 +185,22 @@ const crmSubmenu = [
       { title: "Queries", path: "/crm/queries", icon: Headset, module: "leads" },
       { title: "Lead Lists", path: "/crm/lists", icon: ListChecks, module: "leads" },
       { title: "Conversion", path: "/crm/conversion", icon: TrendingUp, module: "conversion" },
+      { title: "Forms", path: "/crm/forms", icon: ClipboardList, module: "leads" },
       { title: "Applications", path: "/crm/applications", icon: ClipboardCheck, module: "leads" },
       { title: "Targets", path: "/crm/targets", icon: BarChart3, module: "leads" },
       { title: "Report Builder", path: "/crm/reports", icon: Filter, module: "leads" },
       { title: "Approvals", path: "/crm/approvals", icon: UserCheck, module: "leads" },
       { title: "Partners", path: "/crm/partners", icon: Network, module: "leads" },
       { title: "Contacts", path: "/crm/contacts", icon: Users, module: "contacts" },
+    ],
+  },
+  {
+    label: "Sales",
+    items: [
+      { title: "Deals", path: "/crm/deals", icon: Briefcase, module: "leads" },
+      { title: "Companies", path: "/crm/companies", icon: Building2, module: "leads" },
+      { title: "Quotations", path: "/crm/quotes", icon: FileSpreadsheet, module: "leads" },
+      { title: "Products", path: "/crm/products", icon: Package, module: "leads" },
     ],
   },
   {

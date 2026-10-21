@@ -28,6 +28,7 @@ export function Tabs({ tabs, value, onChange }) {
       {tabs.map((t) => {
         const v = typeof t === "string" ? t : t.value;
         const label = typeof t === "string" ? t : t.label;
+        const count = typeof t === "string" ? undefined : t.count;
         const active = value === v;
         return (
           <button
@@ -46,6 +47,7 @@ export function Tabs({ tabs, value, onChange }) {
             }
           >
             {label}
+            {count !== undefined && <span className={`text-[10px] font-semibold tabular-nums ${active ? "opacity-70" : "opacity-45"}`}>{count}</span>}
           </button>
         );
       })}
@@ -58,6 +60,27 @@ export function Tabs({ tabs, value, onChange }) {
 export function FilterBar({ children }) {
   return <div className="filter-bar flex flex-wrap items-center gap-3 mb-3">{children}</div>;
 }
+// Search box with the icon — same as the Event Manager filter bar.
+export function SearchBox({ value, onChange, placeholder = "Search", className = "" }) {
+  return (
+    <div className={"ui-search flex-1 min-w-[220px] max-w-md " + className}>
+      <span className="ui-search-icon"><i className="bi bi-search" style={{ fontSize: 13 }}></i></span>
+      <input type="text" className="ui-search-input" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} aria-label="Search" />
+      {value && <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm ui-btn-icon me-1" style={{ height: 24, width: 24 }} title="Clear" aria-label="Clear search" onClick={() => onChange("")}><i className="bi bi-x"></i></button>}
+    </div>
+  );
+}
+
+// Right end of a filter bar: "Clear" when a filter is on, and how many rows match.
+export function FilterSummary({ onClear, text }) {
+  return (
+    <>
+      {onClear && <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={onClear}><i className="bi bi-x-lg"></i>Clear</button>}
+      {text !== undefined && <div className="ml-auto text-xs text-muted-foreground flex items-center gap-1.5"><i className="bi bi-funnel"></i>{text}</div>}
+    </>
+  );
+}
+
 export function Field({ label, children, style }) {
   return (
     <div style={style}>
